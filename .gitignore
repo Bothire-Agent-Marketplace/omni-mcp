@@ -1,0 +1,236 @@
+# =============================================================================
+# MCP Project .gitignore
+# =============================================================================
+
+# Secrets and Sensitive Data
+# =============================================================================
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+*.env
+*.env.*
+!*.env.example
+.env.local
+.env.production
+.env.staging
+
+# Claude Desktop Configuration (contains sensitive paths)
+# =============================================================================
+claude_desktop_config.json
+config.json
+
+# Database Data and Backups
+# =============================================================================
+data/dvdrental/*.dat
+data/dvdrental/*.sql
+data/dvdrental/*.bak
+!data/dvdrental/01_init.sh
+*.db
+*.sqlite
+*.sqlite3
+dump.sql
+backup.sql
+
+# Docker and Container Data
+# =============================================================================
+.docker/
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Logs and Runtime Files
+# =============================================================================
+*.log
+*.out
+*.err
+logs/
+tmp/
+temp/
+.tmp/
+
+# User Data and Uploads
+# =============================================================================
+data/files/*
+data/uploads/*
+!data/files/.gitkeep
+!data/uploads/.gitkeep
+
+# Operating System Files
+# =============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+*.tmp
+*.temp
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# IDE and Editor Files
+# =============================================================================
+# VSCode
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Node.js (if any Node.js tools are added)
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+package-lock.json
+yarn.lock
+
+# Python (if any Python tools are added)
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Go (if any Go tools are added)
+# =============================================================================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Rust (if any Rust tools are added)
+# =============================================================================
+target/
+Cargo.lock
+
+# Backup Files
+# =============================================================================
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*~
+
+# Temporary Files
+# =============================================================================
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# SSL Certificates
+# =============================================================================
+*.crt
+*.cert
+*.ca-bundle
+*.p7b
+*.p7s
+*.spc
+
+# MCP Server Specific
+# =============================================================================
+# Any custom MCP server builds
+servers/*/build/
+servers/*/dist/
+servers/*/target/
+
+# Docker Volumes (if using named volumes)
+# =============================================================================
+volumes/
+
+# Terraform (if infrastructure as code is added)
+# =============================================================================
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+terraform.tfvars.json
+
+# Kubernetes Secrets (if K8s deployment is added)
+# =============================================================================
+*-secret.yaml
+*-secrets.yaml
+secret-*.yaml
+secrets-*.yaml
+
+# =============================================================================
+# Keep these files for proper project structure
+# =============================================================================
+!.gitkeep
+!README.md
+!LICENSE
+!Makefile
+!docker-compose.yml
+!Dockerfile
+!*.example
+!*.template
+!*.sample 

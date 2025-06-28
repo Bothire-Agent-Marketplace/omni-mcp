@@ -1,0 +1,125 @@
+sources:
+  postgres-main:
+    kind: postgres
+    host: "postgres"
+    port: 5432
+    database: "dvdrental"
+    user: "postgres"
+    password: "postgres"
+
+tools:
+  # DVD Rental Database Tools
+  query-customers:
+    kind: postgres-sql
+    source: postgres-main
+    description: Query customer data with filters and pagination
+    parameters:
+      - name: filter
+        type: string
+        description: WHERE clause filter (optional)
+      - name: limit
+        type: integer
+        description: Maximum number of results
+    statement: |
+      SELECT customer_id, first_name, last_name, email, 
+             store_id, active, create_date, last_update
+      FROM customer 
+      WHERE $1
+      ORDER BY last_update DESC
+      LIMIT $2;
+
+  get-customer-rentals:
+    kind: postgres-sql
+    source: postgres-main
+    description: Get rental history for a specific customer
+    parameters:
+      - name: customer_id
+        type: integer
+        description: Customer ID to get rentals for
+      - name: days_back
+        type: integer
+        description: Number of days back to search
+    statement: |
+      SELECT r.rental_id, f.title, r.rental_date, r.return_date,
+             CASE WHEN r.return_date IS NULL THEN 'Not Returned'
+                  ELSE 'Returned' END as status,
+             s.first_name || ' ' || s.last_name as staff_member
+      FROM rental r
+      JOIN inventory i ON r.inventory_id = i.inventory_id
+      JOIN film f ON i.film_id = f.film_id
+      JOIN staff s ON r.staff_id = s.staff_id
+      WHERE r.customer_id = $1
+      AND r.rental_date >= CURRENT_DATE - INTERVAL '$2 days'
+      ORDER BY r.rental_date DESC;
+
+  search-films:
+    kind: postgres-sql
+    source: postgres-main
+    description: Search for films by title, category, or actor
+    parameters:
+      - name: search_term
+        type: string
+        description: Search term for title, category, or actor name
+      - name: limit
+        type: integer
+        description: Maximum number of results
+    statement: |
+      SELECT DISTINCT f.film_id, f.title, f.description, f.release_year,
+             f.rating, f.rental_rate, f.length,
+             c.name as category,
+             string_agg(a.first_name || ' ' || a.last_name, ', ') as actors
+      FROM film f
+      LEFT JOIN film_category fc ON f.film_id = fc.film_id
+      LEFT JOIN category c ON fc.category_id = c.category_id
+      LEFT JOIN film_actor fa ON f.film_id = fa.film_id
+      LEFT JOIN actor a ON fa.actor_id = a.actor_id
+      WHERE f.title ILIKE '%' || $1 || '%'
+         OR c.name ILIKE '%' || $1 || '%'
+         OR (a.first_name || ' ' || a.last_name) ILIKE '%' || $1 || '%'
+      GROUP BY f.film_id, f.title, f.description, f.release_year,
+               f.rating, f.rental_rate, f.length, c.name
+      ORDER BY f.title
+      LIMIT $2;
+
+  get-store-inventory:
+    kind: postgres-sql
+    source: postgres-main
+    description: Get available inventory for a store
+    parameters:
+      - name: store_id
+        type: integer
+        description: Store ID (1 or 2)
+      - name: available_only
+        type: boolean
+        description: Show only available films
+    statement: |
+      SELECT f.title, c.name as category, f.rating,
+             COUNT(i.inventory_id) as total_copies,
+             COUNT(CASE WHEN r.return_date IS NOT NULL OR r.rental_id IS NULL 
+                        THEN i.inventory_id END) as available_copies
+      FROM film f
+      JOIN inventory i ON f.film_id = i.film_id
+      LEFT JOIN film_category fc ON f.film_id = fc.film_id
+      LEFT JOIN category c ON fc.category_id = c.category_id
+      LEFT JOIN rental r ON i.inventory_id = r.inventory_id 
+                         AND r.return_date IS NULL
+      WHERE i.store_id = $1
+      GROUP BY f.film_id, f.title, c.name, f.rating
+      HAVING CASE WHEN $2 THEN 
+                COUNT(CASE WHEN r.return_date IS NOT NULL OR r.rental_id IS NULL 
+                           THEN i.inventory_id END) > 0
+             ELSE TRUE END
+      ORDER BY f.title;
+
+toolsets:
+  customer-service:
+    - query-customers
+    - get-customer-rentals
+  film-management:
+    - search-films
+    - get-store-inventory
+  dvd-rental-all:
+    - query-customers
+    - get-customer-rentals
+    - search-films
+    - get-store-inventory

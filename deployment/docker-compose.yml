@@ -1,0 +1,38 @@
+services:
+  # PostgreSQL Database with DVD Rental Sample Data
+  # Note: MCP servers (filesystem and database-toolbox) are started
+  # directly by Claude Desktop when needed, not as standalone services
+  postgres:
+    image: postgres:15
+    container_name: mcp-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=dvdrental
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../data/dvdrental:/docker-entrypoint-initdb.d:ro
+    networks:
+      - mcp-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dvdrental"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+networks:
+  mcp-net:
+    driver: bridge
+    name: mcp-network
+
+volumes:
+  mcp-data:
+    name: mcp-data
+  mcp-uploads:
+    name: mcp-uploads
+  postgres_data:
+    name: mcp-postgres-data

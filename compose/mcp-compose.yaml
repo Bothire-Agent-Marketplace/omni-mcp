@@ -1,0 +1,41 @@
+version: "1"
+
+proxy_auth:
+  enabled: true
+  api_key: "${MCP_API_KEY}"
+
+servers:
+  # Google's MCP Toolbox for Databases (Go)
+  database-toolbox:
+    image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:0.7.0
+    runtime: docker
+    protocol: stdio
+    command:
+      ["./toolbox", "--tools-file", "/config/tools.yaml", "--port", "5000"]
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: "/creds/service-account.json"
+    capabilities: [tools, resources]
+    volumes:
+      - "./compose/configs/database-tools.yaml:/config/tools.yaml:ro"
+      - "./secrets/gcp-creds.json:/creds/service-account.json:ro"
+    networks: [mcp-net]
+
+  # Official MCP Filesystem Server (Built from Source)
+  filesystem:
+    build:
+      context: ./servers/filesystem-server
+      dockerfile: Dockerfile
+    runtime: docker
+    protocol: stdio
+    env:
+      ALLOWED_PATHS: "/data,/uploads"
+      MAX_FILE_SIZE: "10485760"
+    capabilities: [tools, resources]
+    volumes:
+      - "./data/files:/data:rw"
+      - "./data/uploads:/uploads:rw"
+    networks: [mcp-net]
+
+networks:
+  mcp-net:
+    driver: bridge
