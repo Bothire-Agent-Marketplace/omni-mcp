@@ -1,0 +1,39 @@
+{
+  "name": "linear-mcp-server",
+  "version": "1.0.0",
+  "description": "Linear MCP Server with TypeScript and Zod validation",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "watch": "tsx watch src/index.ts",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@linear/sdk": "^22.0.0",
+    "zod": "^3.22.4",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "linear",
+    "typescript",
+    "zod",
+    "claude"
+  ],
+  "author": "Vince",
+  "license": "MIT"
+}

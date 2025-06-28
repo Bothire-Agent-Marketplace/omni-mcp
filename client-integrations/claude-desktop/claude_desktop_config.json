@@ -1,0 +1,64 @@
+{
+  "mcpServers": {
+    "MCP_DOCKER": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-l",
+        "mcp.client=claude-desktop",
+        "--rm",
+        "-i",
+        "alpine/socat",
+        "STDIO",
+        "TCP:host.docker.internal:8811"
+      ]
+    },
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "mcp-network",
+        "-v",
+        "/Users/vince/Projects/omni/data/files:/projects/files",
+        "-v",
+        "/Users/vince/Projects/omni/data/uploads:/projects/uploads",
+        "mcp/filesystem:latest",
+        "/projects/files",
+        "/projects/uploads"
+      ]
+    },
+    "database-toolbox": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "mcp-network",
+        "-v",
+        "/Users/vince/Projects/omni/compose/configs/database-tools.yaml:/config/tools.yaml:ro",
+        "us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:0.7.0",
+        "./toolbox",
+        "--tools-file",
+        "/config/tools.yaml",
+        "--stdio"
+      ]
+    },
+    "linear": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "mcp-network",
+        "-e",
+        "LINEAR_API_KEY=YOUR_LINEAR_API_KEY_HERE",
+        "linear-mcp-server:latest"
+      ]
+    }
+  }
+}
