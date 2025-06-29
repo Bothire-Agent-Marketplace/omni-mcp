@@ -36,6 +36,18 @@ servers:
       - "./data/uploads:/uploads:rw"
     networks: [mcp-net]
 
+  # Custom Linear MCP Server (TypeScript)
+  mcp-linear:
+    build:
+      context: ./servers/linear-mcp-server
+      dockerfile: Dockerfile
+    runtime: docker
+    protocol: stdio
+    env:
+      LINEAR_API_KEY: "${LINEAR_API_KEY}"
+    capabilities: [tools, resources]
+    networks: [mcp-net]
+
 networks:
   mcp-net:
     driver: bridge

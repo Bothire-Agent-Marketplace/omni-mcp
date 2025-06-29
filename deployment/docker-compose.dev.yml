@@ -1,0 +1,31 @@
+services:
+  filesystem:
+    image: mcp/filesystem:latest
+    container_name: mcp-filesystem-dev
+    ports:
+      - "10000:8080" # Expose for direct testing if needed
+    networks:
+      - mcp-net
+    volumes:
+      - ../data/files:/data:rw
+      - ../data/uploads:/uploads:rw
+    environment:
+      ALLOWED_PATHS: "/data,/uploads"
+
+  linear:
+    image: mcp/linear:latest
+    build:
+      context: ../servers
+      dockerfile: ./linear-mcp-server/Dockerfile
+    container_name: mcp-linear-dev
+    ports:
+      - "10001:8080" # Expose for direct testing if needed
+    networks:
+      - mcp-net
+    env_file:
+      - ../secrets/linear.env
+
+networks:
+  mcp-net:
+    name: mcp-network
+    external: true

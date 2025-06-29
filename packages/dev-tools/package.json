@@ -1,0 +1,11 @@
+{
+  "name": "dev-tools",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "watch:claude-config": "node watch-claude-config.js"
+  },
+  "dependencies": {
+    "chokidar": "^3.5.3"
+  }
+}
