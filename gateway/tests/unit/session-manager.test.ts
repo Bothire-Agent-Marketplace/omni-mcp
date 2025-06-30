@@ -54,19 +54,24 @@ describe("SessionManager", () => {
   });
 
   describe("getSession", () => {
-    it("should retrieve existing session and update last activity", () => {
+    it("should retrieve existing session and update last activity", (done) => {
       const session = sessionManager.createSession();
       const originalActivity = session.lastActivity;
 
       // Wait a bit to ensure timestamp difference
       setTimeout(() => {
-        const retrieved = sessionManager.getSession(session.id);
+        try {
+          const retrieved = sessionManager.getSession(session.id);
 
-        expect(retrieved).toBeDefined();
-        expect(retrieved!.id).toBe(session.id);
-        expect(retrieved!.lastActivity.getTime()).toBeGreaterThan(
-          originalActivity.getTime()
-        );
+          expect(retrieved).toBeDefined();
+          expect(retrieved!.id).toBe(session.id);
+          expect(retrieved!.lastActivity.getTime()).toBeGreaterThan(
+            originalActivity.getTime()
+          );
+          done();
+        } catch (error) {
+          done(error);
+        }
       }, 10);
     });
 
