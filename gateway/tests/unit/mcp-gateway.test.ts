@@ -1,17 +1,66 @@
 import { MCPGateway } from "../../src/gateway/mcp-gateway";
 import { MasterConfig } from "../../src/gateway/types";
 
-// Mock all dependencies
-jest.mock("@mcp/utils");
-jest.mock("../../src/gateway/server-manager");
-jest.mock("../../src/gateway/session-manager");
-jest.mock("../../src/gateway/protocol-adapter");
+// Mock the logger
+jest.mock("@mcp/utils", () => ({
+  Logger: {
+    getInstance: jest.fn().mockReturnValue({
+      debug: jest.fn(),
+      info: jest.fn(),
+      warn: jest.fn(),
+      error: jest.fn(),
+      getServiceName: jest.fn().mockReturnValue("test-service"),
+    }),
+  },
+}));
+
+// Mock other dependencies
+const mockServerManager = {
+  initialize: jest.fn().mockResolvedValue(undefined),
+  shutdown: jest.fn().mockResolvedValue(undefined),
+  getServerInstance: jest.fn(),
+  releaseServerInstance: jest.fn(),
+  getHealthStatus: jest.fn().mockReturnValue({}),
+};
+
+const mockSessionManager = {
+  canCreateNewSession: jest.fn().mockReturnValue(true),
+  createSession: jest.fn(),
+  generateToken: jest.fn(),
+  shutdown: jest.fn(),
+  getSessionFromAuthHeader: jest.fn(),
+  attachWebSocket: jest.fn(),
+};
+
+const mockProtocolAdapter = {
+  handleHttpToMCP: jest.fn(),
+  handleMCPToHttp: jest.fn(),
+  handleWebSocketMessage: jest.fn(),
+  sendWebSocketResponse: jest.fn(),
+  sendMCPRequest: jest.fn(),
+  resolveCapability: jest.fn(),
+};
+
+jest.mock("../../src/gateway/server-manager", () => ({
+  ServerManager: jest.fn().mockImplementation(() => mockServerManager),
+}));
+
+jest.mock("../../src/gateway/session-manager", () => ({
+  SessionManager: jest.fn().mockImplementation(() => mockSessionManager),
+}));
+
+jest.mock("../../src/gateway/protocol-adapter", () => ({
+  ProtocolAdapter: jest.fn().mockImplementation(() => mockProtocolAdapter),
+}));
 
 describe("MCPGateway", () => {
   let gateway: MCPGateway;
   let mockConfig: MasterConfig;
 
   beforeEach(() => {
+    // Reset mocks
+    jest.clearAllMocks();
+
     mockConfig = {
       servers: {
         "test-server": {
@@ -39,19 +88,14 @@ describe("MCPGateway", () => {
 
   describe("initialization", () => {
     it("should initialize successfully", async () => {
-      // Mock the server manager initialization
-      const mockServerManager = (gateway as any).serverManager;
-      mockServerManager.initialize = jest.fn().mockResolvedValue(undefined);
-
       await expect(gateway.initialize()).resolves.not.toThrow();
       expect(mockServerManager.initialize).toHaveBeenCalled();
     });
 
     it("should handle initialization errors", async () => {
-      const mockServerManager = (gateway as any).serverManager;
-      mockServerManager.initialize = jest
-        .fn()
-        .mockRejectedValue(new Error("Init failed"));
+      mockServerManager.initialize.mockRejectedValueOnce(
+        new Error("Init failed")
+      );
 
       await expect(gateway.initialize()).rejects.toThrow("Init failed");
     });
@@ -59,12 +103,6 @@ describe("MCPGateway", () => {
 
   describe("shutdown", () => {
     it("should shutdown gracefully", async () => {
-      const mockServerManager = (gateway as any).serverManager;
-      const mockSessionManager = (gateway as any).sessionManager;
-
-      mockServerManager.shutdown = jest.fn().mockResolvedValue(undefined);
-      mockSessionManager.shutdown = jest.fn();
-
       await expect(gateway.shutdown()).resolves.not.toThrow();
       expect(mockServerManager.shutdown).toHaveBeenCalled();
       expect(mockSessionManager.shutdown).toHaveBeenCalled();
@@ -81,10 +119,8 @@ describe("MCPGateway", () => {
 
   describe("getHealthStatus", () => {
     it("should delegate to server manager", () => {
-      const mockServerManager = (gateway as any).serverManager;
       const mockStatus = { "test-server": { instances: 1, healthy: 1 } };
-
-      mockServerManager.getHealthStatus = jest.fn().mockReturnValue(mockStatus);
+      mockServerManager.getHealthStatus.mockReturnValue(mockStatus);
 
       const result = gateway.getHealthStatus();
 
@@ -95,10 +131,9 @@ describe("MCPGateway", () => {
 
   describe("error handling", () => {
     it("should handle server manager errors gracefully", async () => {
-      const mockServerManager = (gateway as any).serverManager;
-      mockServerManager.shutdown = jest
-        .fn()
-        .mockRejectedValue(new Error("Shutdown failed"));
+      mockServerManager.shutdown.mockRejectedValueOnce(
+        new Error("Shutdown failed")
+      );
 
       // Should not throw despite the error
       await expect(gateway.shutdown()).resolves.not.toThrow();
