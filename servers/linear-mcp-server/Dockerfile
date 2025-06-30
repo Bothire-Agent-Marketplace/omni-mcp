@@ -7,21 +7,35 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy the base tsconfig
+# Copy the base tsconfig and workspace config
 COPY tsconfig.base.json ./
+COPY pnpm-workspace.yaml ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
 
-# Copy package files from the specific server directory
-COPY servers/linear-mcp-server/package*.json ./
-COPY servers/linear-mcp-server/tsconfig.json ./
+# Copy shared schemas first
+COPY shared/schemas/package.json ./shared/schemas/
+COPY shared/schemas/tsconfig.json ./shared/schemas/
+COPY shared/schemas/src/ ./shared/schemas/src/
 
-# Install dependencies
-RUN npm install
+# Copy linear server package files
+COPY servers/linear-mcp-server/package.json ./servers/linear-mcp-server/
+COPY servers/linear-mcp-server/tsconfig.json ./servers/linear-mcp-server/
 
-# Copy source code from the specific server directory
-COPY servers/linear-mcp-server/src/ ./src/
+# Install pnpm
+RUN npm install -g pnpm
 
-# Build TypeScript
-RUN npm run build
+# Install dependencies using pnpm (handles workspace dependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy linear server source code
+COPY servers/linear-mcp-server/src/ ./servers/linear-mcp-server/src/
+
+# Build shared schemas first
+RUN cd shared/schemas && pnpm build
+
+# Build linear server
+RUN cd servers/linear-mcp-server && pnpm build
 
 # Production stage
 FROM node:20-alpine AS production
@@ -35,12 +49,26 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S linear -u 1001 -G nodejs
 
-# Copy package files and install production dependencies
-COPY servers/linear-mcp-server/package*.json ./
-RUN npm install --only=production && npm cache clean --force
+# Install pnpm
+RUN npm install -g pnpm
 
-# Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
+# Copy workspace config and package files
+COPY pnpm-workspace.yaml ./
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+
+# Copy shared schemas package
+COPY shared/schemas/package.json ./shared/schemas/
+COPY --from=builder /app/shared/schemas/dist ./shared/schemas/dist
+
+# Copy linear server package
+COPY servers/linear-mcp-server/package.json ./servers/linear-mcp-server/
+
+# Install production dependencies
+RUN pnpm install --prod --frozen-lockfile
+
+# Copy built linear server application
+COPY --from=builder /app/servers/linear-mcp-server/dist ./servers/linear-mcp-server/dist
 
 # Set ownership
 RUN chown -R linear:nodejs /app
@@ -54,7 +82,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 ENTRYPOINT ["dumb-init", "--"]
 
 # Start the Linear MCP server
-CMD ["node", "dist/index.js"]
+CMD ["node", "servers/linear-mcp-server/dist/index.js"]
 
 # Metadata
 LABEL org.opencontainers.image.title="Linear MCP Server"

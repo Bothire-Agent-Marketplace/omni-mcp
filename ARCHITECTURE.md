@@ -1,74 +1,105 @@
 # Architecture
 
-This document provides a high-level overview of the Omni MCP project architecture, its components, and the development workflow.
+This document provides a high-level overview of the Omni MCP project architecture, its components, and the development workflow. This architecture is designed for scalability and maintainability, following the best practices for large-scale MCP deployments.
 
 ## Guiding Principles
 
-- **Hybrid Approach**: The project integrates both custom-built MCP servers and external, pre-built Docker-based servers.
-- **Scalable Monorepo**: Custom servers are managed in a `pnpm` monorepo using `Turborepo` to ensure fast, consistent, and scalable development.
-- **Developer Experience**: The entire setup is optimized for a smooth developer experience with automated scripts, clear documentation, and a unified command interface.
-- **Clear Separation**: Docker configurations are organized by purpose (base infrastructure, development, production).
-- **Unified Build System**: Single commands handle both TypeScript compilation and Docker image building.
-- **Rich Data**: Uses the BookSQL accounting database for realistic business scenarios and complex queries.
+- **Hub-and-Spoke Model**: A central **MCP Gateway** acts as a single entry point and reverse proxy for all backend MCP servers. This simplifies client configuration and enables centralized management.
+- **Scalable Monorepo**: All custom code (servers, packages, shared libraries) is managed in a `pnpm` monorepo with `Turborepo` for fast, consistent builds.
+- **Containerized Microservices**: Every component (gateway, servers, database) is a containerized microservice, orchestrated with Docker Compose for local development.
+- **Unified Build System**: A single command (`pnpm build:all`) builds all TypeScript packages and Docker images, and pulls external images.
 
 ## System Diagram
 
 ```mermaid
 graph TD
-    subgraph "omni/ (Root Monorepo: pnpm + turbo)"
-        subgraph "packages/"
-            direction LR
-            E[dev-tools]
-        end
-        subgraph "servers/"
-            direction LR
-            D[linear-mcp-server]
-            F[future-server...]
-        end
+    subgraph "Client"
+        A[Claude Desktop Client]
     end
 
-    subgraph "Docker Infrastructure"
-        direction LR
-        A[PostgreSQL Database<br/>BookSQL Accounting Data]
-        B[External MCP Filesystem]
-        C[Custom MCP Linear Server]
+    subgraph "Docker Network (mcp-net)"
+        B[MCP Gateway<br/>(localhost:37373)]
+        C[Custom Linear Server<br/>(mcp-linear-dev:8080)]
+        D[External Filesystem Server<br/>(mcp-filesystem-dev:8080)]
+        E[PostgreSQL Database<br/>(mcp-postgres:5432)]
     end
 
-    subgraph "MCP Client Configuration"
-        H[compose/mcp-compose.yaml]
+    subgraph "Monorepo (omni/)"
+        F(gateway/)
+        G(servers/linear-mcp-server)
+        H(packages/dev-tools)
+        I(shared/schemas)
     end
 
-    G[Claude Desktop Client]
+    A -- Connects to --> B
+    B -- Routes to --> C
+    B -- Routes to --> D
 
-    G -- Configured by --> H
-    H -- References --> B
-    H -- References --> C
-    D -- Built into --> C
-    E -- Provides scripts for --> G
-    C -- Can connect to --> A
+    F -- Built into --> B
+    G -- Built into --> C
 
-    style G fill:#f9f,stroke:#333,stroke-width:2px
-    style A fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    C -- Connects to --> E
+
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#b2dfdb,stroke:#00796b,stroke-width:2px
 ```
 
 ## Directory Structure
 
-| Path                                | Description                                                                    |
-| ----------------------------------- | ------------------------------------------------------------------------------ |
-| `client-integrations/`              | Configuration files for client applications like Claude Desktop.               |
-| `compose/`                          | **MCP-specific configuration** using MCP protocol schema (not Docker Compose). |
-| `data/`                             | Data used by services (SQL samples, file storage).                             |
-| `data/booksql/`                     | **BookSQL accounting database** schema and sample data.                        |
-| `deployment/`                       | **Docker Compose files** for infrastructure deployment.                        |
-| `deployment/docker-compose.yml`     | Base infrastructure services (PostgreSQL with BookSQL, networks, volumes).     |
-| `deployment/docker-compose.dev.yml` | Development-specific service overrides.                                        |
-| `packages/`                         | Utility packages and tools (not MCP servers).                                  |
-| `scripts/`                          | Repository-level setup and maintenance scripts.                                |
-| `secrets/`                          | Sensitive configuration files (API keys, credentials).                         |
-| `servers/`                          | Custom TypeScript MCP servers in a pnpm workspace.                             |
-| `package.json`                      | Root monorepo configuration.                                                   |
-| `pnpm-workspace.yaml`               | Defines monorepo workspaces (`packages/*` and `servers/*`).                    |
-| `turbo.json`                        | Turborepo pipeline configuration.                                              |
+| Path                         | Description                                                               |
+| ---------------------------- | ------------------------------------------------------------------------- |
+| `gateway/`                   | Contains the **MCP Gateway** service, the central proxy and router.       |
+| `gateway/master.config.json` | The **master configuration file** that defines all backend MCP servers.   |
+| `servers/`                   | A pnpm workspace for all custom MCP servers (e.g., `@mcp/linear-server`). |
+| `packages/`                  | A pnpm workspace for utility packages (e.g., `dev-tools`).                |
+| `shared/`                    | A pnpm workspace for shared code (e.g., `@mcp/schemas`).                  |
+| `deployment/`                | Docker Compose files for running the entire infrastructure.               |
+| `data/`                      | Data used by services, including the BookSQL database schema.             |
+| `package.json`               | The root `package.json` for the entire monorepo.                          |
+| `pnpm-workspace.yaml`        | Defines the workspaces for the monorepo.                                  |
+| `turbo.json`                 | Turborepo pipeline configuration.                                         |
+
+## Development Workflow
+
+### 1. Build Everything
+
+A single command prepares the entire environment by building all packages and Docker images.
+
+```bash
+pnpm build:all
+```
+
+### 2. Run the Environment
+
+Start all services (gateway, servers, database) with Docker Compose.
+
+```bash
+docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml up -d
+```
+
+You can now access all services through the gateway at `http://localhost:37373`.
+
+### 3. Connect Your Client
+
+Update your client configuration (e.g., `claude_desktop_config.local.json`) to connect to the gateway. The gateway will expose all backend servers under a namespaced path:
+
+- Linear Server: `http://localhost:37373/mcp/linear`
+- Filesystem Server: `http://localhost:37373/mcp/filesystem`
+
+### 4. Develop
+
+Use the monorepo scripts for development:
+
+- **Run dev mode**: `pnpm dev` (for live-reloading of servers)
+- **Run file watcher**: `pnpm watch:config`
+
+### Adding a New Server
+
+1.  Add the new server's code to the `servers/` directory.
+2.  Add a `Dockerfile` for the new server.
+3.  Add an entry for the new server in `gateway/master.config.json`.
+4.  Add the new server to the `docker-compose.dev.yml` file.
+5.  Run `pnpm build:all` to build the new server and update the gateway.
 
 ## BookSQL Database
 
@@ -90,58 +121,6 @@ This provides rich, realistic data for complex business queries including:
 - Cash flow analysis
 - Overdue invoice reporting
 - Account summaries
-
-## Development Workflow
-
-### Unified Build System
-
-The project features a comprehensive build system that handles both TypeScript compilation and Docker image management:
-
-**Build Everything:**
-
-```bash
-pnpm build:all          # Build TypeScript + Docker images + Pull external images
-```
-
-**Individual Build Commands:**
-
-```bash
-pnpm build              # Build only TypeScript packages (via Turborepo)
-pnpm build:docker       # Build only custom Docker images
-pnpm build:docker:all   # Build custom Docker images + pull external images
-pnpm pull:docker        # Pull external Docker images only
-```
-
-### Running Docker Services
-
-The development environment uses layered Docker Compose files:
-
-- **Start all services**: `docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml up -d`
-- **Stop all services**: `docker compose -f deployment/docker-compose.yml -f deployment/docker-compose.dev.yml down`
-
-### MCP Client Configuration
-
-The `compose/mcp-compose.yaml` file uses the MCP protocol schema (not Docker Compose) and defines how Claude Desktop launches MCP servers.
-
-### Monorepo Development
-
-All custom packages are managed by `pnpm` and `Turborepo` from the project root:
-
-- **Install dependencies**: `pnpm install`
-- **Run dev mode**: `pnpm dev`
-- **Build all packages**: `pnpm build`
-- **Run file watcher**: `pnpm watch:config`
-- **Run specific package**: `pnpm --filter <package-name> <script>`
-
-### Cleaning Up
-
-```bash
-pnpm clean              # Clean TypeScript build artifacts
-pnpm clean:docker       # Clean Docker system (remove unused images/containers)
-pnpm clean:all          # Clean everything
-```
-
-For detailed instructions on adding a new server, see `servers/README.md`.
 
 ## Deployment Configurations
 

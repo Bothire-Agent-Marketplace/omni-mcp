@@ -1,9 +1,22 @@
 services:
+  gateway:
+    image: mcp/gateway:latest
+    build:
+      context: ..
+      dockerfile: ./gateway/Dockerfile
+    container_name: mcp-gateway-dev
+    ports:
+      - "37373:37373" # Expose the gateway port
+    networks:
+      - mcp-net
+    depends_on:
+      - filesystem
+      - linear
+
   filesystem:
     image: mcp/filesystem:latest
     container_name: mcp-filesystem-dev
-    ports:
-      - "10000:8080" # Expose for direct testing if needed
+    command: ["/data", "/uploads"]
     networks:
       - mcp-net
     volumes:
@@ -11,6 +24,11 @@ services:
       - ../data/uploads:/uploads:rw
     environment:
       ALLOWED_PATHS: "/data,/uploads"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   linear:
     image: mcp/linear:latest
@@ -18,12 +36,15 @@ services:
       context: ..
       dockerfile: ./servers/linear-mcp-server/Dockerfile
     container_name: mcp-linear-dev
-    ports:
-      - "10001:8080" # Expose for direct testing if needed
     networks:
       - mcp-net
     env_file:
       - ../secrets/linear.env
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 networks:
   mcp-net:

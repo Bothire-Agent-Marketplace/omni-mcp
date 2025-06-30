@@ -123,7 +123,7 @@ yarn-error.log*
 .yarn-integrity
 package-lock.json
 yarn.lock
-
+.turbo
 # Python (if any Python tools are added)
 # =============================================================================
 __pycache__/
@@ -235,4 +235,3 @@ secrets-*.yaml
 !*.example
 !*.template
 !*.sample 
-.turbo
