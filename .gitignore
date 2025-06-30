@@ -235,3 +235,4 @@ secrets-*.yaml
 !*.example
 !*.template
 !*.sample 
+gateway/coverage

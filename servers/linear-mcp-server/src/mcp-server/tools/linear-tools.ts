@@ -1,30 +1,10 @@
 import { LinearClient } from "@linear/sdk";
-import { z } from "zod";
-
-// TODO: Import from shared schemas once TypeScript path mapping is configured
-// import { McpResponse, SearchIssuesArgs, LinearSearchResponse } from "@mcp/schemas";
-
-// Temporary types until we can import from shared schemas
-type McpResponse<T = any> =
-  | {
-      success: true;
-      data: T;
-      timestamp?: string;
-      executionTime?: number;
-    }
-  | {
-      success: false;
-      error: string;
-      timestamp?: string;
-      executionTime?: number;
-    };
-
-// A generic success response for now
-const SuccessResponse = z.object({
-  success: z.boolean(),
-  data: z.any(),
-});
-type SuccessResponse = z.infer<typeof SuccessResponse>;
+import {
+  McpResponse,
+  SearchIssuesArgs,
+  CreateIssueArgs,
+  UpdateIssueArgs,
+} from "@mcp/schemas";
 
 export class LinearTools {
   private client: LinearClient;
@@ -50,7 +30,7 @@ export class LinearTools {
     }
   }
 
-  async linear_search_issues(args: any = {}) {
+  async linear_search_issues(args: Partial<SearchIssuesArgs> = {}) {
     return this._execute("linear_search_issues", async () => {
       const { query, teamId, status, assigneeId, priority, limit = 10 } = args;
 
@@ -92,8 +72,8 @@ export class LinearTools {
             (await issue.assignee)?.displayName || (await issue.assignee)?.name,
           team: (await issue.team)?.name,
           url: issue.url,
-          createdAt: issue.createdAt,
-          updatedAt: issue.updatedAt,
+          createdAt: issue.createdAt.toISOString(),
+          updatedAt: issue.updatedAt.toISOString(),
         }))
       );
 
@@ -105,14 +85,14 @@ export class LinearTools {
     });
   }
 
-  async linear_create_issue(args: any) {
+  async linear_create_issue(args: CreateIssueArgs) {
     return this._execute("linear_create_issue", async () => {
       // TODO: Implement actual logic
       return { message: "Create issue not implemented", args };
     });
   }
 
-  async linear_update_issue(args: any) {
+  async linear_update_issue(args: UpdateIssueArgs) {
     return this._execute("linear_update_issue", async () => {
       // TODO: Implement actual logic
       return { message: "Update issue not implemented", args };

@@ -1,0 +1,66 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Environment Management Rules
+
+**Auto-attach for:** `*.env*`, `.env.example`, `.env.development`, `.env.production`
+
+## Environment Configuration Standards
+
+### Environment File Hierarchy
+- `.env.development` → Template (committed to git)
+- `.env.production` → Template (committed to git)  
+- `.env.*.local` → Actual config files (NEVER commit)
+- `.env.example` → Documentation template
+
+### Environment Variable Naming
+```bash
+# Use SCREAMING_SNAKE_CASE
+DATABASE_URL=postgres://localhost:5432/db
+API_KEY_LINEAR=your_key_here
+
+# Group related variables with prefixes
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=omni_mcp
+
+# Use descriptive suffixes for different environments
+REDIS_URL_DEV=redis://localhost:6379
+REDIS_URL_PROD=redis://prod-server:6379
+```
+
+### Required Environment Variables
+Every environment file MUST include:
+- `NODE_ENV` (development|production)
+- `LOG_LEVEL` (debug|info|warn|error)
+- Database configuration
+- API keys for external services
+
+### Security Rules
+- NEVER commit files ending in `.local`
+- ALWAYS provide example values in `.env.example`
+- ALWAYS use placeholders like `CHANGE_ME_IN_PRODUCTION`
+- ALWAYS document where to get API keys
+
+### Environment Setup Workflow
+```bash
+# Initial setup
+make setup                    # Creates .env.*.local files
+
+# Development
+cp .env.development .env.development.local
+# Edit .env.development.local with real values
+make dev
+
+# Production  
+cp .env.production .env.production.local
+# Edit .env.production.local with real secrets
+make prod
+```
+
+### Docker Environment Integration
+- Use `--env-file` for explicit environment loading
+- Override environment variables in docker-compose.dev.yml
+- Use ${VAR:-default} syntax for defaults

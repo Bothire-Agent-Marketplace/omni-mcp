@@ -1,0 +1,99 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# PNPM Workspace Management Rules
+
+**Auto-attach for:** `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml`
+
+## PNPM Commands and Patterns
+
+### Always Use PNPM (Never NPM)
+- ✅ `pnpm install` 
+- ✅ `pnpm build`
+- ✅ `pnpm dev`
+- ✅ `pnpm test`
+- ❌ `npm install`
+- ❌ `npm run build`
+
+### Workspace Structure
+```
+omni/
+├── package.json              # Root workspace config
+├── pnpm-workspace.yaml       # Workspace definition
+├── pnpm-lock.yaml           # Lock file (committed)
+├── gateway/package.json      # Gateway service
+├── servers/*/package.json    # MCP servers
+└── shared/*/package.json     # Shared packages
+```
+
+### Workspace Commands
+```bash
+# Install all dependencies
+pnpm install
+
+# Build all packages
+pnpm build
+
+# Build specific package
+pnpm --filter gateway build
+pnpm --filter @mcp/schemas build
+
+# Run commands in workspace root
+pnpm dev                      # Run root dev script
+pnpm --filter linear-mcp-server dev
+
+# Add dependencies
+pnpm add express              # Add to root
+pnpm --filter gateway add express  # Add to specific package
+```
+
+### Package.json Standards
+```json
+{
+  "name": "@omni/package-name",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "pnpm run type-check && pnpm run bundle",
+    "dev": "pnpm run dev:watch",
+    "test": "pnpm run test:unit",
+    "lint": "pnpm run lint:check"
+  }
+}
+```
+
+### Docker + PNPM Integration
+```dockerfile
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Use pnpm for installs
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+
+# Use pnpm for builds
+RUN pnpm build
+```
+
+### Development Commands
+```bash
+# Start development with hot reload
+pnpm dev
+
+# Build all packages
+pnpm build
+
+# Test all packages  
+pnpm test
+
+# Lint all packages
+pnpm lint
+```
+
+### Shared Dependencies
+- Shared packages go in `shared/` directory
+- Use workspace references: `"@mcp/schemas": "workspace:*"`
+- Build shared packages before dependent packages
+- Always use `pnpm --filter` for package-specific operations

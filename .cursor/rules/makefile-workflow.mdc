@@ -1,0 +1,106 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Makefile Development Workflow Rules
+
+**Auto-attach for:** `Makefile`, `*.mk`
+
+## Development Workflow Commands
+
+### Essential Commands (Must Know)
+```bash
+make help           # Show all available commands
+make setup          # Initial project setup  
+make dev            # Start development environment
+make restart        # Quick restart development
+make logs           # View all service logs
+make status         # Check service health
+make clean          # Clean up containers
+```
+
+### Environment Management
+```bash
+make setup          # Creates .env.*.local files
+                   # Updates directories structure
+                   # Displays setup instructions
+
+# Automatically creates:
+# - .env.development.local
+# - .env.production.local  
+# - data/files, data/uploads, secrets, logs directories
+```
+
+### Development Lifecycle
+```bash
+# Daily development workflow
+make setup          # One-time setup
+make dev            # Start development
+make logs           # Monitor in another terminal
+make restart        # When you need fresh start
+make clean          # End of day cleanup
+
+# Production deployment
+make prod           # Start production environment
+make health         # Check all services
+make prod-down      # Stop production
+```
+
+### Service-Specific Commands
+```bash
+# Logs and monitoring
+make logs-gateway   # Gateway logs only
+make logs-linear    # Linear server logs only
+make logs-db        # Database logs only
+
+# Container access
+make shell-gateway  # Access gateway container
+make shell-linear   # Access linear server
+make db-shell       # PostgreSQL shell
+
+# Development tools
+make dev-tools      # Start pgAdmin, Mailhog, Redis
+```
+
+### Build Operations
+```bash
+make build          # Build all Docker images
+make build-no-cache # Build without cache
+```
+
+### Database Operations
+```bash
+make db-shell       # Connect to PostgreSQL
+make db-reset       # Reset development database
+                   # (Stops postgres, removes container, deletes volume, restarts)
+```
+
+### Makefile Standards
+- All commands MUST have help text with ##
+- Use PHONY targets for non-file targets
+- Group related commands with ##@ headers
+- Use descriptive variable names
+- Echo status messages with emojis
+- Handle errors gracefully with || true
+
+### Command Naming Patterns
+- `dev-*` → Development commands
+- `prod-*` → Production commands  
+- `logs-*` → Logging commands
+- `shell-*` → Container access
+- `test-*` → Testing commands
+- `db-*` → Database operations
+
+### Error Handling
+```makefile
+# Graceful error handling
+dev-down:
+	@mcp-compose down || true
+	@docker-compose down
+
+# Status messages
+dev:
+	@echo "🚀 Starting development environment..."
+	@docker-compose up --build
+```

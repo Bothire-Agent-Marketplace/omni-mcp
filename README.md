@@ -1,218 +1,299 @@
-# MCP Orchestrator with DVD Rental Database
+# Omni MCP - Enterprise MCP Server Platform
 
-A complete Model Context Protocol (MCP) setup with filesystem and database servers, featuring a PostgreSQL DVD rental sample database.
+A modern, scalable Model Context Protocol (MCP) platform with unified gateway, containerized servers, and enterprise-grade development workflows.
+
+## 🏗️ Architecture
+
+```
+Claude Desktop/AI Client → MCP Gateway (HTTP) → Individual MCP Servers → External APIs
+                                ↓
+                        PostgreSQL + Redis + Infrastructure
+```
+
+**Core Components:**
+
+- **MCP Gateway**: Central hub routing requests to specific MCP servers
+- **Linear MCP Server**: Issue management and project tracking
+- **Infrastructure**: PostgreSQL database, Redis cache, monitoring tools
 
 ## 🚀 Quick Start
 
-### 1. Start All Services
+### 1. Initial Setup
 
 ```bash
-cd deployment
-docker-compose up -d
+# Clone and setup environment
+git clone <your-repo>
+cd omni
+make setup
+
+# Configure your API keys
+cp .env.development .env.development.local
+# Edit .env.development.local with your Linear API key
 ```
 
-### 2. Verify Everything is Running
+### 2. Start Development Environment
 
 ```bash
-docker-compose ps
+# Start everything with hot reload
+make dev
+
+# Or start in background
+make dev-detached
 ```
 
-You should see:
-
-- `mcp-postgres` (healthy)
-- `mcp-database-toolbox` (running)
-- `mcp-filesystem-server` (running)
-
-### 3. Test Database Connection
+### 3. Verify Services
 
 ```bash
-docker exec mcp-postgres psql -U postgres -d dvdrental -c "SELECT COUNT(*) FROM customer;"
+# Check all services are healthy
+make health
+
+# View logs
+make logs
 ```
 
-## 🔧 Claude Desktop Integration
+**Development URLs:**
 
-### Option 1: Direct Docker Integration (Recommended)
+- MCP Gateway: http://localhost:37373
+- pgAdmin: http://localhost:8080 (admin@omni.dev / admin)
+- Mailhog: http://localhost:8025
 
-Copy this configuration to your Claude Desktop config file:
+## 🔧 Environment Management
 
-**Location:**
+### Development
 
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+```bash
+# Setup development environment
+make setup                        # Creates .env.development.local
+# Edit .env.development.local with your API keys
+make dev                         # Start development with hot reload
+```
+
+### Production
+
+```bash
+# Setup production environment
+cp .env.production .env.production.local
+# Edit .env.production.local with production secrets
+make prod                        # Start production environment
+```
+
+### Environment Files
+
+- `.env.development` → Template (committed)
+- `.env.development.local` → Your actual dev config (gitignored)
+- `.env.production.local` → Your actual prod config (gitignored)
+
+## 📱 Claude Desktop Integration
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "docker",
+    "omni-gateway": {
+      "command": "curl",
       "args": [
-        "run",
-        "-i",
-        "--rm",
-        "--mount",
-        "type=bind,src=/Users/vince/Projects/omni/data/files,dst=/projects/files",
-        "--mount",
-        "type=bind,src=/Users/vince/Projects/omni/data/uploads,dst=/projects/uploads",
-        "mcp/filesystem",
-        "/projects"
-      ]
-    },
-    "database-toolbox": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "--network",
-        "mcp-network",
-        "-v",
-        "/Users/vince/Projects/omni/compose/configs/database-tools.yaml:/config/tools.yaml:ro",
-        "us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:0.7.0",
-        "./toolbox",
-        "--tools-file",
-        "/config/tools.yaml",
-        "--stdio"
+        "-X",
+        "POST",
+        "http://localhost:37373/mcp",
+        "-H",
+        "Content-Type: application/json",
+        "-H",
+        "Authorization: Bearer YOUR_MCP_API_KEY",
+        "--data-binary",
+        "@-"
       ]
     }
   }
 }
 ```
 
-**⚠️ Important:** Update the file paths in the configuration to match your actual project location.
+Replace `YOUR_MCP_API_KEY` with the value from your `.env.development.local`.
 
-### Option 2: Using Running Containers
+## 🛠️ Development Commands
 
-If you prefer to connect to already running containers, you can use a simpler approach with MCP proxy tools.
-
-## 📊 Available Tools
-
-### Database Tools (DVD Rental)
-
-- **query-customers**: Search customer data with filters
-- **get-customer-rentals**: Get rental history for customers
-- **search-films**: Search films by title, category, or actor
-- **get-store-inventory**: Check available inventory by store
-
-### Filesystem Tools
-
-- **read_file**: Read file contents
-- **write_file**: Create or update files
-- **list_directory**: List directory contents
-- **create_directory**: Create new directories
-- **move_file**: Move/rename files and directories
-- **search_files**: Search for files by pattern
-- **get_file_info**: Get detailed file metadata
-
-## 🎬 Sample Database
-
-The PostgreSQL database contains a simplified DVD rental schema with:
-
-- **5 customers** (John Doe, Jane Smith, etc.)
-- **5 films** (The Matrix, Finding Nemo, The Godfather, Toy Story, Pulp Fiction)
-- **16 categories** (Action, Animation, Comedy, Drama, etc.)
-- **10 actors** (Johnny Depp, Brad Pitt, etc.)
-- **Sample rental transactions**
-
-### Example Queries
-
-Ask Claude to:
-
-- "Show me all customers and their recent rentals"
-- "Find all action movies in store 1"
-- "List customers who haven't returned their movies"
-- "Search for films with 'Matrix' in the title"
-
-## 🛠 Development Commands
+### Core Operations
 
 ```bash
-# Start all services
-make up
-# or
-cd deployment && docker-compose up -d
+make help                        # Show all available commands
+make setup                       # Initial project setup
+make dev                         # Start development environment
+make prod                        # Start production environment
+make restart                     # Quick restart development
+```
 
-# Stop all services
-make down
+### Monitoring & Debugging
 
-# View logs
-make logs
+```bash
+make logs                        # View all service logs
+make logs-gateway                # Gateway logs only
+make logs-linear                 # Linear server logs only
+make status                      # Service status
+make health                      # Detailed health check
+```
 
-# Check status
-make test
+### Development Tools
 
-# Pull latest images
-make pull-images
+```bash
+make shell-gateway               # Access gateway container
+make shell-linear                # Access linear server container
+make db-shell                    # PostgreSQL shell
+make db-reset                    # Reset development database
+```
 
-# Generate new API key
-make generate-key
+### Testing & Quality
+
+```bash
+make test                        # Run all tests
+make lint                        # Code linting
+make build                       # Build all images
+make clean                       # Clean up containers
+```
+
+## 🐳 Docker & Networking
+
+### Service Architecture
+
+- **Network**: `omni-mcp-network` (bridge)
+- **Volumes**: `omni-postgres-data`, `omni-mcp-files`, `omni-mcp-uploads`
+- **Containers**: All prefixed with `omni-` for easy identification
+
+### Container Structure
+
+```bash
+omni-mcp-gateway          # :37373 (HTTP gateway)
+omni-linear-mcp-server    # Internal MCP server
+omni-postgres             # :5432 (database)
+omni-pgadmin-dev          # :8080 (dev only)
+omni-mailhog-dev          # :8025 (dev only)
+omni-redis-dev            # :6379 (dev only)
+```
+
+### Hot Reload Development
+
+- Source code mounted as volumes for instant changes
+- Debug ports exposed: Gateway (9229), Linear (9230)
+- Automatic rebuilds with `make dev`
+
+## 📦 Adding New MCP Servers
+
+### 1. Create Server Structure
+
+```bash
+mkdir -p servers/your-mcp-server/src/mcp-server
+cp servers/linear-mcp-server/Dockerfile servers/your-mcp-server/
+cp servers/linear-mcp-server/package.json servers/your-mcp-server/
+# Edit package.json with your server details
+```
+
+### 2. Add to Docker Compose
+
+Add your service to `docker-compose.yml`:
+
+```yaml
+your-mcp-server:
+  build:
+    context: .
+    dockerfile: servers/your-mcp-server/Dockerfile
+  environment:
+    - YOUR_API_KEY=${YOUR_API_KEY}
+  networks:
+    - mcp-network
+```
+
+### 3. Update Environment
+
+Add your API keys to `.env.development` and `.env.production`.
+
+### 4. Register with Gateway
+
+Update your MCP Gateway configuration to route to the new server.
+
+## 🔐 Security & Production
+
+### Secrets Management
+
+```bash
+# Generate secure secrets for production
+make generate-secrets
+
+# Update .env.production.local with generated values
+JWT_SECRET=<generated-jwt-secret>
+MCP_API_KEY=<generated-api-key>
+POSTGRES_PASSWORD=<generated-db-password>
+```
+
+### Production Deployment
+
+```bash
+# Start production with monitoring
+docker-compose --profile monitoring up -d
+
+# Check production health
+make health
+```
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+```bash
+# Services won't start
+make clean && make dev
+
+# Database connection issues
+make db-reset
+
+# Gateway not accessible
+make logs-gateway
+
+# Hot reload not working
+make restart
+```
+
+### Health Checks
+
+```bash
+# Quick health check
+make health
+
+# Detailed container inspection
+docker ps --filter "name=omni-"
+
+# Check specific service logs
+make logs-<service-name>
 ```
 
 ## 📁 Project Structure
 
 ```
 omni/
-├── client-integrations/
-│   ├── claude-desktop/           # Claude Desktop configs
-│   └── cursor/                   # Cursor IDE configs
-├── compose/
-│   ├── mcp-compose.yaml          # MCP-Compose orchestration
-│   └── configs/
-│       └── database-tools.yaml   # Database tool definitions
-├── data/
-│   ├── files/                    # Filesystem server files
-│   ├── uploads/                  # Upload directory
-│   └── dvdrental/               # DVD rental database files
-├── deployment/
-│   └── docker-compose.yml        # Docker Compose setup
-└── docs/
-    ├── ARCHITECTURE.md           # Detailed architecture
-    ├── setup.md                  # Setup instructions
-    └── usage.md                  # Usage examples
+├── docker-compose.yml           # Production services
+├── docker-compose.dev.yml       # Development overrides
+├── Makefile                     # Developer commands
+├── .env.development             # Dev environment template
+├── .env.production              # Prod environment template
+├── gateway/                     # MCP Gateway service
+│   ├── Dockerfile
+│   └── src/
+├── servers/                     # Individual MCP servers
+│   └── linear-mcp-server/
+│       ├── Dockerfile
+│       └── src/
+├── shared/schemas/              # Shared TypeScript types
+├── client-integrations/         # Claude Desktop configs
+└── data/                        # Persistent data
+    ├── files/
+    └── uploads/
 ```
 
-## 🔒 Security Notes
+## 🎯 Next Steps
 
-- Filesystem server is restricted to `/data/files` and `/data/uploads` directories
-- Database tools use read-only queries for safety
-- All containers run with minimal privileges
-- API keys should be rotated regularly
+1. **Add More MCP Servers**: GitHub, Slack, Notion, etc.
+2. **Scale Infrastructure**: Add load balancing, monitoring
+3. **CI/CD Integration**: Deploy with GitHub Actions
+4. **Custom Tools**: Build domain-specific MCP servers
 
-## 🚨 Troubleshooting
+---
 
-### Database Connection Issues
-
-```bash
-# Check PostgreSQL status
-docker logs mcp-postgres
-
-# Test database connectivity
-docker exec mcp-postgres pg_isready -U postgres
-```
-
-### MCP Server Issues
-
-```bash
-# Check all container status
-cd deployment && docker-compose ps
-
-# View specific service logs
-docker logs mcp-database-toolbox
-docker logs mcp-filesystem-server
-```
-
-### Claude Desktop Connection
-
-1. Ensure Docker containers are running
-2. Verify file paths in config are correct
-3. Check Claude Desktop logs for connection errors
-4. Restart Claude Desktop after config changes
-
-## 📚 Next Steps
-
-1. **Customize Database**: Add your own tables and data to the PostgreSQL database
-2. **Extend Tools**: Modify `database-tools.yaml` to add custom queries
-3. **File Operations**: Use the filesystem tools to manage project files
-4. **Integration**: Connect other AI tools using the same MCP servers
-
-## 🤝 Contributing
-
-Feel free to extend this setup with additional MCP servers or database schemas. The architecture is designed to be modular and extensible.
+**Need Help?** Run `make help` for all available commands or check the logs with `make logs`.

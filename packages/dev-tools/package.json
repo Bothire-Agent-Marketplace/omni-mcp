@@ -8,7 +8,7 @@
     "docker:build": "node docker-build.js",
     "docker:pull": "node external-docker.js",
     "docker:build:linear": "docker build -f ../servers/linear-mcp-server/Dockerfile -t mcp/linear:latest ..",
-    "docker:build:all": "npm run docker:pull && npm run docker:build"
+    "docker:build:all": "pnpm docker:pull && pnpm docker:build"
   },
   "dependencies": {
     "chokidar": "^3.5.3"
