@@ -1,0 +1,43 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Omni MCP Project - Global Rules
+
+## 🏗️ **Project Identity**
+This is a **monorepo for large-scale MCP (Model Context Protocol) deployments** following enterprise patterns for managing 100+ MCP servers.
+
+## 📁 **Repository Structure (MANDATORY)**
+```
+omni/
+├── servers/                    # Individual MCP servers (one per service)
+├── gateway/                    # MCP Gateway for routing/orchestration  
+├── shared/schemas/             # ✅ MANDATORY shared types for all servers
+├── packages/dev-tools/         # Development utilities
+├── client-integrations/        # Claude Desktop, Cursor, OpenWebUI configs
+├── deployment/                 # Infrastructure as Code
+└── compose/                    # Docker compose for local development
+```
+
+## 🎯 **Core Architectural Principles**
+- **Hub-and-Spoke**: All servers integrate through MCP Gateway
+- **Single Responsibility**: Each server focuses on one external service
+- **Shared Types**: ALL servers MUST use `@mcp/schemas` package
+- **Type Safety**: Use `McpResponse<T>` for ALL tool returns
+- **Enterprise Scale**: Ready for 100+ MCP servers
+
+## 🚫 **Global Anti-Patterns (NEVER DO)**
+- ❌ Don't create custom response types (use `McpResponse<T>`)
+- ❌ Don't skip shared type imports from `@mcp/schemas`
+- ❌ Don't create direct client-server connections (use gateway)
+- ❌ Don't duplicate type definitions across servers
+- ❌ Don't ignore TypeScript strict mode errors
+
+## 🎯 **Code Generation Defaults**
+When creating new code:
+1. **Start with shared type imports** from `@mcp/schemas`
+2. **Use existing Linear server as template**
+3. **Follow established patterns** in the codebase
+4. **Include proper error handling** with `McpResponse<T>`
+5. **Add TypeScript strict compliance**

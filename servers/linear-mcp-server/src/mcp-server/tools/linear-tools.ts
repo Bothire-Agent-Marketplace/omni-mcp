@@ -1,6 +1,24 @@
 import { LinearClient } from "@linear/sdk";
 import { z } from "zod";
 
+// TODO: Import from shared schemas once TypeScript path mapping is configured
+// import { McpResponse, SearchIssuesArgs, LinearSearchResponse } from "@mcp/schemas";
+
+// Temporary types until we can import from shared schemas
+type McpResponse<T = any> =
+  | {
+      success: true;
+      data: T;
+      timestamp?: string;
+      executionTime?: number;
+    }
+  | {
+      success: false;
+      error: string;
+      timestamp?: string;
+      executionTime?: number;
+    };
+
 // A generic success response for now
 const SuccessResponse = z.object({
   success: z.boolean(),
@@ -18,24 +36,72 @@ export class LinearTools {
     this.client = new LinearClient({ apiKey });
   }
 
-  private async _execute(
+  private async _execute<T = any>(
     toolName: string,
-    logic: () => Promise<any>
-  ): Promise<SuccessResponse> {
+    logic: () => Promise<T>
+  ): Promise<McpResponse<T>> {
     console.log(`Executing tool: ${toolName}`);
     try {
       const data = await logic();
       return { success: true, data };
     } catch (error: any) {
       console.error(`Error in ${toolName}:`, error);
-      return { success: false, data: error.message };
+      return { success: false, error: error.message };
     }
   }
 
-  async linear_search_issues(args: any) {
+  async linear_search_issues(args: any = {}) {
     return this._execute("linear_search_issues", async () => {
-      // TODO: Implement actual logic
-      return { message: "Search issues not implemented", args };
+      const { query, teamId, status, assigneeId, priority, limit = 10 } = args;
+
+      // Build the filter conditions
+      const filter: any = {};
+
+      if (teamId) {
+        filter.team = { id: { eq: teamId } };
+      }
+
+      if (status) {
+        filter.state = { name: { eq: status } };
+      }
+
+      if (assigneeId) {
+        filter.assignee = { id: { eq: assigneeId } };
+      }
+
+      if (priority !== undefined) {
+        filter.priority = { eq: priority };
+      }
+
+      // Perform the search
+      const issues = await this.client.issues({
+        filter,
+        first: Math.min(limit, 50), // Cap at 50 for performance
+      });
+
+      // Format the response - need to await nested properties
+      const formattedIssues = await Promise.all(
+        issues.nodes.map(async (issue) => ({
+          id: issue.id,
+          identifier: issue.identifier,
+          title: issue.title,
+          description: issue.description,
+          priority: issue.priority,
+          state: (await issue.state)?.name,
+          assignee:
+            (await issue.assignee)?.displayName || (await issue.assignee)?.name,
+          team: (await issue.team)?.name,
+          url: issue.url,
+          createdAt: issue.createdAt,
+          updatedAt: issue.updatedAt,
+        }))
+      );
+
+      return {
+        issues: formattedIssues,
+        count: formattedIssues.length,
+        query: args,
+      };
     });
   }
 

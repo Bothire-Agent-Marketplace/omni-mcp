@@ -1,0 +1,133 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# TypeScript Rules
+
+## 🔧 **Strict Configuration (MANDATORY)**
+- **ALL TypeScript configs MUST extend** `tsconfig.base.json`
+- **Enable strict mode** for type safety
+- **Use proper module resolution** for imports
+- **No TypeScript errors allowed** in commits
+
+```json
+// ✅ CORRECT - Server tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules"]
+}
+```
+
+## 📦 **Import/Export Patterns**
+
+### **Shared Types (MANDATORY)**
+```typescript
+// ✅ CORRECT - Use package imports for shared types
+import { McpResponse, ToolDefinition, LinearIssue } from "@mcp/schemas";
+
+// ❌ WRONG - Don't use relative imports for shared code
+import { Tool } from "../../../shared/schemas/src/mcp/types";
+```
+
+### **Local Imports**
+```typescript
+// ✅ CORRECT - Use relative imports for local modules
+import { LinearTools } from "./tools/linear-tools.js";
+import { LINEAR_CONFIG } from "../config/config.js";
+```
+
+### **File Extensions**
+- **Use `.js` extensions** in import statements (TypeScript requirement)
+- **Export both types and runtime values** when needed
+
+## 🎯 **Type Safety Patterns**
+
+### **Generic Types**
+```typescript
+// ✅ CORRECT - Proper generic typing
+async function execute<T>(
+  operation: () => Promise<T>
+): Promise<McpResponse<T>> {
+  try {
+    const data = await operation();
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+```
+
+### **Type Guards**
+```typescript
+// ✅ CORRECT - Use type guards for runtime validation
+function isLinearIssue(data: unknown): data is LinearIssue {
+  return LinearIssueSchema.safeParse(data).success;
+}
+```
+
+### **Async/Await Patterns**
+```typescript
+// ✅ CORRECT - Proper async error handling
+async function fetchIssues(args: SearchIssuesArgs): Promise<McpResponse<IssueList>> {
+  try {
+    const issues = await this.client.issues(args);
+    const formattedIssues = await Promise.all(
+      issues.nodes.map(async (issue) => ({
+        id: issue.id,
+        title: issue.title,
+        state: (await issue.state)?.name,
+      }))
+    );
+    return { success: true, data: { issues: formattedIssues } };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+}
+```
+
+## 📋 **Code Quality Rules**
+
+### **Type Annotations**
+- **Always type function parameters** and return types
+- **Use explicit return types** for public functions
+- **Avoid `any`** unless absolutely necessary (document why)
+
+### **Interface vs Type**
+```typescript
+// ✅ CORRECT - Use interfaces for extensible object shapes
+interface McpServerConfig {
+  name: string;
+  version: string;
+  capabilities: ServerCapabilities;
+}
+
+// ✅ CORRECT - Use types for unions and computed types
+type McpResponse<T> = McpSuccessResponse<T> | McpErrorResponse;
+```
+
+### **Readonly Patterns**
+```typescript
+// ✅ CORRECT - Use readonly for immutable data
+export const LINEAR_TOOLS: readonly ToolDefinition[] = [
+  // ... definitions
+] as const;
+```
+
+## 🚫 **TypeScript Anti-Patterns**
+- ❌ Don't use `any` without documentation
+- ❌ Don't ignore TypeScript errors (fix them)
+- ❌ Don't skip return type annotations on public functions
+- ❌ Don't use non-null assertions (`!`) without strong justification
+- ❌ Don't mix ES modules and CommonJS patterns
+
+## 🔧 **Development Workflow**
+- **Run type checking** before commits: `tsc --noEmit`
+- **Use strict mode** in all configurations
+- **Enable all strict flags** in tsconfig.base.json
+- **Use workspace references** for multi-package builds

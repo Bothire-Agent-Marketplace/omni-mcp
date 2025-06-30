@@ -1,0 +1,136 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Pre-commit Checklist
+
+## 📋 **MANDATORY Pre-commit Checks**
+Before committing ANY code to the Omni MCP project, ensure ALL items are checked:
+
+### ✅ **Shared Types Compliance**
+- [ ] Uses shared types from `@mcp/schemas` package
+- [ ] No duplicate type definitions across servers
+- [ ] All tool returns use `McpResponse<T>` format
+- [ ] Imports from package, not relative paths for shared code
+
+### ✅ **MCP Server Requirements** (if adding/modifying servers)
+- [ ] Implements all 3 MCP capabilities (tools, resources, prompts)
+- [ ] Returns `McpResponse<T>` from all tools
+- [ ] Includes proper error handling with structured responses
+- [ ] Follows naming convention: `{service}_{action}` (snake_case)
+- [ ] Has Dockerfile with health checks
+- [ ] Extends from `tsconfig.base.json`
+
+### ✅ **TypeScript Quality**
+- [ ] Passes TypeScript strict checks (`tsc --noEmit`)
+- [ ] No TypeScript errors or warnings
+- [ ] Uses explicit return types for public functions
+- [ ] Proper import/export patterns with `.js` extensions
+- [ ] No use of `any` without justification and documentation
+
+### ✅ **Code Quality Standards**
+- [ ] Includes comprehensive error handling
+- [ ] Uses Zod schemas for input validation
+- [ ] Structured logging (no `console.log` in production code)
+- [ ] Environment variables for all configuration
+- [ ] No hardcoded secrets or credentials
+
+### ✅ **Testing Requirements**
+- [ ] Unit tests for new functionality
+- [ ] Tests cover error cases and edge conditions
+- [ ] Mock external API calls appropriately
+- [ ] Integration tests for MCP server changes
+- [ ] All tests pass locally
+
+### ✅ **Documentation & Standards**
+- [ ] Code is self-documenting with clear variable/function names
+- [ ] Complex logic includes explanatory comments
+- [ ] Public APIs have JSDoc comments
+- [ ] README updated if adding new server or major features
+- [ ] Follows established patterns in existing codebase
+
+### ✅ **Performance & Security**
+- [ ] No performance regressions in critical paths
+- [ ] Input validation prevents injection attacks
+- [ ] Secrets managed via environment variables
+- [ ] No sensitive data in logs or error messages
+- [ ] Dockerfile follows security best practices
+
+## 🚫 **Pre-commit Blockers**
+The following issues MUST be resolved before committing:
+
+### **Type System Violations**
+- ❌ Custom response types instead of `McpResponse<T>`
+- ❌ Skipped shared type imports from `@mcp/schemas`
+- ❌ Use of `any` without documentation
+- ❌ TypeScript strict mode errors
+
+### **Architecture Violations**
+- ❌ MCP servers without all 3 capabilities
+- ❌ Business logic in the gateway
+- ❌ Direct client-server connections bypassing gateway
+- ❌ Duplicate type definitions across servers
+
+### **Code Quality Issues**
+- ❌ Unhandled exceptions or errors
+- ❌ Missing input validation
+- ❌ Console.log statements in production code
+- ❌ Hardcoded configuration values
+- ❌ Ignored linter errors
+
+### **Testing Gaps**
+- ❌ No tests for new functionality
+- ❌ Failing tests
+- ❌ Untested error paths
+- ❌ Real API calls in unit tests
+
+## 🔧 **Quick Validation Commands**
+Run these commands before committing:
+
+```bash
+# TypeScript compilation
+pnpm type-check
+
+# Linting
+pnpm lint
+
+# Tests
+pnpm test
+
+# Build check
+pnpm build
+
+# Shared schemas validation
+cd shared/schemas && pnpm build
+```
+
+## 📝 **Commit Message Standards**
+Use conventional commit format:
+```
+feat: add linear issue creation tool
+fix: resolve schema validation error
+docs: update MCP server setup guide
+refactor: extract shared error handling utility
+test: add integration tests for gateway routing
+```
+
+## 🎯 **Reviewer Checklist**
+When reviewing PRs, verify:
+- [ ] All pre-commit checks completed
+- [ ] Code follows established patterns
+- [ ] No architectural violations
+- [ ] Adequate test coverage
+- [ ] Clear commit messages
+- [ ] No breaking changes without migration plan
+
+## 🚀 **Success Criteria**
+A successful commit should:
+- ✅ **Build successfully** in CI/CD
+- ✅ **Pass all tests** including integration
+- ✅ **Follow type system** requirements
+- ✅ **Maintain code quality** standards
+- ✅ **Include proper documentation**
+- ✅ **Be ready for production** deployment
+
+Remember: **Quality over speed** - taking time for these checks prevents bugs and technical debt!

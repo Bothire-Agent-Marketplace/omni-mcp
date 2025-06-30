@@ -1,0 +1,26 @@
+# Cursor Rules - Prevent reindexing issues when editing rules
+.cursor/rules/*
+.cursor/index.mdc
+
+# Build outputs
+**/dist/
+**/build/
+**/node_modules/
+
+# Logs
+**/*.log
+**/logs/
+
+# Environment files
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Coverage reports
+**/coverage/
+**/.nyc_output/
+
+# Cache directories
+**/.cache/
+**/tmp/
+**/temp/ 
