@@ -15,8 +15,8 @@ services:
   linear:
     image: mcp/linear:latest
     build:
-      context: ../servers
-      dockerfile: ./linear-mcp-server/Dockerfile
+      context: ..
+      dockerfile: ./servers/linear-mcp-server/Dockerfile
     container_name: mcp-linear-dev
     ports:
       - "10001:8080" # Expose for direct testing if needed

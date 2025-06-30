@@ -7,15 +7,18 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY tsconfig.json ./
+# Copy the base tsconfig
+COPY tsconfig.base.json ./
+
+# Copy package files from the specific server directory
+COPY servers/linear-mcp-server/package*.json ./
+COPY servers/linear-mcp-server/tsconfig.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
-COPY src/ ./src/
+# Copy source code from the specific server directory
+COPY servers/linear-mcp-server/src/ ./src/
 
 # Build TypeScript
 RUN npm run build
@@ -33,7 +36,7 @@ RUN addgroup -g 1001 -S nodejs && \
     adduser -S linear -u 1001 -G nodejs
 
 # Copy package files and install production dependencies
-COPY package*.json ./
+COPY servers/linear-mcp-server/package*.json ./
 RUN npm install --only=production && npm cache clean --force
 
 # Copy built application from builder stage

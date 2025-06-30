@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "watch:claude-config": "node watch-claude-config.js"
+    "build": "echo 'No build needed for dev-tools'",
+    "watch:claude-config": "node watch-claude-config.js",
+    "docker:build": "node docker-build.js",
+    "docker:pull": "node external-docker.js",
+    "docker:build:linear": "docker build -f ../servers/linear-mcp-server/Dockerfile -t mcp/linear:latest ..",
+    "docker:build:all": "npm run docker:pull && npm run docker:build"
   },
   "dependencies": {
     "chokidar": "^3.5.3"

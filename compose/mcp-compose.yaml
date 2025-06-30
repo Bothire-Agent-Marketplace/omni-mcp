@@ -20,11 +20,9 @@ servers:
       - "./secrets/gcp-creds.json:/creds/service-account.json:ro"
     networks: [mcp-net]
 
-  # Official MCP Filesystem Server (Built from Source)
+  # External MCP Filesystem Server (Pre-built Image)
   filesystem:
-    build:
-      context: ./servers/filesystem-server
-      dockerfile: Dockerfile
+    image: mcp/filesystem:latest
     runtime: docker
     protocol: stdio
     env:
@@ -39,8 +37,8 @@ servers:
   # Custom Linear MCP Server (TypeScript)
   mcp-linear:
     build:
-      context: ./servers/linear-mcp-server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./servers/linear-mcp-server/Dockerfile
     runtime: docker
     protocol: stdio
     env:

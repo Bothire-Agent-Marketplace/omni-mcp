@@ -1,16 +1,22 @@
 {
   "name": "mcp-servers",
   "private": true,
+  "packageManager": "pnpm@9.15.2",
   "scripts": {
     "build": "turbo build",
+    "build:docker": "pnpm --filter dev-tools docker:build",
+    "build:docker:all": "pnpm --filter dev-tools docker:build:all",
+    "build:all": "pnpm build && pnpm build:docker:all",
+    "pull:docker": "pnpm --filter dev-tools docker:pull",
     "dev": "turbo dev",
     "watch:config": "pnpm --filter dev-tools watch:claude-config",
     "clean": "turbo clean && rm -rf node_modules",
+    "clean:docker": "docker system prune -f",
+    "clean:all": "pnpm clean && pnpm clean:docker",
     "type-check": "turbo type-check"
   },
   "devDependencies": {
     "turbo": "^2.5.4",
     "typescript": "^5.3.0"
-  },
-  "packageManager": "pnpm@10.12.3"
+  }
 }

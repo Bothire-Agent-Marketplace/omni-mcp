@@ -3,123 +3,204 @@ sources:
     kind: postgres
     host: "postgres"
     port: 5432
-    database: "dvdrental"
+    database: "booksql"
     user: "postgres"
     password: "postgres"
 
 tools:
-  # DVD Rental Database Tools
-  query-customers:
+  # BookSQL Accounting Database Tools
+  query-transactions:
     kind: postgres-sql
     source: postgres-main
-    description: Query customer data with filters and pagination
+    description: Query transactions with filters and pagination
     parameters:
-      - name: filter
+      - name: business_id
+        type: integer
+        description: Business ID to filter by (optional)
+      - name: transaction_type
         type: string
-        description: WHERE clause filter (optional)
+        description: Transaction type filter (optional)
       - name: limit
         type: integer
         description: Maximum number of results
     statement: |
-      SELECT customer_id, first_name, last_name, email, 
-             store_id, active, create_date, last_update
-      FROM customer 
-      WHERE $1
-      ORDER BY last_update DESC
-      LIMIT $2;
+      SELECT t.id, t.business_id, t.transaction_id, t.transaction_date,
+             t.transaction_type, t.amount, t.account, t.customers, t.vendor,
+             t.product_service, t.payment_method, t.created_user
+      FROM master_txn_table t
+      WHERE ($1 IS NULL OR t.business_id = $1)
+      AND ($2 IS NULL OR t.transaction_type ILIKE '%' || $2 || '%')
+      ORDER BY t.transaction_date DESC, t.id DESC
+      LIMIT $3;
 
-  get-customer-rentals:
+  get-customer-balance:
     kind: postgres-sql
     source: postgres-main
-    description: Get rental history for a specific customer
+    description: Get customer balances and transaction summary
     parameters:
-      - name: customer_id
+      - name: business_id
         type: integer
-        description: Customer ID to get rentals for
-      - name: days_back
-        type: integer
-        description: Number of days back to search
-    statement: |
-      SELECT r.rental_id, f.title, r.rental_date, r.return_date,
-             CASE WHEN r.return_date IS NULL THEN 'Not Returned'
-                  ELSE 'Returned' END as status,
-             s.first_name || ' ' || s.last_name as staff_member
-      FROM rental r
-      JOIN inventory i ON r.inventory_id = i.inventory_id
-      JOIN film f ON i.film_id = f.film_id
-      JOIN staff s ON r.staff_id = s.staff_id
-      WHERE r.customer_id = $1
-      AND r.rental_date >= CURRENT_DATE - INTERVAL '$2 days'
-      ORDER BY r.rental_date DESC;
-
-  search-films:
-    kind: postgres-sql
-    source: postgres-main
-    description: Search for films by title, category, or actor
-    parameters:
-      - name: search_term
+        description: Business ID to filter by
+      - name: customer_name
         type: string
-        description: Search term for title, category, or actor name
-      - name: limit
-        type: integer
-        description: Maximum number of results
+        description: Customer name filter (optional)
     statement: |
-      SELECT DISTINCT f.film_id, f.title, f.description, f.release_year,
-             f.rating, f.rental_rate, f.length,
-             c.name as category,
-             string_agg(a.first_name || ' ' || a.last_name, ', ') as actors
-      FROM film f
-      LEFT JOIN film_category fc ON f.film_id = fc.film_id
-      LEFT JOIN category c ON fc.category_id = c.category_id
-      LEFT JOIN film_actor fa ON f.film_id = fa.film_id
-      LEFT JOIN actor a ON fa.actor_id = a.actor_id
-      WHERE f.title ILIKE '%' || $1 || '%'
-         OR c.name ILIKE '%' || $1 || '%'
-         OR (a.first_name || ' ' || a.last_name) ILIKE '%' || $1 || '%'
-      GROUP BY f.film_id, f.title, f.description, f.release_year,
-               f.rating, f.rental_rate, f.length, c.name
-      ORDER BY f.title
-      LIMIT $2;
+      SELECT c.customer_name, c.customer_full_name, c.balance,
+             c.billing_city, c.billing_state,
+             COUNT(t.id) as total_transactions,
+             SUM(CASE WHEN t.transaction_type = 'invoice' THEN t.amount ELSE 0 END) as total_invoiced,
+             SUM(CASE WHEN t.transaction_type = 'payment' THEN t.amount ELSE 0 END) as total_payments
+      FROM customers c
+      LEFT JOIN master_txn_table t ON c.business_id = t.business_id 
+                                   AND c.customer_name = t.customers
+      WHERE c.business_id = $1
+      AND ($2 IS NULL OR c.customer_name ILIKE '%' || $2 || '%')
+      GROUP BY c.customer_name, c.customer_full_name, c.balance, 
+               c.billing_city, c.billing_state
+      ORDER BY c.balance DESC;
 
-  get-store-inventory:
+  analyze-revenue:
     kind: postgres-sql
     source: postgres-main
-    description: Get available inventory for a store
+    description: Analyze revenue by business, time period, and product/service
     parameters:
-      - name: store_id
+      - name: business_id
         type: integer
-        description: Store ID (1 or 2)
-      - name: available_only
-        type: boolean
-        description: Show only available films
+        description: Business ID to analyze
+      - name: start_date
+        type: string
+        description: Start date (YYYY-MM-DD format)
+      - name: end_date
+        type: string
+        description: End date (YYYY-MM-DD format)
     statement: |
-      SELECT f.title, c.name as category, f.rating,
-             COUNT(i.inventory_id) as total_copies,
-             COUNT(CASE WHEN r.return_date IS NOT NULL OR r.rental_id IS NULL 
-                        THEN i.inventory_id END) as available_copies
-      FROM film f
-      JOIN inventory i ON f.film_id = i.film_id
-      LEFT JOIN film_category fc ON f.film_id = fc.film_id
-      LEFT JOIN category c ON fc.category_id = c.category_id
-      LEFT JOIN rental r ON i.inventory_id = r.inventory_id 
-                         AND r.return_date IS NULL
-      WHERE i.store_id = $1
-      GROUP BY f.film_id, f.title, c.name, f.rating
-      HAVING CASE WHEN $2 THEN 
-                COUNT(CASE WHEN r.return_date IS NOT NULL OR r.rental_id IS NULL 
-                           THEN i.inventory_id END) > 0
-             ELSE TRUE END
-      ORDER BY f.title;
+      SELECT t.product_service,
+             COUNT(*) as transaction_count,
+             SUM(t.amount) as total_revenue,
+             AVG(t.amount) as avg_transaction_value,
+             MIN(t.amount) as min_amount,
+             MAX(t.amount) as max_amount
+      FROM master_txn_table t
+      WHERE t.business_id = $1
+      AND t.transaction_date BETWEEN $2::date AND $3::date
+      AND t.transaction_type IN ('invoice', 'sale')
+      AND t.product_service IS NOT NULL
+      GROUP BY t.product_service
+      ORDER BY total_revenue DESC;
+
+  get-vendor-payments:
+    kind: postgres-sql
+    source: postgres-main
+    description: Get vendor payment summary and outstanding balances
+    parameters:
+      - name: business_id
+        type: integer
+        description: Business ID to filter by
+      - name: vendor_name
+        type: string
+        description: Vendor name filter (optional)
+    statement: |
+      SELECT v.vendor_name, v.balance as outstanding_balance,
+             v.billing_city, v.billing_state,
+             COUNT(t.id) as total_transactions,
+             SUM(t.amount) as total_expenses,
+             MAX(t.transaction_date) as last_transaction_date
+      FROM vendors v
+      LEFT JOIN master_txn_table t ON v.business_id = t.business_id 
+                                   AND v.vendor_name = t.vendor
+      WHERE v.business_id = $1
+      AND ($2 IS NULL OR v.vendor_name ILIKE '%' || $2 || '%')
+      GROUP BY v.vendor_name, v.balance, v.billing_city, v.billing_state
+      ORDER BY v.balance DESC;
+
+  account-summary:
+    kind: postgres-sql
+    source: postgres-main
+    description: Get account summary with total debits and credits
+    parameters:
+      - name: business_id
+        type: integer
+        description: Business ID to analyze
+      - name: account_type
+        type: string
+        description: Account type filter (asset, liability, income, expense)
+    statement: |
+      SELECT a.account_name, a.account_type,
+             COUNT(t.id) as transaction_count,
+             COALESCE(SUM(t.debit), 0) as total_debits,
+             COALESCE(SUM(t.credit), 0) as total_credits,
+             COALESCE(SUM(t.debit), 0) - COALESCE(SUM(t.credit), 0) as net_balance
+      FROM chart_of_accounts a
+      LEFT JOIN master_txn_table t ON a.business_id = t.business_id 
+                                   AND a.account_name = t.account
+      WHERE a.business_id = $1
+      AND ($2 IS NULL OR a.account_type = $2)
+      GROUP BY a.account_name, a.account_type
+      ORDER BY a.account_type, ABS(COALESCE(SUM(t.debit), 0) - COALESCE(SUM(t.credit), 0)) DESC;
+
+  cash-flow-analysis:
+    kind: postgres-sql
+    source: postgres-main
+    description: Analyze cash flow by month and transaction type
+    parameters:
+      - name: business_id
+        type: integer
+        description: Business ID to analyze
+      - name: months_back
+        type: integer
+        description: Number of months back to analyze
+    statement: |
+      SELECT DATE_TRUNC('month', t.transaction_date) as month,
+             t.transaction_type,
+             COUNT(*) as transaction_count,
+             SUM(t.amount) as total_amount
+      FROM master_txn_table t
+      WHERE t.business_id = $1
+      AND t.transaction_date >= CURRENT_DATE - INTERVAL '$2 months'
+      AND t.account = 'cash'
+      GROUP BY DATE_TRUNC('month', t.transaction_date), t.transaction_type
+      ORDER BY month DESC, t.transaction_type;
+
+  overdue-invoices:
+    kind: postgres-sql
+    source: postgres-main
+    description: Find overdue invoices and open balances
+    parameters:
+      - name: business_id
+        type: integer
+        description: Business ID to check
+      - name: days_overdue
+        type: integer
+        description: Minimum days overdue
+    statement: |
+      SELECT t.transaction_id, t.customers, t.due_date, t.open_balance,
+             t.transaction_date, t.product_service,
+             CURRENT_DATE - t.due_date as days_overdue
+      FROM master_txn_table t
+      WHERE t.business_id = $1
+      AND t.transaction_type = 'invoice'
+      AND t.due_date IS NOT NULL
+      AND t.open_balance > 0
+      AND CURRENT_DATE - t.due_date >= $2
+      ORDER BY days_overdue DESC, t.open_balance DESC;
 
 toolsets:
-  customer-service:
-    - query-customers
-    - get-customer-rentals
-  film-management:
-    - search-films
-    - get-store-inventory
-  dvd-rental-all:
-    - query-customers
-    - get-customer-rentals
-    - search-films
-    - get-store-inventory
+  financial-analysis:
+    - analyze-revenue
+    - account-summary
+    - cash-flow-analysis
+  customer-management:
+    - get-customer-balance
+    - query-transactions
+    - overdue-invoices
+  vendor-management:
+    - get-vendor-payments
+    - query-transactions
+  accounting-all:
+    - query-transactions
+    - get-customer-balance
+    - analyze-revenue
+    - get-vendor-payments
+    - account-summary
+    - cash-flow-analysis
+    - overdue-invoices
