@@ -1,0 +1,28 @@
+{
+  "servers": {
+    "linear": {
+      "type": "mcp",
+      "command": "node",
+      "args": ["servers/linear-mcp-server/dist/index.js"],
+      "cwd": "..",
+      "capabilities": [
+        "tools/list",
+        "tools/call",
+        "resources/list",
+        "resources/read",
+        "prompts/list",
+        "prompts/get"
+      ],
+      "description": "Linear MCP Server for issue tracking",
+      "maxInstances": 3,
+      "healthCheckInterval": 30000
+    }
+  },
+  "gateway": {
+    "port": 37373,
+    "allowedOrigins": ["http://localhost:3000", "http://localhost:8080"],
+    "jwtSecret": "your-jwt-secret-change-in-production",
+    "sessionTimeout": 3600000,
+    "maxConcurrentSessions": 100
+  }
+}

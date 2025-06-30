@@ -28,21 +28,29 @@ setup: ## Initial project setup with environment files
 	@echo "🏗️  Setting up Omni MCP development environment..."
 	@mkdir -p data/files data/uploads secrets logs
 	@if [ ! -f .env.development.local ]; then \
-		cp .env.development .env.development.local; \
-		echo "✅ Created .env.development.local"; \
+		cp .env.development.local.example .env.development.local; \
+		echo "✅ Created .env.development.local from example"; \
 	fi
+	@echo "📝 Please update .env.development.local with your actual API keys:"
+	@echo "   🔗 Linear API key: https://linear.app/settings/api"
+	@echo "⚠️  NEVER commit .env.*.local files - they contain secrets!"
+
+setup-prod: ## Setup production environment file
+	@echo "🏭 Setting up production environment..."
 	@if [ ! -f .env.production.local ]; then \
-		cp .env.production .env.production.local; \
-		echo "✅ Created .env.production.local"; \
+		cp .env.production.local.example .env.production.local; \
+		echo "✅ Created .env.production.local from example"; \
 	fi
-	@echo "📝 Please update your .env.*.local files with actual values"
-	@echo "🔗 Linear API key: https://linear.app/settings/api"
+	@echo "📝 Please update .env.production.local with your production values"
+	@echo "⚠️  NEVER commit .env.production.local - it contains secrets!"
 
 setup-env: setup ## Alias for setup
 
 ##@ 🚀 Development
 dev: ## Start development environment with hot reload
 	@echo "🚀 Starting development environment..."
+	@echo "🧹 Cleaning up any existing processes..."
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) down 2>/dev/null || true
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build
 
 dev-local: ## Start local development with Claude Desktop integration
@@ -57,7 +65,24 @@ dev-local: ## Start local development with Claude Desktop integration
 
 dev-detached: ## Start development environment in background
 	@echo "🚀 Starting development environment (detached)..."
+	@echo "🧹 Cleaning up any existing processes..."
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) down 2>/dev/null || true
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build -d
+
+dev-gateway: ## Start only the MCP Gateway for on-demand server spawning
+	@echo "🚀 Starting MCP Gateway in on-demand mode..."
+	@echo "🧹 Cleaning up any existing gateway processes..."
+	@pkill -f "tsx src/index.ts" 2>/dev/null || true
+	@lsof -ti:37373 | xargs kill -9 2>/dev/null || true
+	@sleep 1
+	@echo "🔧 Ensuring Linear server is built..."
+	@cd servers/linear-mcp-server && pnpm build
+	@echo "🌐 Starting gateway with on-demand server spawning..."
+	@if [ ! -f .env.development.local ]; then \
+		echo "❌ .env.development.local not found. Run 'make setup' first."; \
+		exit 1; \
+	fi
+	@export $$(grep -v '^#' .env.development.local | grep -v '^$$' | xargs) && cd gateway && pnpm dev
 
 dev-down: ## Stop development environment
 	@echo "🛑 Stopping development environment..."

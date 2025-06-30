@@ -9,12 +9,12 @@ secrets/
 *.pem
 *.p12
 *.pfx
+# Environment files - never commit actual secrets
 *.env
 *.env.*
-!*.env.example
-.env.local
-.env.production
-.env.staging
+!.env.development.local.example
+!.env.production.local.example
+!.env.test.local.example
 
 # Claude Desktop Configuration (contains sensitive paths)
 # =============================================================================
@@ -116,14 +116,8 @@ tramp
 # Node.js (if any Node.js tools are added)
 # =============================================================================
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.npm
-.yarn-integrity
-package-lock.json
-yarn.lock
-.turbo
+pnpm-lock.yaml
+
 # Python (if any Python tools are added)
 # =============================================================================
 __pycache__/
@@ -236,3 +230,64 @@ secrets-*.yaml
 !*.template
 !*.sample 
 gateway/coverage
+
+# Environment files (SECURITY: Never commit actual environment files)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Service-specific environment files
+.env.gateway.local
+.env.linear.local
+.env.database.local
+.env.monitoring.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets and certificates (SECURITY: Critical)
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Package manager files
+.turbo

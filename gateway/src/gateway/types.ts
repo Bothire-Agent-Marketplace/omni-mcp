@@ -5,6 +5,7 @@ export interface ServerConfig {
   command: string;
   args: string[];
   cwd: string;
+  env?: Record<string, string>;
   capabilities: string[];
   description: string;
   maxInstances: number;

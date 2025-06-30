@@ -5,7 +5,7 @@ import cors from "cors";
 import { WebSocketServer } from "ws";
 import { createServer } from "http";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
-import { Logger } from "@mcp/utils";
+import { Logger, envConfig } from "@mcp/utils";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -19,7 +19,11 @@ const logger = Logger.getInstance("mcp-gateway");
 async function main() {
   try {
     // Load configuration
-    const configPath = join(__dirname, "../master.config.json");
+    const configFile =
+      process.env.NODE_ENV === "development"
+        ? "../master.config.dev.json"
+        : "../master.config.json";
+    const configPath = join(__dirname, configFile);
     const config = JSON.parse(readFileSync(configPath, "utf-8"));
 
     logger.info("Starting MCP Gateway...");
@@ -79,8 +83,8 @@ async function main() {
     });
 
     // Start server
-    const port = config.gateway.port || 37373;
-    server.listen(port, () => {
+    const port = envConfig.GATEWAY_PORT;
+    server.listen(port, envConfig.GATEWAY_HOST, () => {
       logger.info(`🚀 MCP Gateway running on port ${port}`);
       logger.info(`📋 Health check: http://localhost:${port}/health`);
       logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
