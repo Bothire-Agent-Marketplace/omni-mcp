@@ -216,6 +216,44 @@ shell-gateway: ## Open shell in gateway container
 shell-linear: ## Open shell in Linear server container
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) exec linear-mcp-server sh
 
+##@ 🛠️  MCP Server Management (CLI)
+create-mcp: ## Create new MCP server (usage: make create-mcp SERVICE=github)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Please specify SERVICE name: make create-mcp SERVICE=github"; \
+		exit 1; \
+	fi
+	@echo "🏗️  Creating $(SERVICE) MCP server..."
+	@cd packages/dev-tools && pnpm build && node dist/cli/index.js create $(SERVICE)
+
+list-mcp: ## List all MCP servers in the project
+	@echo "📋 Listing MCP servers..."
+	@cd packages/dev-tools && pnpm build && node dist/cli/index.js list
+
+list-mcp-verbose: ## List all MCP servers with detailed information
+	@echo "📋 Listing MCP servers (verbose)..."
+	@cd packages/dev-tools && pnpm build && node dist/cli/index.js list --verbose
+
+validate-mcp: ## Validate MCP server compliance (usage: make validate-mcp SERVICE=github)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "🔍 Validating all MCP servers..."; \
+		cd packages/dev-tools && pnpm build && node dist/cli/index.js validate; \
+	else \
+		echo "🔍 Validating $(SERVICE) MCP server..."; \
+		cd packages/dev-tools && pnpm build && node dist/cli/index.js validate $(SERVICE); \
+	fi
+
+remove-mcp: ## Remove MCP server (usage: make remove-mcp SERVICE=github)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "❌ Please specify SERVICE name: make remove-mcp SERVICE=github"; \
+		exit 1; \
+	fi
+	@echo "🗑️  Removing $(SERVICE) MCP server..."
+	@cd packages/dev-tools && pnpm build && node dist/cli/index.js remove $(SERVICE) --force
+
+omni-cli: ## Access the full Omni CLI (usage: make omni-cli ARGS="create github")
+	@echo "🚀 Omni MCP CLI..."
+	@cd packages/dev-tools && pnpm build && node dist/cli/index.js $(ARGS)
+
 ##@ 📱 Client Integration
 claude-config: ## Generate Claude Desktop configuration
 	@echo "📱 Generating Claude Desktop configuration..."

@@ -36,3 +36,5 @@ export {
   LINEAR_RESOURCES,
   LINEAR_PROMPTS,
 } from "./linear/mcp-types.js";
+
+export * from "./slack/slack.js";
