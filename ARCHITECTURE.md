@@ -107,13 +107,13 @@ Individual MCP servers should follow these core principles[16](https://modelcont
 
 ## **3. Implementation Standards**
 
-**Tool Naming**: Follow consistent naming conventions using camelCase, kebab-case, or snake_case[20](https://snyk.io/pt-BR/articles/5-best-practices-for-building-mcp-servers/). Avoid spaces and special characters in tool names.
- 
-**Error Handling**: Implement comprehensive error handling with detailed error information[17](https://www.arsturn.com/blog/how-to-build-a-secure-mcp-server-essential-security-practices-and-tools). Provide clear error messages and proper status codes.
+**Tool Naming**: Follow consistent naming conventions using kebab-case
 
-**Logging and Monitoring**: Include structured logging for observability[21](https://www.byteplus.com/en/topic/541340)[22](https://www.byteplus.com/en/topic/541340?title=mcp-server-monitoring-and-logging-best-practices-tools). Implement health checks and metrics collection for monitoring.
+**Error Handling**: Implement comprehensive error handling with detailed error information
 
-**Configuration Management**: Use environment variables for configuration[5](https://github.com/ajoslin103/MCP-Servers). Support dynamic configuration updates where possible.
+**Logging and Monitoring**: Include structured logging for observability
+
+**Configuration Management**: Use environment variables for configuration
 
 ## Anatomy of an MCP Server
 

@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "mcp-gateway": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--network",
+        "mcp-network",
+        "alpine/socat",
+        "STDIO",
+        "TCP:omni-mcp-gateway:3000"
+      ]
+    }
+  }
+}

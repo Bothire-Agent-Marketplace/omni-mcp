@@ -4,8 +4,6 @@
 # This is the main production compose file
 # For development, use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-version: "3.8"
-
 networks:
   mcp-network:
     driver: bridge

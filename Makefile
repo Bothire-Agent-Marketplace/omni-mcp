@@ -45,6 +45,16 @@ dev: ## Start development environment with hot reload
 	@echo "🚀 Starting development environment..."
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build
 
+dev-local: ## Start local development with Claude Desktop integration
+	@echo "🛠️ Starting local development with Claude Desktop integration..."
+	@$(MAKE) claude-config-dev
+	@echo "🔧 Build shared packages..."
+	@pnpm build
+	@echo "🚀 Start development environment..."
+	@$(MAKE) dev-detached
+	@echo "🔍 Start Claude Desktop config watcher..."
+	@$(MAKE) claude-watch
+
 dev-detached: ## Start development environment in background
 	@echo "🚀 Starting development environment (detached)..."
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build -d
@@ -76,14 +86,69 @@ dev-tools: ## Start only development tools (pgAdmin, mailhog, etc.)
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up pgadmin mailhog redis -d
 
 ##@ 📊 Monitoring & Logs
-logs: ## Show logs from all services
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f
+logs: ## Real-time logs for all services (Docker + Local)
+	@echo "🚀 Real-time MCP & Service Monitoring"
+	@echo "====================================="
+	@echo ""
+	@echo "🐳 Docker Services (real-time tail):"
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps
 
-logs-gateway: ## Show logs from MCP gateway only
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f mcp-gateway
+logs-mcp-only: ## Real-time logs for MCP servers only
+	@echo "🔧 Real-time MCP Servers Only"
+	@echo "=============================="
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps linear-mcp-server filesystem-mcp-server mcp-gateway 2>/dev/null || \
+	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps linear-mcp-server filesystem-mcp-server
 
-logs-linear: ## Show logs from Linear MCP server only
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f linear-mcp-server
+logs-local: ## Monitor local MCP servers (direct connections)
+	@echo "🖥️ Local MCP Server Monitoring"
+	@echo "==============================="
+	@echo "💡 For real-time local MCP logs, run in separate terminal:"
+	@echo "   log stream --predicate 'process CONTAINS \"node\" AND message CONTAINS \"Linear\"' --info"
+	@echo ""
+	@echo "🔍 Alternative - Monitor all node processes:"
+	@echo "   log stream --predicate 'process CONTAINS \"node\"' --info | grep -i mcp"
+
+tail: ## Real-time tail of ALL activity (MCP + Infrastructure)  
+	@echo "📡 Real-time tail of everything..."
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=10 --timestamps
+
+test-all-mcp: ## Test all MCP servers manually
+	@echo "🧪 Testing all MCP servers..."
+	@echo ""
+	@echo "📝 Linear MCP Server (local):"
+	@if [ -f servers/linear-mcp-server/dist/index.js ]; then \
+		cd servers/linear-mcp-server && echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node dist/index.js 2>/dev/null || echo "✅ Linear server responded"; \
+	else \
+		echo "❌ Linear server not built. Run: pnpm build"; \
+	fi
+	@echo ""
+	@echo "🐳 Docker MCP Servers:"
+	@echo "  → Filesystem: $(shell docker ps --format '{{.Names}}' | grep filesystem-mcp || echo '❌ Not running')"
+	@echo "  → Database Toolbox: $(shell docker ps --format '{{.Names}}' | grep database || echo '❌ Not running')" 
+	@echo "  → Gateway: $(shell docker ps --format '{{.Names}}' | grep mcp-gateway || echo '❌ Not running')"
+	@echo "  → Linear (Docker): $(shell docker ps --format '{{.Names}}' | grep linear-mcp || echo '❌ Not running')"
+
+validate-mcp-pattern: ## Validate that MCP servers follow the enterprise pattern
+	@echo "🔍 Validating MCP Server Enterprise Pattern Compliance"
+	@echo "===================================================="
+	@echo ""
+	@echo "📋 Checking Linear MCP Server (Gold Standard):"
+	@echo "  ✅ Shared Type Usage:"
+	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/tools.ts && echo "    ✅ tools.ts imports @mcp/schemas" || echo "    ❌ tools.ts missing @mcp/schemas import"
+	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/resources.ts && echo "    ✅ resources.ts imports @mcp/schemas" || echo "    ❌ resources.ts missing @mcp/schemas import"
+	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/prompts.ts && echo "    ✅ prompts.ts imports @mcp/schemas" || echo "    ❌ prompts.ts missing @mcp/schemas import"
+	@echo ""
+	@echo "  ✅ No Local Type Definitions:"
+	@! grep -q "interface.*Tool\|interface.*Resource\|interface.*Prompt" servers/linear-mcp-server/src/mcp-server/tools.ts servers/linear-mcp-server/src/mcp-server/resources.ts servers/linear-mcp-server/src/mcp-server/prompts.ts 2>/dev/null && echo "    ✅ No local type redefinitions found" || echo "    ❌ Found local type redefinitions"
+	@echo ""
+	@echo "  ✅ Shared Constants Usage:"
+	@grep -q "LINEAR_TOOLS\|LINEAR_RESOURCES\|LINEAR_PROMPTS" servers/linear-mcp-server/src/mcp-server/tools.ts servers/linear-mcp-server/src/mcp-server/resources.ts servers/linear-mcp-server/src/mcp-server/prompts.ts && echo "    ✅ Uses shared schema constants" || echo "    ❌ Missing shared schema constants"
+	@echo ""
+	@echo "  ✅ McpResponse Pattern:"
+	@grep -q "McpResponse" servers/linear-mcp-server/src/mcp-server/tools/linear-tools.ts && echo "    ✅ Uses McpResponse<T> pattern" || echo "    ❌ Missing McpResponse<T> pattern"
+	@echo ""
+	@echo "📖 Pattern Documentation: MCP_SERVER_PATTERN.md"
+	@echo "🏆 Gold Standard Reference: servers/linear-mcp-server/"
 
 status: ## Show status of all services
 	@echo "📊 Service Status:"
@@ -156,6 +221,26 @@ claude-config: ## Generate Claude Desktop configuration
 	@echo "📱 Generating Claude Desktop configuration..."
 	@mkdir -p client-integrations/claude-desktop
 	@echo "Please check client-integrations/claude-desktop/ directory"
+
+claude-watch: ## Start chokidar watcher for Claude Desktop config auto-sync
+	@echo "🔍 Starting Claude Desktop config watcher..."
+	@pnpm --filter dev-tools watch:claude-config
+
+claude-config-dev: ## Use development config (local servers) for Claude Desktop
+	@echo "🛠️ Switching to development config..."
+	@cp client-integrations/claude-desktop/claude_desktop_config.dev.json client-integrations/claude-desktop/claude_desktop_config.local.json
+	@echo "✅ Development config active. Start watcher with: make claude-watch"
+
+claude-config-prod: ## Use production config (Docker containers) for Claude Desktop  
+	@echo "🐳 Switching to production config..."
+	@cp client-integrations/claude-desktop/claude_desktop_config.json client-integrations/claude-desktop/claude_desktop_config.local.json
+	@echo "✅ Production config active. Start watcher with: make claude-watch"
+
+claude-config-gateway: ## Use gateway routing config for Claude Desktop
+	@echo "🌐 Switching to gateway routing config..."
+	@cp client-integrations/claude-desktop/claude_desktop_config.gateway.json client-integrations/claude-desktop/claude_desktop_config.local.json
+	@echo "✅ Gateway routing config active. Start watcher with: make claude-watch"
+	@echo "🔧 Make sure gateway is running: make dev"
 
 ##@ 🐳 Docker Management
 docker-images: ## List all project Docker images

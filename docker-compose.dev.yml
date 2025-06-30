@@ -4,7 +4,7 @@
 # This file extends docker-compose.yml for development
 # Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 
-version: "3.8"
+# version attribute is obsolete in modern Docker Compose
 
 services:
   # ==========================================================================
