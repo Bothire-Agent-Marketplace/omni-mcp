@@ -115,13 +115,18 @@ export function createLinearMcpServer() {
         if (uri === "linear://teams") {
           result = await linearTools.linear_get_teams({});
         } else if (uri.startsWith("linear://projects/")) {
-          const teamId = uri.split("/")[2];
-          result = await linearTools.linear_get_projects({ teamId });
+          // Note: linear_get_projects doesn't filter by team, returns all projects
+          result = await linearTools.linear_get_projects({});
         } else if (uri.startsWith("linear://workflow-states/")) {
           const teamId = uri.split("/")[2];
           result = await linearTools.linear_get_workflow_states({ teamId });
         } else if (uri === "linear://users") {
-          result = await linearTools.linear_get_user({});
+          // linear_get_user requires an ID, but this should list all users
+          // We need to implement a linear_get_users method or modify the approach
+          throw new McpError(
+            ErrorCode.InvalidRequest,
+            "Getting all users not implemented. Use linear_get_user with specific ID."
+          );
         } else {
           throw new McpError(
             ErrorCode.InvalidRequest,
