@@ -96,16 +96,20 @@ async function updateSchemasIndex(serviceName: string, projectRoot: string) {
 
     let indexContent = fs.readFileSync(indexPath, "utf8");
 
-    // Remove the export line for this service
+    // Remove both export lines for this service
     const capitalizedName =
       serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-    const exportLine = `export * from "./${serviceName}/mcp-types.js";`;
+    const mcpTypesExport = `export * from "./${serviceName}/mcp-types.js";`;
+    const entityTypesExport = `export * from "./${serviceName}/${serviceName}.js";`;
     const commentLine = `// ${capitalizedName}-specific types`;
 
     indexContent = indexContent
       .split("\n")
       .filter(
-        (line) => !line.includes(exportLine) && !line.includes(commentLine)
+        (line) =>
+          !line.includes(mcpTypesExport) &&
+          !line.includes(entityTypesExport) &&
+          !line.includes(commentLine)
       )
       .join("\n");
 

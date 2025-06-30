@@ -106,6 +106,9 @@ importers:
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../shared/schemas
+      '@mcp/utils':
+        specifier: workspace:*
+        version: link:../../shared/utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.13.2
