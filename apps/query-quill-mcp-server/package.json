@@ -15,8 +15,8 @@
   "dependencies": {
     "@mcp/utils": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.13.2",
-    "cors": "^2.8.17",
-    "express": "^4.19.2",
+    "@fastify/cors": "^9.0.1",
+    "fastify": "^4.28.1",
     "pg": "^8.16.3",
     "zod": "^3.25.67"
   },

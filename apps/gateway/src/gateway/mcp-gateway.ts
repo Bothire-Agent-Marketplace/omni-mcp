@@ -1,4 +1,3 @@
-import { WebSocket } from "ws";
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
@@ -10,6 +9,14 @@ import {
   Session,
   HealthStatus,
 } from "./types.js";
+
+interface IWebSocket {
+  send(data: string): void;
+  on(event: "message", listener: (data: Buffer) => void): this;
+  on(event: "close", listener: () => void): this;
+  on(event: "error", listener: (err: Error) => void): this;
+  close(): void;
+}
 
 export class MCPGateway {
   private logger = createMcpLogger("mcp-gateway-core");
@@ -107,7 +114,7 @@ export class MCPGateway {
     }
   }
 
-  handleWebSocketConnection(ws: WebSocket): void {
+  handleWebSocketConnection(ws: IWebSocket): void {
     this.logger.info("New WebSocket connection established");
 
     // Create session for WebSocket connection
@@ -169,7 +176,7 @@ export class MCPGateway {
       this.sessionManager.removeSession(session.id);
     });
 
-    ws.on("error", (error) => {
+    ws.on("error", (error: Error) => {
       this.logger.error("WebSocket error:", error);
       this.sessionManager.removeSession(session.id);
     });

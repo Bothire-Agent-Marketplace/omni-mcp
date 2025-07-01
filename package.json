@@ -10,7 +10,7 @@
     "pull:docker": "pnpm --filter dev-tools docker:pull",
     "dev": "turbo dev",
     "watch:config": "pnpm --filter dev-tools watch:claude-config",
-    "clean": "turbo clean && rm -rf node_modules",
+    "clean": "turbo clean && rm -rf node_modules && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "clean:docker": "docker system prune -f",
     "clean:all": "pnpm clean && pnpm clean:docker",
     "type-check": "turbo type-check",
