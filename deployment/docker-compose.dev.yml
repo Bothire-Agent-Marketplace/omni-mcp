@@ -1,12 +1,4 @@
-# =============================================================================
-# Omni MCP - Development Configuration
-# =============================================================================
-# Complete service definitions for development environment
-
 services:
-  # ==========================================================================
-  # MCP Gateway Service
-  # ==========================================================================
   mcp-gateway:
     build:
       context: ../
@@ -22,22 +14,20 @@ services:
       - LOG_LEVEL=debug
       - GATEWAY_PORT=37373
     volumes:
-      # Hot reload for development
       - ../gateway/src:/app/gateway/src:ro
       - ../gateway/package.json:/app/gateway/package.json:ro
       - ../shared:/app/shared:ro
-    command: ["sh", "-c", "cd gateway && pnpm dev"]
+    command:
+      - sh
+      - "-c"
+      - cd gateway && pnpm dev
     ports:
       - "37373:37373"
-      - "9229:9229" # Node.js debug port
+      - "9229:9229"
     networks:
       - mcp-network
     depends_on:
       - linear-mcp-server
-
-  # ==========================================================================
-  # Linear MCP Server Service
-  # ==========================================================================
   linear-mcp-server:
     build:
       context: ../
@@ -54,27 +44,54 @@ services:
       - LOG_LEVEL=debug
       - PORT=3001
     volumes:
-      # Hot reload for development
       - ../servers/linear-mcp-server/src:/app/servers/linear-mcp-server/src:ro
       - ../servers/linear-mcp-server/package.json:/app/servers/linear-mcp-server/package.json:ro
       - ../shared:/app/shared:ro
-    # Run the HTTP server instead of stdio server
-    command: ["sh", "-c", "cd servers/linear-mcp-server && pnpm dev"]
+    command:
+      - sh
+      - "-c"
+      - cd servers/linear-mcp-server && pnpm dev
     ports:
-      - "3001:3001" # Expose for direct access and health checks
-      - "9230:9229" # Node.js debug port (different from gateway)
+      - "3001:3001"
+      - "9230:9229"
     networks:
       - mcp-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test:
+        - CMD
+        - curl
+        - "-f"
+        - http://localhost:3001/health
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 10s
-
-# =============================================================================
-# Networks
-# =============================================================================
+  # ==========================================================================
+  # PostgreSQL 17 Database with Pagila Sample Data
+  # ==========================================================================
+  postgres-pagila:
+    image: postgres:17
+    container_name: omni-postgres-pagila
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=pagila
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_pagila_data:/var/lib/postgresql/data
+      - ../data/pagila:/docker-entrypoint-initdb.d:ro
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d pagila"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 networks:
   mcp-network:
     driver: bridge
+
+volumes:
+  postgres_pagila_data:

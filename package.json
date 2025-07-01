@@ -13,7 +13,8 @@
     "clean": "turbo clean && rm -rf node_modules",
     "clean:docker": "docker system prune -f",
     "clean:all": "pnpm clean && pnpm clean:docker",
-    "type-check": "turbo type-check"
+    "type-check": "turbo type-check",
+    "omni": "node --enable-source-maps packages/dev-tools/dist/cli/index.js"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

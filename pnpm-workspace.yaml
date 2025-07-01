@@ -1,6 +1,7 @@
 packages:
-  - "packages/*"
-  - "servers/*"
-  - "shared/*"
-  - "shared/utils"
-  - "gateway"
+  - packages/*
+  - servers/*
+  - shared/*
+  - shared/utils
+  - gateway
+  - servers/query-quill-mcp-server

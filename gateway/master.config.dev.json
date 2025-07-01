@@ -13,6 +13,19 @@
       ],
       "description": "Linear MCP Server for issue tracking",
       "healthCheckInterval": 15000
+    },
+    "query-quill": {
+      "type": "mcp",
+      "description": "MCP Server for querying the Pagila sample database",
+      "url": "http://query-quill-mcp-server:3002",
+      "capabilities": [
+        "tools/list",
+        "tools/call",
+        "resources/list",
+        "resources/read",
+        "prompts/list",
+        "prompts/get"
+      ]
     }
   },
   "gateway": {

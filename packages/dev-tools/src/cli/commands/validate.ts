@@ -194,5 +194,20 @@ async function checkPnpmWorkspace(
   const workspace = yaml.load(await fs.readFile(workspacePath, "utf8")) as {
     packages: string[];
   };
-  return workspace.packages?.includes(serverPath) ? "pass" : "fail";
+
+  // Check if the server path matches any of the workspace patterns
+  for (const pattern of workspace.packages || []) {
+    if (pattern === serverPath) {
+      return "pass"; // Exact match
+    }
+    // Check for glob patterns like "servers/*"
+    if (
+      pattern.endsWith("/*") &&
+      serverPath.startsWith(pattern.slice(0, -2) + "/")
+    ) {
+      return "pass"; // Glob pattern match
+    }
+  }
+
+  return "fail";
 }

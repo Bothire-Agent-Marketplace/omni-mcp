@@ -13,40 +13,127 @@ import path from "path";
 import fs from "fs-extra";
 import yaml from "js-yaml";
 
+// Helper function to find the next available port
+async function findNextAvailablePort(): Promise<number> {
+  const usedPorts = new Set<number>();
+
+  // Check master.config.dev.json for used ports
+  try {
+    const masterConfigPath = "gateway/master.config.dev.json";
+    if (fs.existsSync(masterConfigPath)) {
+      const config = await getJson(masterConfigPath);
+      for (const server of Object.values(config.servers || {})) {
+        const serverConfig = server as any;
+        if (serverConfig.url) {
+          const match = serverConfig.url.match(/:(\d+)/);
+          if (match) {
+            usedPorts.add(parseInt(match[1], 10));
+          }
+        }
+      }
+      // Gateway port
+      if (config.gateway?.port) {
+        usedPorts.add(config.gateway.port);
+      }
+    }
+  } catch (error) {
+    console.warn("Could not read master.config.dev.json:", error);
+  }
+
+  // Check docker-compose.dev.yml for used ports
+  try {
+    const composePath = "deployment/docker-compose.dev.yml";
+    if (fs.existsSync(composePath)) {
+      const composeContent = await fs.readFile(composePath, "utf8");
+      const compose = yaml.load(composeContent) as any;
+
+      for (const service of Object.values(compose.services || {})) {
+        const serviceConfig = service as any;
+
+        // Check environment PORT
+        if (serviceConfig.environment) {
+          for (const env of serviceConfig.environment) {
+            if (typeof env === "string" && env.startsWith("PORT=")) {
+              const port = parseInt(env.split("=")[1], 10);
+              if (!isNaN(port)) {
+                usedPorts.add(port);
+              }
+            }
+          }
+        }
+
+        // Check ports mapping
+        if (serviceConfig.ports) {
+          for (const portMapping of serviceConfig.ports) {
+            if (typeof portMapping === "string") {
+              const [hostPort] = portMapping.split(":");
+              const port = parseInt(hostPort, 10);
+              if (!isNaN(port)) {
+                usedPorts.add(port);
+              }
+            }
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("Could not read docker-compose.dev.yml:", error);
+  }
+
+  // Find next available port starting from 3001
+  let port = 3001;
+  while (usedPorts.has(port)) {
+    port++;
+  }
+
+  return port;
+}
+
 export const create = new Command("create")
   .description("Create a new MCP server.")
   .action(async () => {
-    const responses = await prompts([
+    // Find the next available port
+    const nextPort = await findNextAvailablePort();
+
+    const responses = await prompts(
+      [
+        {
+          type: "text",
+          name: "serviceName",
+          message: "What is the name of the service? (e.g., 'linear', 'jira')",
+          validate: (value: string) =>
+            /^[a-z0-9-]+$/.test(value)
+              ? true
+              : "Please use lowercase letters, numbers, and hyphens only.",
+        },
+        {
+          type: "text",
+          name: "description",
+          message: "Provide a short description of the server.",
+        },
+        {
+          type: "text",
+          name: "author",
+          message: "Who is the author of this server?",
+        },
+        {
+          type: "number",
+          name: "port",
+          message: `Which network port should this server run on? (suggested: ${nextPort})`,
+          initial: nextPort,
+          validate: (value: number) =>
+            value > 1024 && value < 65535
+              ? true
+              : "Port must be between 1025 and 65534",
+        },
+      ],
       {
-        type: "text",
-        name: "serviceName",
-        message: "What is the name of the service? (e.g., 'linear', 'jira')",
-        validate: (value: string) =>
-          /^[a-z0-9-]+$/.test(value)
-            ? true
-            : "Please use lowercase letters, numbers, and hyphens only.",
-      },
-      {
-        type: "text",
-        name: "description",
-        message: "Provide a short description of the server.",
-      },
-      {
-        type: "text",
-        name: "author",
-        message: "Who is the author of this server?",
-      },
-      {
-        type: "number",
-        name: "port",
-        message: "Which network port should this server run on?",
-        initial: 3002,
-        validate: (value: number) =>
-          value > 1024 && value < 65535
-            ? true
-            : "Port must be between 1025 and 65534",
-      },
-    ]);
+        onCancel: () => {
+          logError("Operation cancelled by user.");
+          process.exit(1);
+        },
+      }
+    );
 
     if (!responses.serviceName || !responses.port) {
       logError("Server name and port are required. Aborting.");
@@ -82,7 +169,7 @@ export const create = new Command("create")
         ),
         fs.writeFile(
           path.join(serverPath, "Dockerfile"),
-          getDockerfileContent(serviceName)
+          getDockerfileContent(serviceName, port)
         ),
         fs.writeFile(
           path.join(serverPath, ".env.example"),
@@ -98,7 +185,7 @@ export const create = new Command("create")
         ),
         fs.writeFile(
           path.join(serverPath, "src/config/config.ts"),
-          getConfigTsContent(serviceName)
+          getConfigTsContent(serviceName, port)
         ),
         fs.writeFile(
           path.join(serverPath, "src/mcp-server/http-server.ts"),
@@ -245,7 +332,7 @@ logger.info(\`MCP server starting up in \${CONFIG.NODE_ENV} mode...\`);
 startHttpServer(CONFIG.PORT);
 `;
 
-const getConfigTsContent = (name: string) => `
+const getConfigTsContent = (name: string, port: number) => `
 import { loadEnvHierarchy } from "@mcp/utils";
 
 const env = loadEnvHierarchy("${name}");
@@ -254,7 +341,7 @@ export const CONFIG = {
   SERVICE_NAME: "${name}-mcp-server",
   NODE_ENV: env.NODE_ENV || "development",
   LOG_LEVEL: env.LOG_LEVEL || "info",
-  PORT: parseInt(env.PORT || "3001", 10),
+  PORT: parseInt(env.PORT || "${port}", 10),
 
   // TODO: Add your service-specific environment variables here
   // EXAMPLE_API_KEY: env.EXAMPLE_API_KEY,
@@ -379,7 +466,7 @@ export async function handleExampleSearch(params: unknown) {
 }
 `;
 
-const getDockerfileContent = (name: string) => `
+const getDockerfileContent = (name: string, port: number) => `
 # Use the official builder image from the linear-mcp-server
 # This ensures a consistent build environment for all our servers
 FROM omni/linear-mcp-server:builder AS builder
@@ -416,7 +503,7 @@ COPY --from=builder /app/shared/utils/package.json ./shared/utils/
 
 # Expose the port the server will run on
 # The actual port is controlled by the .env file, but this is good practice
-EXPOSE 3001
+EXPOSE ${port}
 
 # Command to run the service
 # The PORT can be overridden by docker-compose environment variables
@@ -507,7 +594,7 @@ async function updateDockerCompose(
     command: ["sh", "-c", `cd servers/${serverId} && pnpm dev`],
     ports: [
       `${port}:${port}`,
-      // Add a unique debug port
+      // Add a unique debug port (port + 1000 to avoid conflicts)
       `${port + 1000}:9229`,
     ],
     networks: ["mcp-network"],

@@ -1,459 +1,112 @@
-# Omni MCP - Enterprise MCP Server Platform
+# 🌟 Omni MCP
 
-A modern, enterprise-grade **Model Context Protocol (MCP) platform** with **powerful CLI tools**, unified gateway, and scalable server management. Create, validate, and manage 100+ MCP servers with consistent patterns and zero technical debt.
+> Enterprise-grade MCP (Model Context Protocol) server management platform with automatic scaling, smart routing, and developer-friendly tooling.
 
 ## 🚀 Quick Start
 
-### 1. Get Started in 30 Seconds
-
 ```bash
-# Clone and setup
-git clone <your-repo>
+# 1. Clone and install
+git clone <repo-url>
 cd omni
-make setup
+pnpm install
 
-# Start development environment
+# 2. Build the project
+pnpm build
+
+# 3. Start all services
 make dev
 
-# Create your first MCP server
-make create-mcp SERVICE=github
+# 4. Create your first MCP server
+pnpm omni create
 ```
 
-### 2. Verify Everything Works
+Your gateway will be running at **http://localhost:37373** 🎉
 
-```bash
-# Check all services
-make health
+## 🏗️ What is Omni MCP?
 
-# List your MCP servers
-make list-mcp-verbose
+Omni is a **production-ready MCP platform** that lets you:
 
-# Validate enterprise compliance
-make validate-mcp
-```
+- 🔄 **Gateway Router**: Single entry point that routes requests to multiple MCP servers
+- 🛠️ **CLI Toolkit**: Create, manage, and validate MCP servers with `pnpm omni`
+- 🐳 **Docker Ready**: Full containerization with hot-reload for development
+- 📈 **Auto-Scaling**: HTTP-based microservices architecture
+- ✅ **Enterprise Patterns**: Validation, health checks, and best practices built-in
 
-**🎉 You now have a fully functional enterprise MCP platform!**
-
-## 🛠️ CLI & Makefile Commands
-
-The Omni platform is designed around **simple, powerful commands** that handle all complexity behind the scenes.
-
-### 🏗️ MCP Server Management
-
-```bash
-# CREATE new MCP servers with full scaffolding
-make create-mcp SERVICE=github     # GitHub integration
-make create-mcp SERVICE=slack      # Slack integration
-make create-mcp SERVICE=jira       # Jira integration
-make create-mcp SERVICE=notion     # Notion integration
-
-# LIST and inspect servers
-make list-mcp                      # Quick list
-make list-mcp-verbose              # Detailed info with compliance
-
-# VALIDATE enterprise pattern compliance
-make validate-mcp                  # All servers (0-100% scoring)
-make validate-mcp SERVICE=github   # Specific server
-
-# REMOVE servers safely
-make remove-mcp SERVICE=oldserver  # Clean deletion + dependency cleanup
-```
-
-### 🚀 Development Environment
-
-```bash
-# ENVIRONMENT management
-make setup                         # Initial project setup
-make dev                          # Start development (hot reload)
-make dev-detached                 # Background development
-make restart                      # Quick restart
-
-# MONITORING & debugging
-make logs                         # Real-time logs (all services)
-make logs-mcp-only               # Just MCP servers
-make status                      # Service status overview
-make health                      # Detailed health check
-
-# QUALITY & testing
-make test                        # Run all tests
-make validate-mcp-pattern        # Validate enterprise patterns
-make build                       # Build all Docker images
-make clean                       # Clean up containers
-```
-
-### 📱 Claude Desktop Integration
-
-```bash
-# CLAUDE DESKTOP setup
-make claude-config-dev           # Use local servers
-make claude-config-prod          # Use Docker containers
-make claude-watch                # Auto-sync config changes
-```
-
-### 🔧 Advanced CLI Access
-
-```bash
-# Direct CLI access with custom options
-make omni-cli ARGS="create slack --template advanced"
-make omni-cli ARGS="validate --fix"
-make omni-cli ARGS="list --verbose"
-
-# Database operations
-make db-shell                    # PostgreSQL access
-make db-reset                    # Reset development database
-
-# Security
-make generate-secrets            # Generate production secrets
-```
-
-## 🏆 Enterprise MCP Server Pattern
-
-Every MCP server created follows the **Enterprise MCP Server Pattern** automatically:
-
-### ✅ What Gets Generated
-
-```bash
-make create-mcp SERVICE=github
-```
-
-**Creates:**
-
-```
-servers/github-mcp-server/
-├── src/
-│   ├── index.ts                    # Entry point
-│   ├── config/config.ts            # Environment configuration
-│   ├── types/
-│   │   ├── mcp-types.ts            # Server-specific MCP definitions
-│   │   └── github-types.ts         # Domain-specific types
-│   └── mcp-server/
-│       ├── server.ts               # MCP server setup
-│       ├── tools.ts                # MCP tool definitions (what tools exist)
-│       ├── resources.ts            # MCP resource definitions
-│       ├── prompts.ts              # MCP prompt definitions
-│       └── tools/github-tools.ts   # Tool implementation classes (how tools work)
-├── package.json                    # Full dependencies
-├── tsconfig.json                   # TypeScript config
-├── Dockerfile                      # Multi-stage build
-└── README.md                       # Complete documentation
-```
-
-### 🎯 Perfect Starting Template
-
-**Domain Types** (`types/github-types.ts`):
-
-```typescript
-// Simple placeholder types for customization
-export interface CreateGithubInput {
-  title: string;
-  description?: string;
-}
-
-export interface GithubResult {
-  id: string;
-  title: string;
-  url?: string;
-}
-```
-
-**Tool Implementation** (`tools/github-tools.ts`):
-
-```typescript
-// Enterprise pattern with placeholder logic
-import { McpResponse } from "../types/mcp-types.js";
-import { CreateGithubInput, GithubResult } from "../types/github-types.js";
-
-export class GithubTools {
-  private config: { apiKey: string };
-
-  constructor(config: { apiKey: string }) {
-    this.config = config;
-  }
-
-  private async _execute<T>(
-    toolName: string,
-    logic: () => Promise<T>
-  ): Promise<McpResponse<T>> {
-    try {
-      const data = await logic();
-      return { success: true, data };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  async github_create(
-    args: CreateGithubInput
-  ): Promise<McpResponse<GithubResult>> {
-    return this._execute("github_create", async () => {
-      // TODO: Replace with actual GitHub API calls
-      const { title, description } = args;
-
-      const result: GithubResult = {
-        id: "placeholder-id",
-        title,
-        url: `https://api.github.com/entities/placeholder-id`,
-      };
-
-      return result;
-    });
-  }
-}
-```
-
-### 🔍 Enterprise Pattern Validation
-
-```bash
-make validate-mcp SERVICE=github
-```
-
-**Validation Checks:**
-
-- ✅ **Server-Specific Types**: All types defined in server's `types/` directory
-- ✅ **Error Handling**: `_execute()` wrapper pattern
-- ✅ **Response Types**: `McpResponse<T>` usage
-- ✅ **Directory Structure**: Required files present
-- ✅ **Environment Hierarchy**: Uses hierarchical config loading
-- ✅ **Docker Ready**: Multi-stage builds
-- ✅ **Documentation**: Complete README
-
-**Scoring**: 🟢 90%+ = Excellent, 🟡 70-89% = Good, 🔴 <70% = Needs improvement
-
-## 🏗️ Architecture Overview
-
-```
-Claude Desktop/AI Client → MCP Gateway (HTTP) → Individual MCP Servers → External APIs
-                                ↓
-                        PostgreSQL + Redis + Infrastructure
-```
-
-**Core Philosophy:**
-
-- **CLI-First**: All operations via simple commands
-- **Enterprise-Ready**: Consistent patterns, type safety, validation
-- **Scalable**: Ready for 100+ MCP servers
-- **Developer-Friendly**: Hot reload, auto-validation, clear feedback
-
-## 📋 Development Workflow
-
-### Typical MCP Server Creation
-
-```bash
-# 1. Create server with scaffolding
-make create-mcp SERVICE=notion
-
-# 2. Configure API credentials
-cd servers/notion-mcp-server
-# Edit src/config/config.ts with Notion API key
-
-# 3. Customize types for your use case
-# Edit src/types/notion-types.ts and src/types/mcp-types.ts
-
-# 4. Implement actual API calls
-# Edit src/mcp-server/tools/notion-tools.ts
-
-# 5. Build and validate
-cd servers/notion-mcp-server && pnpm build
-make validate-mcp SERVICE=notion
-
-# 6. Test with Claude Desktop
-make claude-config-dev
-make claude-watch
-```
-
-### Multi-Server Management
-
-```bash
-# Create multiple services
-make create-mcp SERVICE=github
-make create-mcp SERVICE=linear
-make create-mcp SERVICE=slack
-
-# Validate all at once
-make validate-mcp
-
-# Monitor everything
-make logs-mcp-only
-```
-
-## 🐳 Infrastructure & Services
-
-### Service URLs (Development)
-
-- **MCP Gateway**: http://localhost:37373
-- **pgAdmin**: http://localhost:8080 (admin@omni.dev / admin)
-- **Mailhog**: http://localhost:8025
-- **PostgreSQL**: localhost:5432
-- **Redis**: localhost:6379
-
-### Container Architecture
-
-```bash
-omni-mcp-gateway          # :37373 (HTTP gateway)
-omni-linear-mcp-server    # Internal MCP server
-omni-postgres             # :5432 (database)
-omni-pgadmin-dev          # :8080 (dev only)
-omni-mailhog-dev          # :8025 (dev only)
-omni-redis-dev            # :6379 (dev only)
-```
-
-### Environment Management
+## 🎯 Core Commands
 
 ```bash
 # Development
-make setup                        # Creates hierarchical environment files
-# Edit secrets/.env.development.local with your API keys
-make dev                         # Start with hot reload
+make dev              # Start all services with hot reload
+make clean            # Clean up Docker containers
 
-# Production
-make setup-prod                  # Creates .env.production.local
-# Edit .env.production.local with production secrets
-make prod                        # Start production environment
+# MCP Server Management
+pnpm omni create      # Create a new MCP server (interactive)
+pnpm omni list        # List all servers
+pnpm omni validate    # Check server compliance
+pnpm omni remove <name> --force  # Remove a server
+
+# Building
+pnpm build            # Build all packages
+pnpm build:docker     # Build Docker images
 ```
 
-## 📱 Claude Desktop Integration
-
-### Automatic Configuration
-
-```bash
-# Choose your integration approach:
-make claude-config-dev           # Direct to local servers (fastest)
-make claude-config-prod          # Through Docker containers
-make claude-config-gateway       # Through MCP gateway (enterprise)
-
-# Start auto-sync
-make claude-watch                # Watches for config changes
-```
-
-### Manual Configuration
-
-Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "omni-gateway": {
-      "command": "curl",
-      "args": [
-        "-X",
-        "POST",
-        "http://localhost:37373/mcp",
-        "-H",
-        "Content-Type: application/json",
-        "-H",
-        "Authorization: Bearer YOUR_MCP_API_KEY",
-        "--data-binary",
-        "@-"
-      ]
-    }
-  }
-}
-```
-
-## 🚨 Troubleshooting
-
-### Quick Fixes
-
-```bash
-# Services won't start
-make clean && make dev
-
-# MCP servers not working
-make validate-mcp              # Check compliance issues
-make logs-mcp-only            # Check server logs
-
-# Database issues
-make db-reset                 # Reset development database
-
-# Claude Desktop not connecting
-make claude-watch             # Ensure config is synced
-make health                   # Check all services
-
-# General issues
-make restart                  # Quick restart everything
-make status                   # Check service status
-```
-
-### Common Issues
-
-| Problem               | Solution                                                          |
-| --------------------- | ----------------------------------------------------------------- |
-| CLI command not found | `cd packages/dev-tools && pnpm build`                             |
-| Validation errors     | Check server-specific type imports in server's `types/` directory |
-| Type errors           | Rebuild server: `cd servers/[service]-mcp-server && pnpm build`   |
-| Environment issues    | Run `make setup` and edit `secrets/.env.development.local`        |
-| Docker issues         | `make clean && make build`                                        |
-| Port conflicts        | Check existing services on ports 37373, 5432, 6379                |
-
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
 omni/
-├── Makefile                     # 🎯 Main developer interface
-├── CLI_GUIDE.md                 # 📖 Complete CLI documentation
-├── docker-compose.yml           # Production services
-├── docker-compose.dev.yml       # Development overrides
-├── packages/dev-tools/          # 🛠️ CLI implementation
-│   └── src/cli/                 # Command implementations
-├── servers/                     # 🚀 Individual MCP servers
-│   └── linear-mcp-server/       # Example: Linear integration
-├── shared/                      # 📋 Shared utilities and core types
-│   ├── schemas/                 # Core MCP interface definitions only
-│   └── utils/                   # Shared utility functions
-├── gateway/                     # 🌐 MCP Gateway service
-├── client-integrations/         # 📱 Claude Desktop configs
-└── data/                        # 💾 Persistent data
+├── gateway/              # MCP Gateway (routes requests)
+├── servers/              # Individual MCP servers
+│   └── linear-mcp-server/    # Example: Linear integration
+├── packages/
+│   └── dev-tools/        # CLI toolkit (pnpm omni)
+├── shared/               # Shared utilities and types
+├── deployment/           # Docker Compose configs
+└── docs/                 # Detailed documentation
 ```
 
-## 🎯 Advanced Features
+## 🔌 Architecture
 
-### Template System (Coming Soon)
+- **Gateway** (port 37373): Routes MCP requests to appropriate servers
+- **MCP Servers** (ports 3001+): Individual HTTP microservices
+- **Smart Routing**: Automatic service discovery and health checking
+- **Hot Reload**: Changes auto-reload in development
+
+## 📚 Documentation
+
+- **[CLI Guide](docs/CLI_GUIDE.md)** - Complete CLI reference
+- **[Architecture Guide](docs/ARCHITECTURE.md)** - System design and patterns
+- **[MCP Server Pattern](docs/MCP_SERVER_PATTERN.md)** - Best practices for servers
+
+## 🧪 Testing Your Setup
 
 ```bash
-make omni-cli ARGS="create github --template enterprise"
-make omni-cli ARGS="create slack --template minimal"
+# Health check
+curl http://localhost:37373/health
+
+# List available tools
+curl http://localhost:37373/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+
+# Test Linear integration (if configured)
+curl http://localhost:37373/mcp \
+  -H "Content-Type: application/json" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {"name": "linear_get_teams"},
+    "id": 1
+  }'
 ```
 
-### Batch Operations
+## 🎨 Features
 
-```bash
-# Validate all servers with auto-fix
-make omni-cli ARGS="validate --fix --all"
-
-# Bulk updates
-make omni-cli ARGS="update-schema --all"
-```
-
-### Production Deployment
-
-```bash
-# Generate secure secrets
-make generate-secrets
-
-# Deploy with monitoring
-docker-compose --profile monitoring up -d
-
-# Health checks
-make health
-```
-
-## 🔗 Documentation
-
-- **[CLI_GUIDE.md](CLI_GUIDE.md)** - Complete CLI usage guide
-- **[MCP_SERVER_PATTERN.md](MCP_SERVER_PATTERN.md)** - Enterprise patterns
-- **[deployment/README.md](deployment/README.md)** - Docker & deployment
-
-## 🎉 Getting Help
-
-```bash
-make help                        # Show all available commands
-make list-mcp-verbose            # See your current servers
-make validate-mcp                # Check compliance
-make logs                        # View real-time activity
-```
+- ✅ **Auto Port Management** - CLI automatically assigns unique ports
+- ✅ **Validation System** - Ensures all servers follow best practices
+- ✅ **Health Monitoring** - Built-in health checks and monitoring
+- ✅ **TypeScript First** - Full type safety across the platform
+- ✅ **Developer Experience** - Hot reload, clear logs, easy debugging
 
 ---
 
-**🎯 Mission**: Enable teams to rapidly create, validate, and scale 100+ enterprise-grade MCP servers with consistent patterns, type safety, and zero technical debt.
-
-**🚀 Get Started**: `make setup && make create-mcp SERVICE=yourservice`
+**Ready to build something awesome?** Start with `pnpm omni create` 🚀

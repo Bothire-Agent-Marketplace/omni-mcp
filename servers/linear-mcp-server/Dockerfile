@@ -70,6 +70,9 @@ RUN pnpm install --prod --frozen-lockfile
 # Copy built linear server application
 COPY --from=builder /app/servers/linear-mcp-server/dist ./servers/linear-mcp-server/dist
 
+# Expose the port that the server will listen on
+EXPOSE 3001
+
 # Set ownership
 RUN chown -R linear:nodejs /app
 USER linear

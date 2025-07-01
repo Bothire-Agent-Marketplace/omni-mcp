@@ -1,5 +1,6 @@
 import { exec } from "child_process";
 import chalk from "chalk";
+import fs from "fs-extra";
 
 export function log(message: string) {
   console.log(message);
@@ -45,12 +46,10 @@ export function runCommand(
 }
 
 export async function getJson(filePath: string): Promise<any> {
-  const fs = await import("fs-extra");
   return fs.readJson(filePath);
 }
 
 export async function writeJson(filePath: string, data: any): Promise<void> {
-  const fs = await import("fs-extra");
   await fs.writeJson(filePath, data, { spaces: 2 });
 }
 
