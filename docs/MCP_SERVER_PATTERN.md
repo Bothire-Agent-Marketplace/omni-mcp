@@ -1,256 +1,184 @@
-# Enterprise MCP Server Pattern
+# Enterprise MCP Server Pattern: HTTP Edition
 
-This document defines the **standardized pattern** that all MCP servers in this project must follow. The Linear MCP server serves as the **gold standard** implementation using the **official MCP SDK pattern**.
+This document defines the **standardized, serverless-ready pattern** that all new MCP servers in this project must follow. The Linear MCP server serves as the **gold standard** implementation. This pattern decouples business logic from the transport layer, allowing servers to run as standalone HTTP microservices or be deployed as FaaS functions.
 
 ## 🏗️ **Required Architecture**
 
 ```
 servers/[service]-mcp-server/
 ├── src/
-│   ├── index.ts                    # Entry point
+│   ├── index.ts                    # Entry point: starts the HTTP server
 │   ├── config/
-│   │   └── config.ts              # Environment configuration
+│   │   └── config.ts               # Environment configuration
 │   └── mcp-server/
-│       ├── server.ts              # Main server logic
-│       ├── tools.ts               # MCP tool definitions
-│       ├── resources.ts           # MCP resource definitions
-│       └── prompts.ts             # MCP prompt definitions
+│       ├── http-server.ts          # NEW: Express.js server (transport layer)
+│       ├── handlers.ts             # NEW: Core business logic handlers
+│       ├── tools.ts                # MCP tool definitions (wiring layer)
+│       ├── resources.ts            # MCP resource definitions (wiring layer)
+│       └── prompts.ts              # MCP prompt definitions (wiring layer)
 ├── package.json
 ├── tsconfig.json
 ├── Dockerfile
 └── README.md
 ```
 
-## 🎯 **1. Official MCP SDK Pattern (MANDATORY)**
+## 🎯 **1. The Handler Pattern (Business Logic)**
 
-### ✅ **CORRECT - Official MCP SDK Pattern**
+The core of the server is a set of transport-agnostic handler functions. Each handler is a self-contained unit that takes validated parameters and returns a result.
 
-All servers must use the official MCP SDK pattern with `server.registerTool()`, `server.registerResource()`, and `server.registerPrompt()`:
+### ✅ **CORRECT - Handler Pattern**
 
 ```typescript
-// tools.ts - GOLD STANDARD PATTERN
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+// mcp-server/handlers.ts - GOLD STANDARD PATTERN
 import { z } from "zod";
+import { McpError, ErrorCode } from "@mcp/utils"; // Assuming a shared error utility
 
-export function registerTools(server: Server) {
-  // Register list_tools handler
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [
-      {
-        name: "service_search",
-        description: "Search service entities",
-        inputSchema: {
-          type: "object",
-          properties: {
-            query: {
-              type: "string",
-              description: "Search query",
-            },
-          },
-          required: ["query"],
+// Define input schema with Zod for validation
+const SearchSchema = z.object({
+  query: z.string(),
+});
+
+// Implement the handler function
+export async function handleServiceSearch(params: unknown) {
+  try {
+    const { query } = SearchSchema.parse(params);
+
+    // Your business logic here
+    const results = await searchService(query);
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Found ${results.length} results for: ${query}`,
         },
-      },
-    ],
-  }));
-
-  // Register tool execution handler
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    switch (name) {
-      case "service_search": {
-        // Use Zod for input validation within the handler
-        const SearchSchema = z.object({
-          query: z.string(),
-        });
-
-        try {
-          const { query } = SearchSchema.parse(args);
-
-          // Your business logic here
-          const results = await searchService(query);
-
-          return {
-            content: [
-              {
-                type: "text",
-                text: `Found ${results.length} results for: ${query}`,
-              },
-            ],
-          };
-        } catch (error) {
-          throw new McpError(
-            ErrorCode.InvalidParams,
-            `Invalid search parameters: ${error}`
-          );
-        }
-      }
-
-      default:
-        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+      ],
+    };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Invalid search parameters: ${error.errors
+          .map((e) => e.message)
+          .join(", ")}`
+      );
     }
-  });
+    // Re-throw other errors
+    throw error;
+  }
 }
-```
 
-```typescript
-// resources.ts - GOLD STANDARD PATTERN
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
-
-export function registerResources(server: Server) {
-  // Register list_resources handler
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-    resources: [
+// Another example for getting entities
+export async function handleGetEntities(params: unknown) {
+  const entities = await getServiceEntities();
+  return {
+    contents: [
       {
         uri: "service://entities",
-        name: "Service Entities",
-        description: "List of service entities",
         mimeType: "application/json",
+        text: JSON.stringify(entities, null, 2),
       },
     ],
-  }));
+  };
+}
+```
 
-  // Register resource reading handler
-  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const { uri } = request.params;
+## 🔌 **2. The HTTP Server Pattern (Transport Layer)**
 
-    switch (uri) {
-      case "service://entities": {
-        const entities = await getServiceEntities();
+The handlers are exposed to the network via an Express.js server. This server is responsible for routing, request/response handling, and health checks.
 
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: "application/json",
-              text: JSON.stringify(entities, null, 2),
-            },
-          ],
-        };
-      }
+### ✅ **CORRECT - HTTP Server Pattern**
 
-      default:
-        throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${uri}`);
+```typescript
+// mcp-server/http-server.ts - GOLD STANDARD PATTERN
+import express from "express";
+import cors from "cors";
+import * as handlers from "./handlers.js";
+
+// A simple mapping from MCP method names to their handler functions.
+const handlerMap: Record<string, (params: any) => Promise<any>> = {
+  // Tool handlers
+  service_search: handlers.handleServiceSearch,
+  // Resource handlers could also be mapped if they take params
+  "resources/read/service://entities": handlers.handleGetEntities,
+};
+
+export function createHttpServer() {
+  const app = express();
+  app.use(cors());
+  app.use(express.json());
+
+  // Health check endpoint
+  app.get("/health", (req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
+  // Main MCP endpoint for tool calls
+  app.post("/mcp", async (req, res) => {
+    const { jsonrpc, method, params, id } = req.body;
+
+    if (jsonrpc !== "2.0" || !method || method !== "tools/call") {
+      // Basic validation
+      return res.status(400).json({ error: { message: "Invalid Request" } });
+    }
+
+    const toolName = params?.name;
+    const handler = handlerMap[toolName];
+
+    if (!handler) {
+      return res.status(404).json({ error: { message: "Method not found" } });
+    }
+
+    try {
+      const result = await handler(params?.arguments || {});
+      res.json({ jsonrpc: "2.0", id, result });
+    } catch (error: any) {
+      res.status(500).json({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32603, message: "Internal error", data: error.message },
+      });
     }
   });
+
+  return app;
 }
 ```
 
+## 🚀 **3. Entry Point**
+
+The `index.ts` file is now extremely simple: it just starts the HTTP server.
+
 ```typescript
-// prompts.ts - GOLD STANDARD PATTERN
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+// index.ts - GOLD STANDARD PATTERN
+import { createMcpLogger } from "@mcp/utils";
+import { startHttpServer } from "./mcp-server/http-server.js";
+import { CONFIG } from "./config/config.js";
 
-export function registerPrompts(server: Server) {
-  // Register list_prompts handler
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: [
-      {
-        name: "service_workflow",
-        description: "Service workflow template",
-        arguments: [
-          {
-            name: "task_type",
-            description: "Type of task to create workflow for",
-            required: true,
-          },
-        ],
-      },
-    ],
-  }));
+const logger = createMcpLogger(CONFIG.SERVICE_NAME);
 
-  // Register prompt generation handler
-  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    const { name, arguments: args } = request.params;
-
-    switch (name) {
-      case "service_workflow": {
-        const taskType = args?.task_type as string;
-
-        return {
-          description: `Service workflow for ${taskType}`,
-          messages: [
-            {
-              role: "user",
-              content: {
-                type: "text",
-                text: `Create a workflow for ${taskType} using our service.`,
-              },
-            },
-          ],
-        };
-      }
-
-      default:
-        throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${name}`);
-    }
-  });
-}
+logger.info("MCP server starting up");
+startHttpServer();
 ```
 
-## 🔧 **2. Server Implementation Pattern**
+## 🎨 **4. Environment Configuration Pattern**
+
+This pattern remains unchanged and is crucial for providing secrets and configuration to the handlers.
 
 ```typescript
-// server.ts - GOLD STANDARD PATTERN
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { registerTools } from "./tools.js";
-import { registerResources } from "./resources.js";
-import { registerPrompts } from "./prompts.js";
-
-export function createServiceMcpServer() {
-  const server = new Server(
-    {
-      name: "service-mcp-server",
-      version: "1.0.0",
-    },
-    {
-      capabilities: {
-        tools: {},
-        resources: {},
-        prompts: {},
-      },
-    }
-  );
-
-  // Register all MCP primitives
-  registerTools(server);
-  registerResources(server);
-  registerPrompts(server);
-
-  return server;
-}
-```
-
-## 🎨 **3. Environment Configuration Pattern**
-
-All servers must use hierarchical environment variable loading:
-
-```typescript
-// config/config.ts
+// config/config.ts - REMAINS GOLD STANDARD
 import { loadEnvHierarchy } from "@mcp/utils";
 
 // Load environment variables with proper hierarchy
 const env = loadEnvHierarchy();
 
 export const CONFIG = {
-  // Service-specific configuration
+  SERVICE_NAME: "service-mcp-server",
   API_KEY: env.SERVICE_API_KEY,
   BASE_URL: env.SERVICE_BASE_URL || "https://api.service.com",
-
-  // Common configuration
   LOG_LEVEL: env.LOG_LEVEL || "info",
   NODE_ENV: env.NODE_ENV || "development",
+  PORT: env.PORT || 3001,
 } as const;
 
 // Validation
@@ -260,37 +188,34 @@ if (!CONFIG.API_KEY) {
 }
 ```
 
-## 🚫 **4. Anti-Patterns (NEVER DO)**
+## 🚫 **5. Anti-Patterns (NEVER DO)**
 
-1. ❌ **Shared schema dependencies** - Each server should be autonomous
-2. ❌ **Complex type abstractions** - Use the official MCP SDK directly
-3. ❌ **Mixing Zod with JSON Schema incorrectly** - Use Zod for validation within handlers only
-4. ❌ **Over-engineering** - Keep it simple and follow official patterns
-5. ❌ **Hardcoded environment variables** - Always use hierarchical config loading
+1.  ❌ **Mixing business logic in `http-server.ts`** - Keep the transport layer clean. All logic goes in `handlers.ts`.
+2.  ❌ **Using the old MCP SDK `Server` class for HTTP services** - The SDK's server is for stdio-based transport.
+3.  ❌ **Hardcoding URLs or ports** - Always use environment variables via the `config.ts` pattern.
+4.  ❌ **Creating complex routing logic** - The gateway handles smart routing. The MCP server should have a simple `/mcp` endpoint.
 
-## 🎯 **5. Validation Checklist**
+## 🎯 **6. Validation Checklist**
 
 Before submitting any MCP server:
 
-- ✅ Uses official MCP SDK pattern with `server.registerTool()`, `server.registerResource()`, `server.registerPrompt()`
-- ✅ Uses `server.setRequestHandler()` for all MCP request types
-- ✅ Proper Zod validation within handlers (not as separate schemas)
-- ✅ Clean separation: tools.ts, resources.ts, prompts.ts, server.ts
-- ✅ Follows standard directory structure
-- ✅ Includes proper TypeScript types
-- ✅ Has Dockerfile for containerization
-- ✅ Uses hierarchical environment variable loading
-- ✅ Includes comprehensive README
+- ✅ **Serverless-Ready**: Business logic is in transport-agnostic `handlers.ts`.
+- ✅ **HTTP Transport**: Uses Express.js in `http-server.ts` to expose handlers.
+- ✅ **Health Check**: Implements a `/health` endpoint.
+- ✅ **Clean Entrypoint**: `index.ts` only starts the server.
+- ✅ **Follows Standard Directory Structure**: Includes `http-server.ts` and `handlers.ts`.
+- ✅ **Uses Hierarchical Config**: Gets all config from `config/config.ts`.
+- ✅ **Has Dockerfile**: The `Dockerfile` is updated to expose the `PORT` and run the HTTP server.
+- ✅ **Comprehensive README**: The `README.md` explains how to run the server and what environment variables it needs.
+- ✅ **(Optional) Wiring Files**: `tools.ts`, `resources.ts`, `prompts.ts` can still be used to provide metadata to the gateway, but they are no longer the execution layer.
 
 ## 🚀 **Benefits of This Pattern**
 
-1. **Official Compliance**: Follows the official MCP SDK documentation exactly
-2. **Simplicity**: No over-engineering or unnecessary abstractions
-3. **Server Autonomy**: Each server is self-contained and independent
-4. **Faster Development**: No shared dependency coordination needed
-5. **Type Safety**: Proper Zod validation where it belongs
-6. **Maintainability**: Clean, understandable code structure
-7. **Scalability**: Easy to add new servers without affecting others
+1.  **Serverless-Ready**: Handlers can be deployed to FaaS platforms with minimal changes.
+2.  **Scalable**: Standard HTTP allows for easy load balancing and scaling.
+3.  **Testable**: Business logic handlers can be unit-tested without a running server.
+4.  **Maintainable**: Clear separation of concerns between transport and logic.
+5.  **Interoperable**: Any HTTP client can interact with the server.
 
 ## 📖 **References**
 

@@ -1,556 +1,198 @@
-import fs from "fs";
+import { Command } from "commander";
+import fs from "fs-extra";
 import path from "path";
-import { fileURLToPath } from "url";
+import yaml from "js-yaml";
+import { log, logError, logSuccess, logWarning } from "../utils.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-interface ValidateOptions {
-  fix?: boolean;
+type ValidationResult = "pass" | "warn" | "fail";
+interface Check {
+  description: string;
+  fn: () => Promise<ValidationResult>;
 }
 
-interface ValidationResult {
-  server: string;
-  passing: boolean;
-  issues: ValidationIssue[];
-  score: number;
-}
+export const validate = new Command("validate")
+  .description("🔍 Validate MCP server compliance with the HTTP pattern")
+  .argument(
+    "[service-name]",
+    "Name of the service to validate (e.g., 'linear')"
+  )
+  .action(async (serviceName) => {
+    log("🔍 Validating MCP Server Compliance");
+    log("===================================");
 
-interface ValidationIssue {
-  type: "error" | "warning" | "info";
-  category: string;
-  message: string;
-  file?: string;
-  fixable?: boolean;
-}
+    const serversDir = path.resolve(process.cwd(), "servers");
+    if (!fs.existsSync(serversDir)) {
+      logError("❌ No servers directory found at ./servers");
+      return;
+    }
 
-export async function validateMcpServer(
-  serviceName?: string,
-  options: ValidateOptions = {}
-) {
-  console.log("🔍 Validating MCP Server Official SDK Pattern Compliance");
-  console.log("=======================================================");
+    const serversToValidate = serviceName
+      ? [serviceName]
+      : fs
+          .readdirSync(serversDir)
+          .filter((dir) => dir.endsWith("-mcp-server"))
+          .map((dir) => dir.replace("-mcp-server", ""));
 
-  const projectRoot = path.resolve(__dirname, "../../../../..");
-  const serversDir = path.join(projectRoot, "servers");
+    if (serversToValidate.length === 0) {
+      logWarning("No servers found to validate.");
+      return;
+    }
 
-  if (!fs.existsSync(serversDir)) {
-    console.log("❌ No servers directory found");
-    return;
-  }
+    let allPassed = true;
+    for (const name of serversToValidate) {
+      log(`\n🚀 Validating '${name}'...`);
+      const success = await runValidationChecks(name);
+      if (!success) {
+        allPassed = false;
+      }
+    }
 
-  let serversToValidate: string[] = [];
-
-  if (serviceName) {
-    const serverPath = path.join(serversDir, `${serviceName}-mcp-server`);
-    if (!fs.existsSync(serverPath)) {
-      console.error(`❌ MCP server '${serviceName}' not found`);
+    log("\n-------------------");
+    if (allPassed) {
+      logSuccess("✅ All servers passed validation!");
+    } else {
+      logError("❌ Some servers failed validation.");
       process.exit(1);
     }
-    serversToValidate = [serviceName];
+  });
+
+async function runValidationChecks(serviceName: string): Promise<boolean> {
+  const serverId = `${serviceName}-mcp-server`;
+  const serverPath = path.resolve(process.cwd(), "servers", serverId);
+
+  const checks: Check[] = [
+    // File Structure
+    {
+      description: "Required file 'src/mcp-server/http-server.ts' exists",
+      fn: async () =>
+        checkFileExists(path.join(serverPath, "src/mcp-server/http-server.ts")),
+    },
+    {
+      description: "Required file 'src/mcp-server/handlers.ts' exists",
+      fn: async () =>
+        checkFileExists(path.join(serverPath, "src/mcp-server/handlers.ts")),
+    },
+    {
+      description: "Required file 'Dockerfile' exists",
+      fn: async () => checkFileExists(path.join(serverPath, "Dockerfile")),
+    },
+    // package.json checks
+    {
+      description: "'package.json' contains 'express' dependency",
+      fn: async () => checkPackageDependency(serverPath, "express"),
+    },
+    {
+      description: "'package.json' dev script uses 'tsx'",
+      fn: async () => checkPackageScript(serverPath, "dev", "tsx"),
+    },
+    // Dockerfile check
+    {
+      description: "'Dockerfile' exposes a PORT",
+      fn: async () => checkDockerfileexpose(serverPath),
+    },
+    // Workspace Config Checks
+    {
+      description: "Is configured in 'gateway/master.config.dev.json'",
+      fn: async () => checkMasterConfig(serviceName),
+    },
+    {
+      description: "Is configured in 'deployment/docker-compose.dev.yml'",
+      fn: async () => checkDockerCompose(serverId),
+    },
+    {
+      description: "Is configured in 'pnpm-workspace.yaml'",
+      fn: async () => checkPnpmWorkspace(`servers/${serverId}`),
+    },
+  ];
+
+  let passedCount = 0;
+  for (const check of checks) {
+    const result = await check.fn();
+    let icon = "❓";
+    if (result === "pass") {
+      icon = "✅";
+      passedCount++;
+    }
+    if (result === "warn") icon = "⚠️";
+    if (result === "fail") icon = "❌";
+
+    log(` ${icon} ${check.description}`);
+  }
+
+  const success = passedCount === checks.length;
+  if (success) {
+    logSuccess("  └─ All checks passed!");
   } else {
-    // Validate all servers
-    serversToValidate = fs
-      .readdirSync(serversDir)
-      .filter((name) => name.endsWith("-mcp-server"))
-      .map((name) => name.replace("-mcp-server", ""))
-      .filter((name) => {
-        const serverPath = path.join(serversDir, `${name}-mcp-server`);
-        return fs.statSync(serverPath).isDirectory();
-      });
+    logError(`  └─ Passed ${passedCount}/${checks.length} checks.`);
   }
 
-  if (serversToValidate.length === 0) {
-    console.log("📭 No MCP servers found to validate");
-    return;
-  }
-
-  const results: ValidationResult[] = [];
-
-  for (const server of serversToValidate) {
-    console.log(`\n🔍 Validating: ${server}`);
-    console.log("─".repeat(50));
-
-    const result = await validateServer(server, projectRoot, options);
-    results.push(result);
-
-    displayValidationResult(result);
-  }
-
-  // Summary
-  console.log("\n📊 Validation Summary");
-  console.log("=".repeat(50));
-
-  const totalServers = results.length;
-  const passingServers = results.filter((r) => r.passing).length;
-  const averageScore = Math.round(
-    results.reduce((sum, r) => sum + r.score, 0) / totalServers
-  );
-
-  console.log(`✅ Passing servers: ${passingServers}/${totalServers}`);
-  console.log(`📈 Average compliance score: ${averageScore}%`);
-
-  if (passingServers < totalServers) {
-    console.log("\n💡 To fix issues automatically, use: omni validate --fix");
-  }
-
-  // Exit with error if any server failed
-  if (passingServers < totalServers) {
-    process.exit(1);
-  }
+  return success;
 }
 
-async function validateServer(
-  serviceName: string,
-  projectRoot: string,
-  options: ValidateOptions
+// CHECK IMPLEMENTATIONS
+async function checkFileExists(filePath: string): Promise<ValidationResult> {
+  return fs.existsSync(filePath) ? "pass" : "fail";
+}
+
+async function checkPackageDependency(
+  serverPath: string,
+  depName: string
 ): Promise<ValidationResult> {
-  const serverPath = path.join(
-    projectRoot,
-    "servers",
-    `${serviceName}-mcp-server`
-  );
-
-  const issues: ValidationIssue[] = [];
-  let score = 100;
-
-  // 1. Check directory structure
-  await validateDirectoryStructure(serviceName, serverPath, issues);
-
-  // 2. Check official MCP SDK usage
-  await validateOfficialMcpSdk(serviceName, serverPath, issues);
-
-  // 3. Check server pattern compliance
-  await validateServerPatterns(serviceName, serverPath, issues);
-
-  // 4. Check Docker configuration
-  await validateDocker(serviceName, serverPath, issues);
-
-  // 5. Check hierarchical environment structure
-  await validateEnvironmentStructure(
-    serviceName,
-    serverPath,
-    projectRoot,
-    issues
-  );
-
-  // Calculate score
-  const errorCount = issues.filter((i) => i.type === "error").length;
-  const warningCount = issues.filter((i) => i.type === "warning").length;
-
-  score -= errorCount * 15; // -15 per error
-  score -= warningCount * 5; // -5 per warning
-  score = Math.max(0, score);
-
-  const passing = errorCount === 0 && score >= 80;
-
-  // Apply fixes if requested
-  if (options.fix && issues.some((i) => i.fixable)) {
-    await applyFixes(serviceName, serverPath, issues);
-  }
-
-  return {
-    server: serviceName,
-    passing,
-    issues,
-    score,
-  };
+  const pkgPath = path.join(serverPath, "package.json");
+  if (!fs.existsSync(pkgPath)) return "fail";
+  const pkg = await fs.readJson(pkgPath);
+  return pkg.dependencies?.[depName] ? "pass" : "fail";
 }
 
-async function validateDirectoryStructure(
-  serviceName: string,
+async function checkPackageScript(
   serverPath: string,
-  issues: ValidationIssue[]
-) {
-  const requiredFiles = [
-    "package.json",
-    "tsconfig.json",
-    "Dockerfile",
-    "README.md",
-    "src/index.ts",
-    "src/config/config.ts",
-    "src/mcp-server/server.ts",
-    "src/mcp-server/tools.ts",
-    "src/mcp-server/resources.ts",
-    "src/mcp-server/prompts.ts",
-  ];
-
-  for (const file of requiredFiles) {
-    const filePath = path.join(serverPath, file);
-    if (!fs.existsSync(filePath)) {
-      issues.push({
-        type: "error",
-        category: "Structure",
-        message: `Missing required file: ${file}`,
-        file,
-        fixable: true,
-      });
-    }
-  }
-
-  // Note: We removed the check for "old patterns" since the current structure is working correctly
+  scriptName: string,
+  expectedContent: string
+): Promise<ValidationResult> {
+  const pkgPath = path.join(serverPath, "package.json");
+  if (!fs.existsSync(pkgPath)) return "fail";
+  const pkg = await fs.readJson(pkgPath);
+  return pkg.scripts?.[scriptName]?.includes(expectedContent) ? "pass" : "fail";
 }
 
-async function validateOfficialMcpSdk(
-  serviceName: string,
-  serverPath: string,
-  issues: ValidationIssue[]
-) {
-  const files = [
-    "src/mcp-server/tools.ts",
-    "src/mcp-server/resources.ts",
-    "src/mcp-server/prompts.ts",
-  ];
-
-  for (const file of files) {
-    const filePath = path.join(serverPath, file);
-    if (!fs.existsSync(filePath)) continue;
-
-    const content = fs.readFileSync(filePath, "utf8");
-
-    // Check for official MCP SDK imports
-    if (!content.includes("@modelcontextprotocol/sdk")) {
-      issues.push({
-        type: "error",
-        category: "Official SDK",
-        message: `File ${file} must import from @modelcontextprotocol/sdk`,
-        file,
-        fixable: false,
-      });
-    }
-
-    // Check for proper MCP SDK usage patterns
-    const fileName = path.basename(file, ".ts");
-    if (fileName === "tools") {
-      // For tools.ts, check for server.registerTool usage
-      if (!content.includes("server.registerTool")) {
-        issues.push({
-          type: "error",
-          category: "Official SDK",
-          message: `File ${file} must use server.registerTool() pattern`,
-          file,
-          fixable: false,
-        });
-      }
-    } else if (fileName === "resources") {
-      // For resources.ts, check for server.registerResource usage
-      if (!content.includes("server.registerResource")) {
-        issues.push({
-          type: "error",
-          category: "Official SDK",
-          message: `File ${file} must use server.registerResource() pattern`,
-          file,
-          fixable: false,
-        });
-      }
-    } else if (fileName === "prompts") {
-      // For prompts.ts, check for server.registerPrompt usage
-      if (!content.includes("server.registerPrompt")) {
-        issues.push({
-          type: "error",
-          category: "Official SDK",
-          message: `File ${file} must use server.registerPrompt() pattern`,
-          file,
-          fixable: false,
-        });
-      }
-    }
-
-    // Check for anti-patterns (old shared schemas)
-    if (content.includes("@mcp/schemas")) {
-      issues.push({
-        type: "warning",
-        category: "Official SDK",
-        message: `File ${file} should minimize @mcp/schemas usage - prefer official MCP SDK types`,
-        file,
-        fixable: false,
-      });
-    }
-  }
-
-  // Check package.json for official SDK dependency
-  const packageJsonPath = path.join(serverPath, "package.json");
-  if (fs.existsSync(packageJsonPath)) {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-
-    if (!packageJson.dependencies?.["@modelcontextprotocol/sdk"]) {
-      issues.push({
-        type: "error",
-        category: "Official SDK",
-        message:
-          "package.json must include @modelcontextprotocol/sdk dependency",
-        file: "package.json",
-        fixable: true,
-      });
-    }
-
-    if (!packageJson.dependencies?.["zod"]) {
-      issues.push({
-        type: "warning",
-        category: "Official SDK",
-        message:
-          "package.json should include zod dependency for input validation",
-        file: "package.json",
-        fixable: true,
-      });
-    }
-  }
-}
-
-async function validateServerPatterns(
-  serviceName: string,
-  serverPath: string,
-  issues: ValidationIssue[]
-) {
-  const serverFilePath = path.join(
-    serverPath,
-    "src",
-    "mcp-server",
-    "server.ts"
-  );
-
-  if (!fs.existsSync(serverFilePath)) {
-    issues.push({
-      type: "error",
-      category: "Server Pattern",
-      message: "Missing server.ts file",
-      file: "src/mcp-server/server.ts",
-    });
-    return;
-  }
-
-  const content = fs.readFileSync(serverFilePath, "utf8");
-
-  // Check for proper server creation pattern (either new Server() or McpServer)
-  if (!content.includes("new Server(") && !content.includes("new McpServer(")) {
-    issues.push({
-      type: "error",
-      category: "Server Pattern",
-      message: "server.ts must use 'new Server()' or 'new McpServer()' pattern",
-      file: "src/mcp-server/server.ts",
-      fixable: false,
-    });
-  }
-
-  // Check for setup function calls (either registerX or setupX pattern)
-  const setupFunctions = [
-    "setupLinearTools",
-    "setupLinearResources",
-    "setupLinearPrompts",
-  ];
-  const registerFunctions = [
-    "registerTools",
-    "registerResources",
-    "registerPrompts",
-  ];
-
-  let hasSetupPattern = setupFunctions.some((func) => content.includes(func));
-  let hasRegisterPattern = registerFunctions.some((func) =>
-    content.includes(func)
-  );
-
-  if (!hasSetupPattern && !hasRegisterPattern) {
-    issues.push({
-      type: "error",
-      category: "Server Pattern",
-      message:
-        "server.ts must call setup functions (setupLinearTools, etc.) or register functions (registerTools, etc.)",
-      file: "src/mcp-server/server.ts",
-      fixable: false,
-    });
-  }
-
-  // Check config usage
-  const configPath = path.join(serverPath, "src", "config", "config.ts");
-  if (fs.existsSync(configPath)) {
-    const configContent = fs.readFileSync(configPath, "utf8");
-
-    // Accept either loadEnvHierarchy or envConfig patterns
-    if (
-      !configContent.includes("loadEnvHierarchy") &&
-      !configContent.includes("envConfig")
-    ) {
-      issues.push({
-        type: "warning",
-        category: "Server Pattern",
-        message:
-          "config.ts should use loadEnvHierarchy from @mcp/utils or envConfig pattern",
-        file: "src/config/config.ts",
-        fixable: false,
-      });
-    }
-  }
-}
-
-async function validateDocker(
-  serviceName: string,
-  serverPath: string,
-  issues: ValidationIssue[]
-) {
+async function checkDockerfileexpose(
+  serverPath: string
+): Promise<ValidationResult> {
   const dockerfilePath = path.join(serverPath, "Dockerfile");
-
-  if (!fs.existsSync(dockerfilePath)) {
-    issues.push({
-      type: "warning",
-      category: "Docker",
-      message: "Missing Dockerfile for containerization",
-      fixable: true,
-    });
-    return;
-  }
-
-  const content = fs.readFileSync(dockerfilePath, "utf8");
-
-  // Check for multi-stage build
-  if (!content.includes("FROM node:20-alpine AS builder")) {
-    issues.push({
-      type: "warning",
-      category: "Docker",
-      message: "Dockerfile should use multi-stage build for optimization",
-      file: "Dockerfile",
-      fixable: false,
-    });
-  }
-
-  // Check for health check
-  if (!content.includes("HEALTHCHECK")) {
-    issues.push({
-      type: "info",
-      category: "Docker",
-      message: "Consider adding health check to Dockerfile",
-      file: "Dockerfile",
-      fixable: false,
-    });
-  }
-
-  // Check for old shared/schemas references (should be removed)
-  if (content.includes("shared/schemas")) {
-    issues.push({
-      type: "warning",
-      category: "Docker",
-      message:
-        "Dockerfile should not reference shared/schemas - remove old pattern",
-      file: "Dockerfile",
-      fixable: false,
-    });
-  }
+  if (!fs.existsSync(dockerfilePath)) return "fail";
+  const content = await fs.readFile(dockerfilePath, "utf8");
+  return /EXPOSE\s+\d+/.test(content) ? "pass" : "warn";
 }
 
-function displayValidationResult(result: ValidationResult) {
-  const { server, passing, issues, score } = result;
-
-  // Status
-  const status = passing ? "✅ PASS" : "❌ FAIL";
-  const scoreColor = score >= 90 ? "🟢" : score >= 70 ? "🟡" : "🔴";
-
-  console.log(`${status} ${scoreColor} ${score}% compliance score`);
-
-  if (issues.length === 0) {
-    console.log("🎉 Perfect compliance with Official MCP SDK Pattern!");
-    return;
-  }
-
-  // Group issues by category
-  const groupedIssues = issues.reduce((acc, issue) => {
-    if (!acc[issue.category]) acc[issue.category] = [];
-    acc[issue.category].push(issue);
-    return acc;
-  }, {} as Record<string, ValidationIssue[]>);
-
-  // Display issues
-  for (const [category, categoryIssues] of Object.entries(groupedIssues)) {
-    console.log(`\n📋 ${category}:`);
-
-    for (const issue of categoryIssues) {
-      const icon =
-        issue.type === "error" ? "❌" : issue.type === "warning" ? "⚠️" : "ℹ️";
-      const fixIcon = issue.fixable ? " 🔧" : "";
-      console.log(`   ${icon} ${issue.message}${fixIcon}`);
-      if (issue.file) {
-        console.log(`      📁 ${issue.file}`);
-      }
-    }
-  }
-}
-
-async function applyFixes(
-  serviceName: string,
-  serverPath: string,
-  issues: ValidationIssue[]
-) {
-  console.log("\n🔧 Applying automatic fixes...");
-
-  const fixableIssues = issues.filter((i) => i.fixable);
-
-  for (const issue of fixableIssues) {
-    try {
-      // Implementation would go here for each fixable issue type
-      console.log(`✅ Fixed: ${issue.message}`);
-    } catch (error) {
-      console.log(`❌ Could not fix: ${issue.message}`);
-    }
-  }
-}
-
-async function validateEnvironmentStructure(
-  serviceName: string,
-  serverPath: string,
-  projectRoot: string,
-  issues: ValidationIssue[]
-) {
-  const upperCaseName = serviceName.toUpperCase();
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-
-  // Check for service-specific .env.example
-  const serviceEnvExample = path.join(serverPath, ".env.example");
-  if (!fs.existsSync(serviceEnvExample)) {
-    issues.push({
-      type: "error",
-      category: "Environment Structure",
-      message: "Missing service-specific .env.example file",
-      file: ".env.example",
-      fixable: true,
-    });
-  } else {
-    // Check that .env.example doesn't contain secrets
-    const content = fs.readFileSync(serviceEnvExample, "utf8");
-    if (content.includes(`${upperCaseName}_API_KEY=`)) {
-      issues.push({
-        type: "error",
-        category: "Environment Structure",
-        message:
-          "Service .env.example should not contain secrets (use centralized secrets instead)",
-        file: ".env.example",
-        fixable: false,
-      });
-    }
-  }
-
-  // Check for centralized secrets
-  const centralSecretsPath = path.join(
-    projectRoot,
-    "secrets",
-    ".env.development.local.example"
+async function checkMasterConfig(
+  serviceName: string
+): Promise<ValidationResult> {
+  const configPath = path.resolve(
+    process.cwd(),
+    "gateway/master.config.dev.json"
   );
-  if (!fs.existsSync(centralSecretsPath)) {
-    issues.push({
-      type: "error",
-      category: "Environment Structure",
-      message:
-        "Missing centralized secrets file: secrets/.env.development.local.example",
-      fixable: true,
-    });
-  } else {
-    // Check that service secrets are in centralized file
-    const content = fs.readFileSync(centralSecretsPath, "utf8");
-    if (!content.includes(`${upperCaseName}_API_KEY`)) {
-      issues.push({
-        type: "warning",
-        category: "Environment Structure",
-        message: `Service API key not found in centralized secrets: ${upperCaseName}_API_KEY`,
-        fixable: true,
-      });
-    }
-  }
+  if (!fs.existsSync(configPath)) return "fail";
+  const config = await fs.readJson(configPath);
+  return config.servers?.[serviceName]?.url ? "pass" : "fail";
+}
+
+async function checkDockerCompose(serverId: string): Promise<ValidationResult> {
+  const composePath = path.resolve(
+    process.cwd(),
+    "deployment/docker-compose.dev.yml"
+  );
+  if (!fs.existsSync(composePath)) return "fail";
+  const compose = yaml.load(await fs.readFile(composePath, "utf8")) as any;
+  return compose.services?.[serverId] ? "pass" : "fail";
+}
+
+async function checkPnpmWorkspace(
+  serverPath: string
+): Promise<ValidationResult> {
+  const workspacePath = path.resolve(process.cwd(), "pnpm-workspace.yaml");
+  if (!fs.existsSync(workspacePath)) return "fail";
+  const workspace = yaml.load(await fs.readFile(workspacePath, "utf8")) as {
+    packages: string[];
+  };
+  return workspace.packages?.includes(serverPath) ? "pass" : "fail";
 }

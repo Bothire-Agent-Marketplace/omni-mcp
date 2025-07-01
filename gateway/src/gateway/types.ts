@@ -2,13 +2,9 @@ import { WebSocket } from "ws";
 
 export interface ServerConfig {
   type: "mcp";
-  command: string;
-  args: string[];
-  cwd: string;
-  env?: Record<string, string>;
+  url: string; // URL of the standalone MCP server
   capabilities: string[];
   description: string;
-  maxInstances: number;
   healthCheckInterval: number;
 }
 
@@ -28,9 +24,9 @@ export interface MasterConfig {
 export interface ServerInstance {
   id: string;
   serverId: string;
-  process: any; // ChildProcess
-  lastHealthCheck: Date;
+  url: string;
   isHealthy: boolean;
+  lastHealthCheck: Date;
   activeConnections: number;
   capabilities: string[];
 }

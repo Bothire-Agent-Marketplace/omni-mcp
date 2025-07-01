@@ -267,11 +267,20 @@ export class MCPGateway {
       });
 
       try {
-        // Execute request
-        const response = await this.protocolAdapter.sendMCPRequest(
-          serverInstance,
-          request
-        );
+        // Execute request by forwarding it to the server's URL
+        const response = await fetch(`${serverInstance.url}/mcp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(request),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Request to ${serverInstance.serverId} failed with status ${response.status}`
+          );
+        }
+
+        const mcpResponse = (await response.json()) as MCPResponse;
 
         const duration = Date.now() - startTime;
         this.logger.mcpResponse(request.method, requestId, true, duration, {
@@ -280,7 +289,7 @@ export class MCPGateway {
           serverInstanceId: serverInstance.id,
         });
 
-        return response;
+        return mcpResponse;
       } finally {
         // Release server instance
         this.serverManager.releaseServerInstance(serverInstance);

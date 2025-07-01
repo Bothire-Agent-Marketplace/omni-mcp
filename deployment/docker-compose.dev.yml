@@ -1,18 +1,18 @@
 # =============================================================================
-# Omni MCP - Development Override Configuration
+# Omni MCP - Development Configuration
 # =============================================================================
-# This file extends docker-compose.yml for development
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# version attribute is obsolete in modern Docker Compose
+# Complete service definitions for development environment
 
 services:
   # ==========================================================================
-  # Development overrides for MCP Gateway
+  # MCP Gateway Service
   # ==========================================================================
   mcp-gateway:
     build:
-      target: builder # Use builder stage for faster dev builds
+      context: ../
+      dockerfile: gateway/Dockerfile
+      target: builder
+    container_name: omni-mcp-gateway
     env_file:
       - ../.env
       - ../gateway/.env
@@ -30,13 +30,20 @@ services:
     ports:
       - "37373:37373"
       - "9229:9229" # Node.js debug port
+    networks:
+      - mcp-network
+    depends_on:
+      - linear-mcp-server
 
   # ==========================================================================
-  # Development overrides for Linear MCP Server
+  # Linear MCP Server Service
   # ==========================================================================
   linear-mcp-server:
     build:
-      target: builder # Use builder stage for faster dev builds
+      context: ../
+      dockerfile: servers/linear-mcp-server/Dockerfile
+      target: builder
+    container_name: omni-linear-mcp-server
     env_file:
       - ../.env
       - ../servers/.env
@@ -45,81 +52,29 @@ services:
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=debug
+      - PORT=3001
     volumes:
       # Hot reload for development
       - ../servers/linear-mcp-server/src:/app/servers/linear-mcp-server/src:ro
       - ../servers/linear-mcp-server/package.json:/app/servers/linear-mcp-server/package.json:ro
       - ../shared:/app/shared:ro
-    # For development, run the server directly with node and built files
-    # The builder stage already compiles the TypeScript files
-    command: ["sh", "-c", "cd servers/linear-mcp-server && node dist/index.js"]
+    # Run the HTTP server instead of stdio server
+    command: ["sh", "-c", "cd servers/linear-mcp-server && pnpm dev"]
     ports:
-      - "3001:3000" # Expose for direct access during development
+      - "3001:3001" # Expose for direct access and health checks
       - "9230:9229" # Node.js debug port (different from gateway)
+    networks:
+      - mcp-network
     healthcheck:
-      test:
-        ["CMD", "node", "-e", "console.log('Linear MCP server health check')"]
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
       interval: 10s
       timeout: 3s
       retries: 3
       start_period: 10s
 
-  # ==========================================================================
-  # Development database with sample data
-  # ==========================================================================
-  postgres:
-    image: postgres:17-alpine
-    env_file:
-      - ../.env
-      - ../secrets/.env.development.local
-    environment:
-      - POSTGRES_DB=omni_mcp_dev
-    volumes:
-      # Add development-specific init scripts
-      - ../data/booksql:/docker-entrypoint-initdb.d:ro
-      - ../data/dvdrental:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "5432:5432" # Expose for development tools
-
-  # ==========================================================================
-  # Development tools and utilities
-  # ==========================================================================
-  # pgAdmin for database management
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    container_name: omni-pgadmin-dev
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@omni.dev}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
-      - PGADMIN_CONFIG_SERVER_MODE=False
-    ports:
-      - "8080:80"
-    networks:
-      - mcp-network
-    depends_on:
-      - postgres
-
-  # Mailhog for email testing
-  mailhog:
-    image: mailhog/mailhog:latest
-    container_name: omni-mailhog-dev
-    ports:
-      - "1025:1025" # SMTP port
-      - "8025:8025" # Web UI port
-    networks:
-      - mcp-network
-
-  # Redis for caching (if needed)
-  redis:
-    image: redis:7-alpine
-    container_name: omni-redis-dev
-    ports:
-      - "6379:6379"
-    networks:
-      - mcp-network
-    volumes:
-      - redis-data:/data
-
-volumes:
-  redis-data:
-    name: omni-redis-dev-data
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  mcp-network:
+    driver: bridge

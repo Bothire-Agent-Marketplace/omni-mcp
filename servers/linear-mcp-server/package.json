@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "watch": "tsx watch src/index.ts",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
     "@mcp/schemas": "workspace:*",
@@ -18,12 +19,16 @@
     "@modelcontextprotocol/sdk": "^1.0.0",
     "@linear/sdk": "^22.0.0",
     "zod": "^3.22.4",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
     "tsx": "^4.6.0",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21"
   },
   "engines": {
     "node": ">=18.0.0"

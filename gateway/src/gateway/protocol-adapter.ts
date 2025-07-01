@@ -1,6 +1,7 @@
 import { WebSocket } from "ws";
 import { createMcpLogger } from "@mcp/utils";
 import { MCPRequest, MCPResponse, ServerInstance } from "./types.js";
+import fetch from "node-fetch";
 
 export class MCPProtocolAdapter {
   private logger = createMcpLogger("mcp-gateway-protocol-adapter");
@@ -9,65 +10,61 @@ export class MCPProtocolAdapter {
     instance: ServerInstance,
     request: MCPRequest
   ): Promise<MCPResponse> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error("MCP request timeout"));
-      }, 30000); // 30 second timeout
+    if (!instance.url) {
+      throw new Error(
+        `No URL configured for server instance: ${instance.serverId}`
+      );
+    }
 
-      // Generate unique request ID if not provided
-      const requestId = request.id || this.generateRequestId();
-      const mcpRequest = { ...request, id: requestId };
+    // Generate unique request ID if not provided
+    const requestId = request.id || this.generateRequestId();
+    const mcpRequest = { ...request, id: requestId };
 
-      const onData = (data: Buffer) => {
-        try {
-          const lines = data
-            .toString()
-            .split("\n")
-            .filter((line) => line.trim());
-
-          for (const line of lines) {
-            const response = JSON.parse(line) as MCPResponse;
-
-            if (response.id === requestId) {
-              clearTimeout(timeout);
-              instance.process.stdout.off("data", onData);
-              resolve(response);
-              return;
-            }
-          }
-        } catch (error) {
-          this.logger.error(
-            "Error parsing MCP response",
-            error instanceof Error ? error : new Error(String(error))
-          );
-        }
-      };
-
-      const onError = (error: Error) => {
-        clearTimeout(timeout);
-        instance.process.stdout.off("data", onData);
-        instance.process.off("error", onError);
-        reject(error);
-      };
-
-      instance.process.stdout.on("data", onData);
-      instance.process.on("error", onError);
-
-      // Send the request
-      try {
-        const requestJson = JSON.stringify(mcpRequest);
-        this.logger.debug(`Sending MCP request to ${instance.serverId}`, {
-          serverId: instance.serverId,
-          request: requestJson,
-        });
-        instance.process.stdin.write(requestJson + "\n");
-      } catch (error) {
-        clearTimeout(timeout);
-        instance.process.stdout.off("data", onData);
-        instance.process.off("error", onError);
-        reject(error);
-      }
+    const requestJson = JSON.stringify(mcpRequest);
+    this.logger.debug(`Sending HTTP MCP request to ${instance.serverId}`, {
+      serverId: instance.serverId,
+      url: instance.url,
+      request: requestJson,
     });
+
+    try {
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+      const response = await fetch(`${instance.url}/mcp`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: requestJson,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const mcpResponse = (await response.json()) as MCPResponse;
+
+      this.logger.debug(`Received MCP response from ${instance.serverId}`, {
+        serverId: instance.serverId,
+        responseId: mcpResponse.id,
+      });
+
+      return mcpResponse;
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        throw new Error("MCP request timeout");
+      }
+      this.logger.error(
+        `HTTP MCP request failed for ${instance.serverId}`,
+        error
+      );
+      throw error;
+    }
   }
 
   async handleHttpToMCP(httpRequest: any): Promise<MCPRequest> {

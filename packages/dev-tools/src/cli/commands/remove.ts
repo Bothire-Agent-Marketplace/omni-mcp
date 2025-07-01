@@ -1,225 +1,138 @@
-import fs from "fs";
+import { Command } from "commander";
+import prompts from "prompts";
+import fs from "fs-extra";
 import path from "path";
-import { fileURLToPath } from "url";
+import yaml from "js-yaml";
+import { log, logError, logSuccess, logWarning, runCommand } from "../utils.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export const remove = new Command("remove")
+  .description("🗑️  Remove an MCP server from the project")
+  .argument("<service-name>", "Name of the service to remove (e.g., 'linear')")
+  .option("-f, --force", "Force removal without confirmation")
+  .action(async (serviceName, options) => {
+    const serverId = `${serviceName}-mcp-server`;
+    const serverPath = path.resolve(process.cwd(), "servers", serverId);
 
-interface RemoveOptions {
-  force?: boolean;
-  keepSchemas?: boolean;
-}
+    log(`🗑️  Attempting to remove ${serviceName} MCP server...`);
 
-export async function removeMcpServer(
-  serviceName: string,
-  options: RemoveOptions
-) {
-  console.log(`🗑️  Removing ${serviceName} MCP server...`);
-
-  const projectRoot = path.resolve(__dirname, "../../../../..");
-  const serverPath = path.join(
-    projectRoot,
-    "servers",
-    `${serviceName}-mcp-server`
-  );
-  const schemasPath = path.join(
-    projectRoot,
-    "shared",
-    "schemas",
-    "src",
-    serviceName
-  );
-
-  // Check if server exists
-  if (!fs.existsSync(serverPath)) {
-    console.error(`❌ MCP server '${serviceName}' not found at ${serverPath}`);
-    process.exit(1);
-  }
-
-  // Confirmation unless forced
-  if (!options.force) {
-    console.log("⚠️  This will permanently delete:");
-    console.log(`   📂 servers/${serviceName}-mcp-server/`);
-    if (fs.existsSync(schemasPath) && !options.keepSchemas) {
-      console.log(`   📂 shared/schemas/src/${serviceName}/`);
-    }
-    console.log("");
-
-    // In a real CLI, you'd want to use a proper prompt library
-    console.log("❌ Operation cancelled - use --force to confirm removal");
-    console.log("   Example: omni remove github --force");
-    return;
-  }
-
-  try {
-    // Remove server directory
-    if (fs.existsSync(serverPath)) {
-      fs.rmSync(serverPath, { recursive: true, force: true });
-      console.log(`✅ Removed server: servers/${serviceName}-mcp-server/`);
+    if (!fs.existsSync(serverPath)) {
+      logError(`❌ MCP server '${serviceName}' not found at ${serverPath}`);
+      return;
     }
 
-    // Remove schemas unless keeping them
-    if (!options.keepSchemas && fs.existsSync(schemasPath)) {
-      fs.rmSync(schemasPath, { recursive: true, force: true });
-      console.log(`✅ Removed schemas: shared/schemas/src/${serviceName}/`);
+    if (!options.force) {
+      const confirmation = await prompts({
+        type: "confirm",
+        name: "value",
+        message: `This will permanently delete the directory '${serverPath}' and update workspace configurations. Are you sure?`,
+        initial: false,
+      });
 
-      // Update shared schemas index
-      await updateSchemasIndex(serviceName, projectRoot);
+      if (!confirmation.value) {
+        log("Operation cancelled.");
+        return;
+      }
     }
-
-    // Remove from Docker configs if they exist
-    await cleanupDockerConfigs(serviceName, projectRoot);
-
-    // Remove from centralized secrets
-    await cleanupCentralizedSecrets(serviceName, projectRoot);
-
-    console.log("");
-    console.log("✅ MCP server removed successfully!");
-    console.log("");
-    console.log("🧹 Next steps:");
-    console.log("   1. Update any Claude Desktop configurations");
-    console.log("   2. Remove environment variables if no longer needed");
-    console.log("   3. Run: pnpm install (to clean up dependencies)");
-  } catch (error) {
-    console.error("❌ Error removing MCP server:", error);
-    process.exit(1);
-  }
-}
-
-async function updateSchemasIndex(serviceName: string, projectRoot: string) {
-  try {
-    const indexPath = path.join(
-      projectRoot,
-      "shared",
-      "schemas",
-      "src",
-      "index.ts"
-    );
-    if (!fs.existsSync(indexPath)) return;
-
-    let indexContent = fs.readFileSync(indexPath, "utf8");
-
-    // Remove both export lines for this service
-    const capitalizedName =
-      serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-    const mcpTypesExport = `export * from "./${serviceName}/mcp-types.js";`;
-    const entityTypesExport = `export * from "./${serviceName}/${serviceName}.js";`;
-    const commentLine = `// ${capitalizedName}-specific types`;
-
-    indexContent = indexContent
-      .split("\n")
-      .filter(
-        (line) =>
-          !line.includes(mcpTypesExport) &&
-          !line.includes(entityTypesExport) &&
-          !line.includes(commentLine)
-      )
-      .join("\n");
-
-    // Clean up extra newlines
-    indexContent = indexContent.replace(/\n\n\n+/g, "\n\n");
-
-    fs.writeFileSync(indexPath, indexContent);
-    console.log("✅ Updated shared schemas index");
-  } catch (error) {
-    console.log("⚠️  Could not update schemas index:", error);
-  }
-}
-
-async function cleanupDockerConfigs(serviceName: string, projectRoot: string) {
-  const dockerComposeFiles = ["docker-compose.yml", "docker-compose.dev.yml"];
-
-  for (const fileName of dockerComposeFiles) {
-    const filePath = path.join(projectRoot, fileName);
-    if (!fs.existsSync(filePath)) continue;
 
     try {
-      let content = fs.readFileSync(filePath, "utf8");
+      // 1. Remove from docker-compose.dev.yml
+      await updateDockerCompose(serviceName, serverId);
 
-      // Check if this service is referenced
-      const serviceName_container = `omni-${serviceName}-mcp-server`;
-      if (content.includes(serviceName_container)) {
-        console.log(
-          `⚠️  Service '${serviceName_container}' found in ${fileName}`
-        );
-        console.log(
-          "   Manual cleanup may be required for Docker configuration"
-        );
-      }
+      // 2. Remove from pnpm-workspace.yaml
+      await updatePnpmWorkspace(`servers/${serverId}`);
+
+      // 3. Remove from gateway master config
+      await updateMasterConfig(serviceName);
+
+      // 4. Remove the server directory
+      await fs.remove(serverPath);
+      log(`✅ Removed directory: ${serverPath}`);
+
+      // 5. Run pnpm install to update lockfile
+      log("📦 Running pnpm install to update workspace...");
+      await runCommand("pnpm", ["install"], { stdio: "inherit" });
+
+      logSuccess(`\n🎉 MCP server '${serviceName}' removed successfully!`);
+      logWarning(
+        "\n🧹 Don't forget to remove any related secrets from 'secrets/.env.development.local'."
+      );
     } catch (error) {
-      // Ignore errors reading Docker files
+      logError(
+        `An error occurred: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     }
+  });
+
+async function updateDockerCompose(serviceName: string, serverId: string) {
+  const composePath = "deployment/docker-compose.dev.yml";
+  try {
+    const composeConfig = yaml.load(
+      fs.readFileSync(composePath, "utf8")
+    ) as any;
+    if (composeConfig.services && composeConfig.services[serverId]) {
+      delete composeConfig.services[serverId];
+
+      // Remove from gateway's depends_on
+      if (composeConfig.services["mcp-gateway"]?.depends_on) {
+        composeConfig.services["mcp-gateway"].depends_on =
+          composeConfig.services["mcp-gateway"].depends_on.filter(
+            (dep: string) => dep !== serverId
+          );
+      }
+
+      fs.writeFileSync(
+        composePath,
+        yaml.dump(composeConfig, { indent: 2, lineWidth: -1 })
+      );
+      log(`✅ Removed '${serverId}' service from ${composePath}`);
+    } else {
+      logWarning(
+        `Service '${serverId}' not found in ${composePath}. Skipping.`
+      );
+    }
+  } catch (error) {
+    logError(`Could not update ${composePath}: ${error}`);
   }
 }
 
-async function cleanupCentralizedSecrets(
-  serviceName: string,
-  projectRoot: string
-) {
-  const secretsPath = path.join(
-    projectRoot,
-    "secrets",
-    ".env.development.local.example"
-  );
-
-  if (!fs.existsSync(secretsPath)) {
-    console.log("ℹ️  Centralized secrets file not found, skipping cleanup");
-    return;
+async function updatePnpmWorkspace(serverPath: string) {
+  const workspacePath = "pnpm-workspace.yaml";
+  try {
+    const workspaceConfig = yaml.load(
+      fs.readFileSync(workspacePath, "utf8")
+    ) as { packages: string[] };
+    if (workspaceConfig.packages?.includes(serverPath)) {
+      workspaceConfig.packages = workspaceConfig.packages.filter(
+        (p) => p !== serverPath
+      );
+      fs.writeFileSync(workspacePath, yaml.dump(workspaceConfig));
+      log(`✅ Removed '${serverPath}' from ${workspacePath}`);
+    } else {
+      logWarning(
+        `Path '${serverPath}' not found in ${workspacePath}. Skipping.`
+      );
+    }
+  } catch (error) {
+    logError(`Could not update ${workspacePath}: ${error}`);
   }
+}
 
-  const upperCaseName = serviceName.toUpperCase();
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-
-  let content = fs.readFileSync(secretsPath, "utf8");
-
-  // Check if service secrets exist
-  if (!content.includes(`${upperCaseName}_API_KEY`)) {
-    console.log(
-      `ℹ️  No ${capitalizedName} secrets found in centralized secrets file`
-    );
-    return;
+async function updateMasterConfig(serviceName: string) {
+  const configPath = "gateway/master.config.dev.json";
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    if (config.servers && config.servers[serviceName]) {
+      delete config.servers[serviceName];
+      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+      log(`✅ Removed '${serviceName}' server from ${configPath}`);
+    } else {
+      logWarning(
+        `Server '${serviceName}' not found in ${configPath}. Skipping.`
+      );
+    }
+  } catch (error) {
+    logError(`Could not update ${configPath}: ${error}`);
   }
-
-  // Remove the service's secrets section
-  const lines = content.split("\n");
-  const filteredLines = [];
-  let inServiceSection = false;
-
-  for (const line of lines) {
-    // Check if we're entering the service section
-    if (line.includes(`-- ${capitalizedName} MCP Server Secrets --`)) {
-      inServiceSection = true;
-      continue; // Skip the header line
-    }
-
-    // Check if we're leaving the service section (next service or end of file)
-    if (
-      inServiceSection &&
-      line.startsWith("# --") &&
-      !line.includes(capitalizedName)
-    ) {
-      inServiceSection = false;
-    }
-
-    // Skip lines that belong to this service
-    if (
-      inServiceSection &&
-      (line.startsWith(`${upperCaseName}_`) || line.trim() === "")
-    ) {
-      continue;
-    }
-
-    // Keep all other lines
-    if (!inServiceSection) {
-      filteredLines.push(line);
-    }
-  }
-
-  // Write back the cleaned content
-  const cleanedContent = filteredLines.join("\n");
-  fs.writeFileSync(secretsPath, cleanedContent);
-  console.log(
-    `✅ Removed ${capitalizedName} secrets from centralized secrets file`
-  );
 }

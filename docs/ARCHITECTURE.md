@@ -1,179 +1,97 @@
-## Current Best Architecture for Large-Scale MCP Deployments
+# Omni MCP Architecture
 
-For managing 100+ MCP servers, the current best architecture follows a **distributed, multi-layered approach** with centralized orchestration and proxy-based routing. The recommended architecture includes:
+This document outlines the architectural vision for the Omni project and the concrete steps required to evolve our system from its current state to a scalable, serverless-ready deployment.
 
-## **1. Hub-and-Spoke Architecture with Proxy Layer** ✅
+## 🎯 **Target Architecture: Hub-and-Spoke Microservices**
 
-The most effective pattern for large-scale MCP deployments is a hub-and-spoke model using **MCP Gateway** or similar proxy solutions. This architecture provides:
+Our goal is a **distributed, multi-layered architecture** capable of managing 30+ MCP servers efficiently. This model provides the best balance of developer autonomy, scalability, and operational stability.
 
-- ✅ **Central MCP Gateway/Hub**: Acts as a reverse proxy and management layer that routes traffic to individual MCP servers with session affinity. This enables scalable, session-aware routing and lifecycle management in Kubernetes environments.
-- ✅ **Multi-MCP Proxy Solutions**: Tools like **Multi-MCP** allow exposing multiple backend MCP servers as a single unified interface. This approach supports both stdio and SSE transports while providing dynamic extensibility and simplified scaling.
-- ✅ **Unified Client Interface**: Clients connect to a single endpoint (e.g., `localhost:37373/mcp`) to access all server capabilities. The hub automatically namespaces capabilities to prevent conflicts and routes requests to appropriate servers.
+### **1. Hub-and-Spoke Proxy Layer**
 
-## **2. Containerized Microservices Architecture** ✅
+- ✅ **Central MCP Gateway/Hub**: Acts as a reverse proxy and management layer that routes traffic to individual MCP servers.
+- ✅ **Unified Client Interface**: Clients connect to a single gateway endpoint to access all server capabilities. The hub automatically namespaces capabilities to prevent conflicts.
 
-For 100+ servers, containerization is essential:
+### **2. Serverless-Ready Microservices**
 
-- ✅ **Docker-Based Deployment**: Each MCP server runs in its own container with standardized interfaces. This provides isolation, scalability, and simplified management.
-- ⬜️ **Kubernetes Orchestration**: Use Kubernetes for container orchestration with features like auto-scaling, health checks, and service discovery. The MCP Gateway provides enterprise-ready integration with telemetry, access control, and observability.
-- ⬜️ **Service Mesh Integration**: Implement service mesh patterns for enhanced security, observability, and traffic management. This includes mTLS-based authentication and zero-trust networking.
+For 30+ servers, a pure "one container per server" model is inefficient. We have adopted a serverless-first pattern where business logic is decoupled from the transport layer. This gives us the flexibility to deploy handlers as standalone containers or as individual serverless functions (e.g., AWS Lambda) in the future.
 
-## **3. Transport Layer Strategy**
+- ✅ **Container-Based Deployment**: MCP servers run as containerized services, communicating over a network.
+- ✅ **Serverless / FaaS Ready**: The architecture has been refactored to make deploying individual handlers as serverless functions a simple infrastructure change, not a code rewrite.
+- ⬜️ **Kubernetes Orchestration**: The containerized services are now designed for future orchestration with Kubernetes for auto-scaling, health checks, and service discovery.
 
-MCP supports multiple transport mechanisms that should be leveraged strategically:
+### **3. Multi-Transport Strategy**
 
-- ✅ **STDIO Transport**: For local process communication and CLI tools. Ideal for development and single-client scenarios.
-- ✅ **HTTP/SSE Transport**: For remote communication and web-based applications. Supports both traditional HTTP POST requests and Server-Sent Events for streaming.
-- ✅ **Streamable HTTP**: The modern protocol (2025-03-26) that provides improved performance over legacy HTTP+SSE.
+MCP supports multiple transport mechanisms that will be used strategically:
 
-## Repository Structure and Organization
+- ✅ **HTTP/SSE Transport**: This is now the primary method for remote communication between the gateway and MCP servers.
+- ✅ **Streamable HTTP**: The modern protocol (2025-03-26) is preferred for its performance benefits.
+- ✅ **STDIO Transport**: Has been phased out from gateway-to-server communication but is kept for CLI tools and legacy local development workflows.
 
-## **Recommended Repository Structure** ✅
+---
 
-Based on best practices, a large-scale MCP deployment should follow this structure:
+## 🗺️ **Architectural Refactoring Plan & Checklist**
 
-```
-mcp-infrastructure/
-├── gateway/                    # MCP Gateway configuration
-│   ├── kubernetes/            # K8s manifests
-│   ├── docker-compose.yml     # Local development
-│   └── config/               # Gateway configuration
-├── servers/                   # Individual MCP servers
-│   ├── server-name/
-│   │   ├── src/              # Server implementation
-│   │   ├── Dockerfile        # Container definition
-│   │   ├── package.json      # Dependencies
-│   │   └── .env.example      # Environment template
-├── shared/                    # Shared components
-│   ├── schemas/              # Common schemas
-│   ├── auth/                 # Authentication modules
-│   └── monitoring/           # Observability tools
-├── deployment/               # Infrastructure as Code
-│   ├── terraform/            # Cloud infrastructure
-│   ├── helm-charts/          # Kubernetes charts
-│   └── scripts/              # Deployment scripts
-├── monitoring/               # Observability stack
-│   ├── prometheus/           # Metrics collection
-│   ├── grafana/              # Dashboards
-│   └── logging/              # Log aggregation
-└── docs/                     # Documentation
-    ├── architecture/         # System design
-    ├── runbooks/            # Operational guides
-    └── api/                 # API documentation
-```
+This section outlines the step-by-step plan that was executed to transition from the previous process-managed monorepo to the target serverless-ready architecture.
 
-## **Server-Specific Structure** ✅
+### **Phase 1: Decouple MCP Server Logic from Transport**
 
-Each individual MCP server should follow this modular structure:
+The goal of this phase was to refactor our MCP servers so their core business logic is not tied to a specific transport mechanism (like `stdio`). This was the key to making them serverless-ready.
 
-```
-src/
-├── index.ts                  # Entry point
-├── config/                   # Configuration management
-├── mcp-server/              # Core MCP logic
-│   ├── server.ts            # Server setup
-│   ├── transports/          # Transport handling
-│   ├── resources/           # Resource implementations
-│   └── tools/               # Tool implementations
-├── types-global/            # Shared type definitions
-└── utils/                   # Utility functions
-```
+- [x] **Refactor business logic into transport-agnostic "handler" functions.**
+  - [x] Create `handlers.ts` in `linear-mcp-server` to contain pure business logic.
+  - [x] Move `linear_search_issues` logic from `tools.ts` into its own handler in `handlers.ts`.
+  - [x] Move remaining tool logic (`get_teams`, `get_users`, etc.) into handlers.
+  - [x] Move resource and prompt logic into their own handlers.
+- [x] **Update `tools.ts`, `resources.ts`, and `prompts.ts` to be simple wiring layers.**
+  - [x] Modify `tools.ts` to import handlers from `handlers.ts`.
+  - [x] The `registerTool` function will now only define the schema and call the appropriate handler, separating schema definition from implementation.
 
-## Principles for Individual MCP Servers
+### **Phase 2: Transition MCP Servers to Standalone HTTP Services**
 
-## **1. Design Principles** ✅
+With the logic decoupled, we then exposed it via a network transport.
 
-Individual MCP servers should follow these core principles:
+- [x] **Add Express.js as a dependency to `linear-mcp-server`.**
+- [x] **Create an HTTP transport entrypoint in `linear-mcp-server`.**
+  - [x] This server now listens on a port defined by an environment variable.
+  - [x] It exposes an `/mcp` endpoint for handling JSON-RPC requests.
+  - [x] It exposes a `/health` endpoint that returns a `200 OK` status for health checks.
+- [x] **Update the `Dockerfile` for `linear-mcp-server` to expose its port and run the new HTTP server.**
 
-- ✅ **Single Responsibility**: Each server should focus on specific, well-defined capabilities. Servers should be extremely easy to build and highly composable.
-- ✅ **Isolation**: Servers should not be able to read whole conversations or "see into" other servers. This maintains security boundaries and enables modular composition.
-- ✅ **Progressive Feature Addition**: Features can be added to servers and clients progressively. Core protocol provides minimal required functionality with additional capabilities negotiated as needed.
-- ✅ **Capability-Based Design**: Use explicit capability negotiation during initialization. Servers declare capabilities like resource subscriptions, tool support, and prompt templates.
+### **Phase 3: Refactor Gateway into a Network Proxy**
 
-## **2. Security Best Practices**
+The gateway's role was changed from a process manager to a smart network router.
 
-- ⬜️ **Authentication and Authorization**: Implement robust authentication using OAuth 2.0/2.1 with PKCE flow. Use short-lived tokens stored securely and avoid long-lived access tokens in configuration files.
-- ✅ **Input Validation**: Validate all parameters against predefined schemas. Sanitize file paths and system commands to prevent injection attacks.
-- ⬜️ **Transport Security**: Enforce TLS for all communications, use strong cipher suites, and validate certificates. Implement proper session management and token rotation.
-- ⬜️ **Access Control**: Use Role-Based Access Control (RBAC) and Access Control Lists (ACLs). Implement human-in-the-loop workflows for sensitive operations.
+- [x] **Update `master.config.dev.json` to define servers by URL.**
+  - [x] Replaced `command`, `args`, and `cwd` properties with a single `url` property (e.g., `"url": "http://linear-mcp-server:3001"`).
+- [x] **Rewrite `MCPServerManager` to be a network-aware service manager.**
+  - [x] Removed all child-process management code (`spawn`, `kill`, `on('exit')`, etc.).
+  - [x] Implemented network-based health checks using HTTP GET requests to the `/health` endpoint of each server.
+  - [x] The `getServerInstance` method was simplified to return the server's configured URL.
+- [x] **Modify the gateway's request routing logic.**
+  - [x] The gateway now forwards incoming requests to the appropriate MCP server via an HTTP POST request to its `/mcp` endpoint.
 
-## **3. Implementation Standards**
+### **Phase 4: Update Docker Orchestration**
 
-- ✅ **Tool Naming**: Follow consistent naming conventions using kebab-case
-- ✅ **Error Handling**: Implement comprehensive error handling with detailed error information
-- ✅ **Logging and Monitoring**: Include structured logging for observability
-- ✅ **Configuration Management**: Use environment variables for configuration
+Finally, we updated our Docker setup to run the newly independent services.
 
-## Anatomy of an MCP Server
+- [x] **Verify `docker-compose.dev.yml` correctly orchestrates the services.**
+  - [x] Confirmed that `mcp-gateway` and `linear-mcp-server` are on the same Docker network.
+- [x] **Update container `command`s in `docker-compose.dev.yml`.**
+  - [x] The `command` for `linear-mcp-server` was updated to run its new HTTP server.
 
-## **Core Components** ✅
+---
 
-An MCP server consists of three main components:
+## ✅ **Current Implementation Status**
 
-- ✅ **Tools (Model-controlled)**: Functions that LLMs can call to perform specific actions. These are executable functions with defined input schemas and return structured content.
-- ✅ **Resources (Application-controlled)**: Data sources that LLMs can access, similar to GET endpoints in REST APIs. Resources provide data without side effects and are part of the request context.
-- ✅ **Prompts (User-controlled)**: Pre-defined templates for optimal tool or resource usage. These are selected before running inference to guide LLM behavior.
+This checklist from the previous architecture shows what is already in place and serves as the foundation for our refactoring.
 
-## **Communication Protocol** ✅
-
-MCP uses **JSON-RPC 2.0** for all client-server communication:
-
-**Request Format**:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {}
-}
-```
-
-**Response Format**:
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "tools": [{ "name": "calculator", "description": "Basic math" }]
-  }
-}
-```
-
-**Message Types**: Requests (expect responses), Results (successful responses), Errors (failed requests), and Notifications (one-way messages).
-
-## **Transport Layer Implementation** ✅
-
-MCP supports multiple transport mechanisms:
-
-- ✅ **STDIO**: Uses standard input/output for local process communication. Ideal for CLI tools and development scenarios.
-- ✅ **HTTP with SSE**: Uses HTTP POST for client-to-server messages and optional Server-Sent Events for streaming. Suitable for web applications and remote services.
-- ✅ **Streamable HTTP**: Modern protocol supporting bidirectional streaming over HTTP. Provides better performance and simplified implementation.
-
-## **Lifecycle Management** ✅
-
-- ✅ **Initialization Phase**: Client sends `initialize` request with protocol version and capabilities. Server responds with its capabilities, followed by client `initialized` notification.
-- ✅ **Message Exchange**: Support for request-response patterns and one-way notifications. Enables both synchronous and asynchronous communication patterns.
-- ✅ **Termination**: Clean shutdown via `close()` method or transport disconnection. Proper cleanup of resources and active connections.
-
-This comprehensive architecture provides the foundation for deploying and managing 100+ MCP servers while maintaining security, scalability, and operational excellence. The combination of proxy-based routing, containerized deployment, and standardized server design enables organizations to build robust, large-scale MCP ecosystems.
-
-## **Implementation Status** ✅
-
-**Successfully Implemented in Omni Project:**
-
-- ✅ **Hub-and-Spoke Architecture** - MCP Gateway configured
-- ✅ **Containerized Microservices** - Docker support for all servers
-- ✅ **Recommended Repository Structure** - Follows enterprise patterns
-- ✅ **Server-Specific Structure** - Linear MCP server implemented
-- ✅ **Design Principles** - Single responsibility, isolation, capability-based
-- ✅ **Core Components** - Tools, Resources, Prompts all implemented
-- ✅ **Communication Protocol** - JSON-RPC 2.0 via MCP SDK
-- ✅ **Transport Layer** - Multi-transport support via MCP SDK
-- ✅ **Lifecycle Management** - Proper init/message/termination handling
-- ✅ **Server-Specific Types** - Each server owns its type definitions
-- ✅ **Hierarchical Environment Variables** - Enterprise-grade config management
-- ✅ **Development Tools** - Watch scripts, dev tooling, client integrations
-
-**Ready for Scale:** The Omni project now has a production-ready foundation for managing 100+ MCP servers with enterprise-grade architecture patterns! 🚀
+- ✅ **Hub-and-Spoke Architecture** - MCP Gateway configured.
+- ✅ **Containerized Microservices** - Docker support exists for all servers.
+- ✅ **Recommended Repository Structure** - Follows enterprise patterns.
+- ✅ **Server-Specific Structure** - Linear MCP server implemented.
+- ✅ **Core Components** - Tools, Resources, Prompts all implemented.
+- ✅ **Communication Protocol** - JSON-RPC 2.0 via MCP SDK.
+- ✅ **Transport Layer** - Multi-transport support via MCP SDK.
+- ✅ **Lifecycle Management** - Proper init/message/termination handling.
+- ✅ **Hierarchical Environment Variables** - Enterprise-grade config management.
+- ✅ **Development Tools** - Watch scripts, dev tooling, client integrations.
