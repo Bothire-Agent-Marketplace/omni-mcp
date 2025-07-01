@@ -2,7 +2,7 @@
 
 This guide provides instructions for setting up and running the Omni MCP project in a local development environment. Our goal is to provide a smooth and efficient developer experience.
 
-The local development environment is managed via Docker Compose and a `Makefile` that provides convenient commands for common tasks.
+The local development environment is managed via Docker Compose files in the `deployment/` directory and a `Makefile` that provides convenient commands for common tasks.
 
 ## Prerequisites
 
@@ -37,8 +37,8 @@ pnpm install
 The project uses a **hierarchical environment variable system** for configuration. Environment variables are loaded in this order of precedence:
 
 1. `secrets/.env.development.local` (highest priority - your local secrets)
-2. `.env.development.local` (service-specific overrides)
-3. `.env.example` (base configuration)
+2. Service-specific env files: `gateway/.env`, `servers/.env`, `servers/linear-mcp-server/.env`
+3. `.env` (base configuration)
 
 Run the setup command to create the initial environment files:
 
@@ -59,9 +59,13 @@ This will create the necessary environment files. You must edit `secrets/.env.de
 
 **Environment File Hierarchy:**
 
-- `secrets/.env.development.local` - **Your actual secrets** (never commit this)
-- `servers/linear-mcp-server/.env.example` - Service-specific environment template
-- `.env.development.local.example` - Root environment template
+```
+secrets/.env.development.local     # Your actual secrets (never commit this)
+├── .env                          # Base configuration
+├── gateway/.env                  # Gateway-specific configuration
+├── servers/.env                  # Shared server configuration
+└── servers/linear-mcp-server/.env # Linear server-specific configuration
+```
 
 **4. Start the Development Environment**
 
@@ -119,9 +123,18 @@ The Node.js debugger is enabled for the gateway and the Linear server. You can a
 
 ## Advanced Topics
 
-### What about the `deployment/` directory?
+### Deployment Directory Structure
 
-The `docker-compose.yml` files in the `deployment/` directory are for a specialized, legacy, or client-specific setup (e.g., for Claude Desktop integration where the client manages the server lifecycle). **For general development, you should always use the `Makefile` and `docker-compose.yml` files in the root of the project.**
+All Docker Compose files are consolidated in the `deployment/` directory:
+
+```
+deployment/
+├── docker-compose.yml          # Production services
+├── docker-compose.dev.yml      # Development overrides
+└── README.md                   # Deployment documentation
+```
+
+The `Makefile` manages these files automatically. For manual operations, all Docker Compose commands should be run from the root directory using the Makefile, which handles proper path management and environment loading.
 
 ### Running in Detached Mode
 
@@ -131,3 +144,13 @@ To run the development environment in the background, use `make dev-detached`.
 
 - `make clean`: Stops and removes containers.
 - `make clean-all`: Stops and removes containers, volumes, and networks. Use with caution, as this will delete your database data.
+
+### Creating New MCP Servers
+
+When creating new MCP servers, follow the **Enterprise MCP Server Pattern** documented in `docs/MCP_SERVER_PATTERN.md`. The CLI tools can help:
+
+```bash
+make create-mcp SERVICE=database    # Create a new database MCP server
+make validate-mcp SERVICE=linear    # Validate an existing server
+make list-mcp                       # List all MCP servers
+```

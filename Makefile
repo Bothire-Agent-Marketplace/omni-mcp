@@ -11,8 +11,8 @@
 # Configuration
 # =============================================================================
 PROJECT_NAME := omni-mcp
-COMPOSE_FILE := docker-compose.yml
-COMPOSE_DEV_FILE := docker-compose.dev.yml
+COMPOSE_FILE := deployment/docker-compose.yml
+COMPOSE_DEV_FILE := deployment/docker-compose.dev.yml
 ENV_FILE := secrets/.env.development.local
 
 # =============================================================================

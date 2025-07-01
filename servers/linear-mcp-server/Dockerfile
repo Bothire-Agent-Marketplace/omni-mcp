@@ -13,10 +13,10 @@ COPY pnpm-workspace.yaml ./
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 
-# Copy shared schemas first
-COPY shared/schemas/package.json ./shared/schemas/
-COPY shared/schemas/tsconfig.json ./shared/schemas/
-COPY shared/schemas/src/ ./shared/schemas/src/
+# Copy shared utils (still needed for environment loading)
+COPY shared/utils/package.json ./shared/utils/
+COPY shared/utils/tsconfig.json ./shared/utils/
+COPY shared/utils/src/ ./shared/utils/src/
 
 # Copy linear server package files
 COPY servers/linear-mcp-server/package.json ./servers/linear-mcp-server/
@@ -31,8 +31,8 @@ RUN pnpm install --frozen-lockfile
 # Copy linear server source code
 COPY servers/linear-mcp-server/src/ ./servers/linear-mcp-server/src/
 
-# Build shared schemas first
-RUN cd shared/schemas && pnpm build
+# Build shared utils first
+RUN cd shared/utils && pnpm build
 
 # Build linear server
 RUN cd servers/linear-mcp-server && pnpm build
@@ -57,9 +57,9 @@ COPY pnpm-workspace.yaml ./
 COPY package.json ./
 COPY pnpm-lock.yaml ./
 
-# Copy shared schemas package
-COPY shared/schemas/package.json ./shared/schemas/
-COPY --from=builder /app/shared/schemas/dist ./shared/schemas/dist
+# Copy shared utils package
+COPY shared/utils/package.json ./shared/utils/
+COPY --from=builder /app/shared/utils/dist ./shared/utils/dist
 
 # Copy linear server package
 COPY servers/linear-mcp-server/package.json ./servers/linear-mcp-server/
@@ -86,6 +86,6 @@ CMD ["node", "servers/linear-mcp-server/dist/index.js"]
 
 # Metadata
 LABEL org.opencontainers.image.title="Linear MCP Server"
-LABEL org.opencontainers.image.description="Linear MCP server built with TypeScript, Zod validation, and Linear SDK"
+LABEL org.opencontainers.image.description="Linear MCP server built with official MCP SDK, TypeScript, and Linear SDK"
 LABEL org.opencontainers.image.version="1.0.0"
 LABEL org.opencontainers.image.authors="Vince" 

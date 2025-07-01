@@ -1,52 +1,125 @@
+# =============================================================================
+# Omni MCP - Development Override Configuration
+# =============================================================================
+# This file extends docker-compose.yml for development
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+# version attribute is obsolete in modern Docker Compose
+
 services:
-  gateway:
-    image: mcp/gateway:latest
+  # ==========================================================================
+  # Development overrides for MCP Gateway
+  # ==========================================================================
+  mcp-gateway:
     build:
-      context: ..
-      dockerfile: ./gateway/Dockerfile
-    container_name: mcp-gateway-dev
-    ports:
-      - "37373:37373" # Expose the gateway port
-    networks:
-      - mcp-net
-    depends_on:
-      - filesystem
-      - linear
-
-  filesystem:
-    image: mcp/filesystem:latest
-    container_name: mcp-filesystem-dev
-    command: ["/data", "/uploads"]
-    networks:
-      - mcp-net
-    volumes:
-      - ../data/files:/data:rw
-      - ../data/uploads:/uploads:rw
-    environment:
-      ALLOWED_PATHS: "/data,/uploads"
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  linear:
-    image: mcp/linear:latest
-    build:
-      context: ..
-      dockerfile: ./servers/linear-mcp-server/Dockerfile
-    container_name: mcp-linear-dev
-    networks:
-      - mcp-net
+      target: builder # Use builder stage for faster dev builds
     env_file:
-      - ../secrets/linear.env
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - ../.env
+      - ../gateway/.env
+      - ../secrets/.env.development.local
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - GATEWAY_PORT=37373
+    volumes:
+      # Hot reload for development
+      - ../gateway/src:/app/gateway/src:ro
+      - ../gateway/package.json:/app/gateway/package.json:ro
+      - ../shared:/app/shared:ro
+    command: ["sh", "-c", "cd gateway && pnpm dev"]
+    ports:
+      - "37373:37373"
+      - "9229:9229" # Node.js debug port
 
-networks:
-  mcp-net:
-    name: mcp-network
-    external: true
+  # ==========================================================================
+  # Development overrides for Linear MCP Server
+  # ==========================================================================
+  linear-mcp-server:
+    build:
+      target: builder # Use builder stage for faster dev builds
+    env_file:
+      - ../.env
+      - ../servers/.env
+      - ../servers/linear-mcp-server/.env
+      - ../secrets/.env.development.local
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+    volumes:
+      # Hot reload for development
+      - ../servers/linear-mcp-server/src:/app/servers/linear-mcp-server/src:ro
+      - ../servers/linear-mcp-server/package.json:/app/servers/linear-mcp-server/package.json:ro
+      - ../shared:/app/shared:ro
+    # For development, run the server directly with node and built files
+    # The builder stage already compiles the TypeScript files
+    command: ["sh", "-c", "cd servers/linear-mcp-server && node dist/index.js"]
+    ports:
+      - "3001:3000" # Expose for direct access during development
+      - "9230:9229" # Node.js debug port (different from gateway)
+    healthcheck:
+      test:
+        ["CMD", "node", "-e", "console.log('Linear MCP server health check')"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================================================
+  # Development database with sample data
+  # ==========================================================================
+  postgres:
+    image: postgres:17-alpine
+    env_file:
+      - ../.env
+      - ../secrets/.env.development.local
+    environment:
+      - POSTGRES_DB=omni_mcp_dev
+    volumes:
+      # Add development-specific init scripts
+      - ../data/booksql:/docker-entrypoint-initdb.d:ro
+      - ../data/dvdrental:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432" # Expose for development tools
+
+  # ==========================================================================
+  # Development tools and utilities
+  # ==========================================================================
+  # pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: omni-pgadmin-dev
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@omni.dev}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+      - PGADMIN_CONFIG_SERVER_MODE=False
+    ports:
+      - "8080:80"
+    networks:
+      - mcp-network
+    depends_on:
+      - postgres
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: omni-mailhog-dev
+    ports:
+      - "1025:1025" # SMTP port
+      - "8025:8025" # Web UI port
+    networks:
+      - mcp-network
+
+  # Redis for caching (if needed)
+  redis:
+    image: redis:7-alpine
+    container_name: omni-redis-dev
+    ports:
+      - "6379:6379"
+    networks:
+      - mcp-network
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
+    name: omni-redis-dev-data

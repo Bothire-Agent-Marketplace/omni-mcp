@@ -1,38 +1,104 @@
+# =============================================================================
+# Omni MCP - Production Docker Compose Configuration
+# =============================================================================
+# This is the main production compose file
+# For development, use: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+networks:
+  mcp-network:
+    driver: bridge
+    name: omni-mcp-network
+
+volumes:
+  postgres-data:
+    name: omni-postgres-data
+  mcp-files:
+    name: omni-mcp-files
+  mcp-uploads:
+    name: omni-mcp-uploads
+
 services:
-  # PostgreSQL Database with BookSQL Accounting Data
-  # Note: MCP servers (filesystem and database-toolbox) are started
-  # directly by Claude Desktop when needed, not as standalone services
+  # ==========================================================================
+  # MCP Gateway - Central hub for all MCP servers (includes Linear server)
+  # ==========================================================================
+  mcp-gateway:
+    build:
+      context: ..
+      dockerfile: gateway/Dockerfile
+      target: production
+    image: omni/mcp-gateway:latest
+    container_name: omni-mcp-gateway
+    restart: unless-stopped
+    networks:
+      - mcp-network
+    ports:
+      - "37373:37373"
+    env_file:
+      - ../.env
+      - ../gateway/.env
+      - ../secrets/.env.development.local
+    volumes:
+      # Mount the built servers directory
+      - ../servers:/app/servers:ro
+      # Mount data directories
+      - mcp-files:/app/data/files
+      - mcp-uploads:/app/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:37373/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ==========================================================================
+  # PostgreSQL Database
+  # ==========================================================================
   postgres:
-    image: postgres:15
-    container_name: mcp-postgres
+    image: postgres:16-alpine
+    container_name: omni-postgres
+    restart: unless-stopped
+    networks:
+      - mcp-network
     ports:
       - "5432:5432"
     environment:
-      - POSTGRES_DB=booksql
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+      POSTGRES_DB: booksql
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --lc-collate=C --lc-ctype=C"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ../data/booksql:/docker-entrypoint-initdb.d:ro
-    networks:
-      - mcp-net
-    restart: unless-stopped
+      - postgres-data:/var/lib/postgresql/data
+      - ../data/dvdrental:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d booksql"]
-      interval: 30s
-      timeout: 10s
+      interval: 10s
+      timeout: 5s
       retries: 5
+      start_period: 30s
 
-networks:
-  mcp-net:
-    driver: bridge
-    name: mcp-network
-
-volumes:
-  mcp-data:
-    name: mcp-data
-  mcp-uploads:
-    name: mcp-uploads
-  postgres_data:
-    name: mcp-postgres-data
+  # ==========================================================================
+  # File System MCP Server - File operations
+  # ==========================================================================
+  filesystem-mcp-server:
+    image: mcp/filesystem:latest
+    container_name: omni-filesystem-mcp-server
+    restart: unless-stopped
+    environment:
+      - ALLOWED_PATHS=/data,/uploads
+      - MAX_FILE_SIZE=10485760
+      - NODE_ENV=production
+    volumes:
+      - mcp-files:/data:rw
+      - mcp-uploads:/uploads:rw
+      - ../data/files:/data:rw
+      - ../data/uploads:/uploads:rw
+    networks:
+      - mcp-network
+    healthcheck:
+      test: ["CMD", "sh", "-c", "test -d /data && test -d /uploads"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

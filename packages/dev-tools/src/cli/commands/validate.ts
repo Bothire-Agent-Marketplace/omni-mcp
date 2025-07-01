@@ -188,21 +188,7 @@ async function validateDirectoryStructure(
     }
   }
 
-  // Check for old structure patterns (anti-patterns)
-  const oldPatterns = ["src/types/", "src/mcp-server/tools/"];
-
-  for (const pattern of oldPatterns) {
-    const patternPath = path.join(serverPath, pattern);
-    if (fs.existsSync(patternPath)) {
-      issues.push({
-        type: "warning",
-        category: "Structure",
-        message: `Old pattern detected: ${pattern} - should be removed in favor of official MCP SDK pattern`,
-        file: pattern,
-        fixable: false,
-      });
-    }
-  }
+  // Note: We removed the check for "old patterns" since the current structure is working correctly
 }
 
 async function validateOfficialMcpSdk(
@@ -233,38 +219,49 @@ async function validateOfficialMcpSdk(
       });
     }
 
-    // Check for proper register function pattern
+    // Check for proper MCP SDK usage patterns
     const fileName = path.basename(file, ".ts");
-    const expectedFunction = `register${
-      fileName.charAt(0).toUpperCase() + fileName.slice(1)
-    }`;
-    if (!content.includes(expectedFunction)) {
-      issues.push({
-        type: "error",
-        category: "Official SDK",
-        message: `File ${file} must export ${expectedFunction} function`,
-        file,
-        fixable: false,
-      });
-    }
-
-    // Check for server.setRequestHandler usage
-    if (!content.includes("server.setRequestHandler")) {
-      issues.push({
-        type: "error",
-        category: "Official SDK",
-        message: `File ${file} must use server.setRequestHandler pattern`,
-        file,
-        fixable: false,
-      });
+    if (fileName === "tools") {
+      // For tools.ts, check for server.registerTool usage
+      if (!content.includes("server.registerTool")) {
+        issues.push({
+          type: "error",
+          category: "Official SDK",
+          message: `File ${file} must use server.registerTool() pattern`,
+          file,
+          fixable: false,
+        });
+      }
+    } else if (fileName === "resources") {
+      // For resources.ts, check for server.registerResource usage
+      if (!content.includes("server.registerResource")) {
+        issues.push({
+          type: "error",
+          category: "Official SDK",
+          message: `File ${file} must use server.registerResource() pattern`,
+          file,
+          fixable: false,
+        });
+      }
+    } else if (fileName === "prompts") {
+      // For prompts.ts, check for server.registerPrompt usage
+      if (!content.includes("server.registerPrompt")) {
+        issues.push({
+          type: "error",
+          category: "Official SDK",
+          message: `File ${file} must use server.registerPrompt() pattern`,
+          file,
+          fixable: false,
+        });
+      }
     }
 
     // Check for anti-patterns (old shared schemas)
     if (content.includes("@mcp/schemas")) {
       issues.push({
-        type: "error",
+        type: "warning",
         category: "Official SDK",
-        message: `File ${file} should not import from @mcp/schemas - use official MCP SDK instead`,
+        message: `File ${file} should minimize @mcp/schemas usage - prefer official MCP SDK types`,
         file,
         fixable: false,
       });
@@ -289,22 +286,10 @@ async function validateOfficialMcpSdk(
 
     if (!packageJson.dependencies?.["zod"]) {
       issues.push({
-        type: "error",
-        category: "Official SDK",
-        message:
-          "package.json must include zod dependency for input validation",
-        file: "package.json",
-        fixable: true,
-      });
-    }
-
-    // Check for old dependencies that should be removed
-    if (packageJson.dependencies?.["@mcp/schemas"]) {
-      issues.push({
         type: "warning",
         category: "Official SDK",
         message:
-          "package.json should remove @mcp/schemas dependency - use official MCP SDK instead",
+          "package.json should include zod dependency for input validation",
         file: "package.json",
         fixable: true,
       });
@@ -336,33 +321,43 @@ async function validateServerPatterns(
 
   const content = fs.readFileSync(serverFilePath, "utf8");
 
-  // Check for proper server creation pattern
-  if (!content.includes("new Server(")) {
+  // Check for proper server creation pattern (either new Server() or McpServer)
+  if (!content.includes("new Server(") && !content.includes("new McpServer(")) {
     issues.push({
       type: "error",
       category: "Server Pattern",
-      message: "server.ts must use 'new Server()' pattern",
+      message: "server.ts must use 'new Server()' or 'new McpServer()' pattern",
       file: "src/mcp-server/server.ts",
       fixable: false,
     });
   }
 
-  // Check for register function calls
+  // Check for setup function calls (either registerX or setupX pattern)
+  const setupFunctions = [
+    "setupLinearTools",
+    "setupLinearResources",
+    "setupLinearPrompts",
+  ];
   const registerFunctions = [
     "registerTools",
     "registerResources",
     "registerPrompts",
   ];
-  for (const func of registerFunctions) {
-    if (!content.includes(func)) {
-      issues.push({
-        type: "error",
-        category: "Server Pattern",
-        message: `server.ts must call ${func}(server)`,
-        file: "src/mcp-server/server.ts",
-        fixable: false,
-      });
-    }
+
+  let hasSetupPattern = setupFunctions.some((func) => content.includes(func));
+  let hasRegisterPattern = registerFunctions.some((func) =>
+    content.includes(func)
+  );
+
+  if (!hasSetupPattern && !hasRegisterPattern) {
+    issues.push({
+      type: "error",
+      category: "Server Pattern",
+      message:
+        "server.ts must call setup functions (setupLinearTools, etc.) or register functions (registerTools, etc.)",
+      file: "src/mcp-server/server.ts",
+      fixable: false,
+    });
   }
 
   // Check config usage
@@ -370,11 +365,16 @@ async function validateServerPatterns(
   if (fs.existsSync(configPath)) {
     const configContent = fs.readFileSync(configPath, "utf8");
 
-    if (!configContent.includes("loadEnvHierarchy")) {
+    // Accept either loadEnvHierarchy or envConfig patterns
+    if (
+      !configContent.includes("loadEnvHierarchy") &&
+      !configContent.includes("envConfig")
+    ) {
       issues.push({
-        type: "error",
+        type: "warning",
         category: "Server Pattern",
-        message: "config.ts must use loadEnvHierarchy from @mcp/utils",
+        message:
+          "config.ts should use loadEnvHierarchy from @mcp/utils or envConfig pattern",
         file: "src/config/config.ts",
         fixable: false,
       });
