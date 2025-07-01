@@ -105,6 +105,7 @@ async function createServerStructure(
     "tsconfig.json": generateTsConfig(),
     Dockerfile: generateDockerfile(serviceName),
     "README.md": generateReadme(serviceName),
+    ".env.example": generateServiceEnvExample(serviceName),
     "src/index.ts": generateIndex(serviceName),
     "src/config/config.ts": generateConfig(serviceName),
     "src/mcp-server/server.ts": generateServer(serviceName),
@@ -120,6 +121,9 @@ async function createServerStructure(
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
     fs.writeFileSync(fullPath, content);
   }
+
+  // Update centralized secrets file
+  await updateCentralizedSecrets(serviceName);
 }
 
 async function createSharedSchemas(serviceName: string, schemasPath: string) {
@@ -959,4 +963,77 @@ export const ${capitalizedName}ResultSchema = z.object({
 
 export type ${capitalizedName}Result = z.infer<typeof ${capitalizedName}ResultSchema>;
 `;
+}
+
+function generateServiceEnvExample(serviceName: string): string {
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+
+  return `# ${capitalizedName} MCP Server Environment Variables
+# Non-sensitive service-specific defaults only.
+# Secrets like ${serviceName.toUpperCase()}_API_KEY are defined in secrets/.env.development.local.example
+
+# Optional: Node.js Environment
+# NODE_ENV=production
+
+# Optional: Logging Level
+# LOG_LEVEL=info
+
+# Optional: Rate Limiting
+# ${serviceName.toUpperCase()}_RATE_LIMIT=60
+# ${serviceName.toUpperCase()}_BURST_LIMIT=10
+
+# Optional: Timeouts (in milliseconds)
+# ${serviceName.toUpperCase()}_REQUEST_TIMEOUT=30000
+# ${serviceName.toUpperCase()}_CONNECTION_TIMEOUT=10000
+
+# Optional: Feature Flags
+# ${serviceName.toUpperCase()}_ENABLE_CACHING=false
+# ${serviceName.toUpperCase()}_ENABLE_METRICS=false
+
+# Currently no non-sensitive service-specific defaults for ${capitalizedName} server.
+# Add any service-specific configuration here as needed.
+`;
+}
+
+async function updateCentralizedSecrets(serviceName: string) {
+  const projectRoot = path.resolve(__dirname, "../../../../..");
+  const secretsPath = path.join(
+    projectRoot,
+    "secrets",
+    ".env.development.local.example"
+  );
+
+  if (!fs.existsSync(secretsPath)) {
+    console.log("⚠️  Centralized secrets file not found, skipping update");
+    return;
+  }
+
+  const upperCaseName = serviceName.toUpperCase();
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+
+  let content = fs.readFileSync(secretsPath, "utf8");
+
+  // Check if service secrets already exist
+  if (content.includes(`${upperCaseName}_API_KEY`)) {
+    console.log(
+      `ℹ️  ${capitalizedName} secrets already exist in centralized secrets file`
+    );
+    return;
+  }
+
+  // Add new service secrets section
+  const newSecretsSection = `
+# -- ${capitalizedName} MCP Server Secrets --
+${upperCaseName}_API_KEY=your-${serviceName}-api-key-goes-here
+${upperCaseName}_BASE_URL=https://api.${serviceName}.com`;
+
+  // Append to the file
+  content += newSecretsSection;
+
+  fs.writeFileSync(secretsPath, content);
+  console.log(
+    `✅ Added ${capitalizedName} secrets to centralized secrets file`
+  );
 }

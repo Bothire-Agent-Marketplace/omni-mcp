@@ -13,9 +13,15 @@ services:
   mcp-gateway:
     build:
       target: builder # Use builder stage for faster dev builds
+    env_file:
+      - .env
+      - gateway/.env
+      - secrets/.env.development.local
+      - gateway/.env.local
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=debug
+      - GATEWAY_PORT=37373
     volumes:
       # Hot reload for development
       - ./gateway/src:/app/gateway/src:ro
@@ -32,6 +38,12 @@ services:
   linear-mcp-server:
     build:
       target: builder # Use builder stage for faster dev builds
+    env_file:
+      - .env
+      - servers/.env
+      - servers/linear-mcp-server/.env
+      - secrets/.env.development.local
+      - servers/linear-mcp-server/.env.local
     environment:
       - NODE_ENV=development
       - LOG_LEVEL=debug
@@ -49,6 +61,10 @@ services:
   # Development database with sample data
   # ==========================================================================
   postgres:
+    image: postgres:17-alpine
+    env_file:
+      - .env
+      - secrets/.env.development.local
     environment:
       - POSTGRES_DB=omni_mcp_dev
     volumes:

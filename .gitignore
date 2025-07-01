@@ -4,7 +4,9 @@
 
 # Secrets and Sensitive Data
 # =============================================================================
-secrets/
+secrets/*.local
+secrets/*.production
+secrets/*.staging
 *.key
 *.pem
 *.p12
@@ -272,7 +274,7 @@ Thumbs.db
 *.swo
 
 # Secrets and certificates (SECURITY: Critical)
-secrets/
+# Note: secrets/ directory patterns are defined at the top of this file
 *.pem
 *.key
 *.crt

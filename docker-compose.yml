@@ -31,10 +31,12 @@ services:
     restart: unless-stopped
     ports:
       - "${GATEWAY_PORT:-37373}:37373"
+    env_file:
+      - .env
+      - gateway/.env
+      - gateway/.env.local
     environment:
       - NODE_ENV=production
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - GATEWAY_PORT=37373
     networks:
       - mcp-network
     depends_on:
@@ -58,10 +60,13 @@ services:
     image: omni/linear-mcp-server:latest
     container_name: omni-linear-mcp-server
     restart: unless-stopped
+    env_file:
+      - .env
+      - servers/.env
+      - servers/linear-mcp-server/.env
+      - servers/linear-mcp-server/.env.local
     environment:
       - NODE_ENV=production
-      - LOG_LEVEL=${LOG_LEVEL:-info}
-      - LINEAR_API_KEY=${LINEAR_API_KEY}
     networks:
       - mcp-network
     healthcheck:
@@ -76,15 +81,15 @@ services:
   # PostgreSQL Database - Shared data store
   # ==========================================================================
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: omni-postgres
     restart: unless-stopped
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
+    env_file:
+      - .env
+      - postgres.env
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-omni_mcp}
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_INITDB_ARGS=--encoding=UTF-8
     volumes:
       - postgres-data:/var/lib/postgresql/data

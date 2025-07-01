@@ -70,6 +70,9 @@ export async function removeMcpServer(
     // Remove from Docker configs if they exist
     await cleanupDockerConfigs(serviceName, projectRoot);
 
+    // Remove from centralized secrets
+    await cleanupCentralizedSecrets(serviceName, projectRoot);
+
     console.log("");
     console.log("✅ MCP server removed successfully!");
     console.log("");
@@ -147,4 +150,76 @@ async function cleanupDockerConfigs(serviceName: string, projectRoot: string) {
       // Ignore errors reading Docker files
     }
   }
+}
+
+async function cleanupCentralizedSecrets(
+  serviceName: string,
+  projectRoot: string
+) {
+  const secretsPath = path.join(
+    projectRoot,
+    "secrets",
+    ".env.development.local.example"
+  );
+
+  if (!fs.existsSync(secretsPath)) {
+    console.log("ℹ️  Centralized secrets file not found, skipping cleanup");
+    return;
+  }
+
+  const upperCaseName = serviceName.toUpperCase();
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+
+  let content = fs.readFileSync(secretsPath, "utf8");
+
+  // Check if service secrets exist
+  if (!content.includes(`${upperCaseName}_API_KEY`)) {
+    console.log(
+      `ℹ️  No ${capitalizedName} secrets found in centralized secrets file`
+    );
+    return;
+  }
+
+  // Remove the service's secrets section
+  const lines = content.split("\n");
+  const filteredLines = [];
+  let inServiceSection = false;
+
+  for (const line of lines) {
+    // Check if we're entering the service section
+    if (line.includes(`-- ${capitalizedName} MCP Server Secrets --`)) {
+      inServiceSection = true;
+      continue; // Skip the header line
+    }
+
+    // Check if we're leaving the service section (next service or end of file)
+    if (
+      inServiceSection &&
+      line.startsWith("# --") &&
+      !line.includes(capitalizedName)
+    ) {
+      inServiceSection = false;
+    }
+
+    // Skip lines that belong to this service
+    if (
+      inServiceSection &&
+      (line.startsWith(`${upperCaseName}_`) || line.trim() === "")
+    ) {
+      continue;
+    }
+
+    // Keep all other lines
+    if (!inServiceSection) {
+      filteredLines.push(line);
+    }
+  }
+
+  // Write back the cleaned content
+  const cleanedContent = filteredLines.join("\n");
+  fs.writeFileSync(secretsPath, cleanedContent);
+  console.log(
+    `✅ Removed ${capitalizedName} secrets from centralized secrets file`
+  );
 }

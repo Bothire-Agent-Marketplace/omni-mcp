@@ -1,6 +1,6 @@
 import { config } from "dotenv";
-import { join } from "path";
-import { existsSync } from "fs";
+import { join, dirname } from "path";
+import { existsSync, readFileSync } from "fs";
 
 export type Environment = "development" | "production" | "test";
 
@@ -36,10 +36,12 @@ export interface EnvironmentConfig {
 class EnvironmentManager {
   private config: EnvironmentConfig;
   private environment: Environment;
+  private projectRoot: string;
 
   constructor() {
     this.environment = this.detectEnvironment();
-    this.loadEnvironmentFile();
+    this.projectRoot = this.findProjectRoot(process.cwd());
+    this.loadEnvironmentFiles();
     this.config = this.buildConfig();
     this.validateConfig();
   }
@@ -52,61 +54,92 @@ class EnvironmentManager {
     return "development"; // Default fallback
   }
 
-  private loadEnvironmentFile(): void {
-    // Determine service name from process arguments or default
-    const serviceName = this.getServiceName();
-    const envFile = serviceName
-      ? `.env.${serviceName}.local`
-      : `.env.${this.environment}.local`;
-
-    // Try to find the environment file in current directory or parent directories
-    let envPath = join(process.cwd(), envFile);
-
-    // If not found in current directory, try parent directory (for monorepo structure)
-    if (!existsSync(envPath)) {
-      envPath = join(process.cwd(), "..", envFile);
-    }
-
-    // Fallback to general environment file if service-specific not found
-    if (!existsSync(envPath) && serviceName) {
-      const fallbackFile = `.env.${this.environment}.local`;
-      envPath = join(process.cwd(), fallbackFile);
-      if (!existsSync(envPath)) {
-        envPath = join(process.cwd(), "..", fallbackFile);
+  private findProjectRoot(startPath: string): string {
+    let currentPath = startPath;
+    while (currentPath !== dirname(currentPath)) {
+      if (existsSync(join(currentPath, "pnpm-workspace.yaml"))) {
+        return currentPath;
       }
+      currentPath = dirname(currentPath);
+    }
+    console.warn("Could not find project root, defaulting to parent of cwd.");
+    return dirname(process.cwd());
+  }
+
+  private loadEnvironmentFiles(): void {
+    const serviceName = this.getServiceName();
+    const serviceDir = this.getServiceDir();
+    console.log(
+      `🔧 Loading environment for service: ${serviceName || "unknown"}`
+    );
+
+    const pathsToLoad = [
+      // 1. Root .env files
+      join(this.projectRoot, ".env"),
+      join(this.projectRoot, `.env.${this.environment}`),
+
+      // 2. Central secrets file for the current environment
+      join(this.projectRoot, "secrets", `.env.${this.environment}.local`),
+
+      // 3. Root local override
+      join(this.projectRoot, ".env.local"),
+    ];
+
+    if (serviceDir) {
+      // 4. Service-type specific files (e.g., /servers/.env)
+      const serviceTypePath = join(this.projectRoot, serviceDir);
+      pathsToLoad.push(
+        join(serviceTypePath, ".env"),
+        join(serviceTypePath, `.env.${this.environment}`),
+        join(serviceTypePath, ".env.local"),
+        join(serviceTypePath, `.env.${this.environment}.local`)
+      );
     }
 
-    // Load environment file
-    const result = config({ path: envPath });
+    if (serviceDir && serviceName) {
+      // 5. Service-instance specific files (e.g., /servers/linear-mcp-server/.env)
+      const servicePath = join(this.projectRoot, serviceDir, serviceName);
+      pathsToLoad.push(
+        join(servicePath, ".env"),
+        join(servicePath, `.env.${this.environment}`),
+        join(servicePath, ".env.local"),
+        join(servicePath, `.env.${this.environment}.local`)
+      );
+    }
 
-    console.log(`🔧 Loaded environment: ${this.environment}`);
-    console.log(`📁 Environment file: ${envFile}`);
+    // Using a Set to remove duplicate paths, then loading them
+    [...new Set(pathsToLoad)].forEach((path) => this.loadEnvFile(path));
+  }
 
-    if (result.error) {
-      console.warn(`⚠️  Could not load ${envFile}: ${result.error.message}`);
-    } else {
-      console.log(`✅ Successfully loaded environment from: ${envPath}`);
+  private loadEnvFile(filePath: string): void {
+    if (existsSync(filePath)) {
+      const result = config({ path: filePath, override: true });
+      if (result.error) {
+        console.warn(`⚠️  Could not load ${filePath}: ${result.error.message}`);
+      } else {
+        console.log(`✅ Successfully loaded environment from: ${filePath}`);
+      }
     }
   }
 
   private getServiceName(): string | null {
-    // Detect service name from package.json or process
     try {
       const packageJsonPath = join(process.cwd(), "package.json");
       if (existsSync(packageJsonPath)) {
-        const packageJson = require(packageJsonPath);
-        const name = packageJson.name;
-
-        // Extract service name from package name
-        if (name === "@mcp/gateway") return "gateway";
-        if (name === "@mcp/linear-server") return "linear";
-        if (name.includes("gateway")) return "gateway";
-        if (name.includes("linear")) return "linear";
+        const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+        const name = packageJson.name.split("/").pop();
+        return name.replace("-server", "");
       }
     } catch (error) {
-      // Ignore errors in service detection
+      console.warn(`Error reading package.json: ${error}`);
     }
+    return null;
+  }
 
+  private getServiceDir(): string | null {
+    const currentDir = process.cwd();
+    if (currentDir.includes("/servers/")) return "servers";
+    if (currentDir.endsWith("/gateway")) return "gateway";
     return null;
   }
 

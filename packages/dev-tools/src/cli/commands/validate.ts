@@ -136,6 +136,14 @@ async function validateServer(
   // 5. Check Docker configuration
   await validateDocker(serviceName, serverPath, issues);
 
+  // 6. Check hierarchical environment structure
+  await validateEnvironmentStructure(
+    serviceName,
+    serverPath,
+    projectRoot,
+    issues
+  );
+
   // Calculate score
   const errorCount = issues.filter((i) => i.type === "error").length;
   const warningCount = issues.filter((i) => i.type === "warning").length;
@@ -435,6 +443,98 @@ async function applyFixes(
       console.log(`✅ Fixed: ${issue.message}`);
     } catch (error) {
       console.log(`❌ Could not fix: ${issue.message}`);
+    }
+  }
+}
+
+async function validateEnvironmentStructure(
+  serviceName: string,
+  serverPath: string,
+  projectRoot: string,
+  issues: ValidationIssue[]
+) {
+  const upperCaseName = serviceName.toUpperCase();
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+
+  // Check for service-specific .env.example
+  const serviceEnvExample = path.join(serverPath, ".env.example");
+  if (!fs.existsSync(serviceEnvExample)) {
+    issues.push({
+      type: "error",
+      category: "Environment Structure",
+      message: "Missing service-specific .env.example file",
+      file: ".env.example",
+      fixable: true,
+    });
+  } else {
+    // Check that .env.example doesn't contain secrets
+    const content = fs.readFileSync(serviceEnvExample, "utf8");
+    if (content.includes(`${upperCaseName}_API_KEY=`)) {
+      issues.push({
+        type: "error",
+        category: "Environment Structure",
+        message:
+          "Service .env.example should not contain secrets (use centralized secrets instead)",
+        file: ".env.example",
+        fixable: false,
+      });
+    }
+  }
+
+  // Check for centralized secrets
+  const centralSecretsPath = path.join(
+    projectRoot,
+    "secrets",
+    ".env.development.local.example"
+  );
+  if (!fs.existsSync(centralSecretsPath)) {
+    issues.push({
+      type: "error",
+      category: "Environment Structure",
+      message:
+        "Missing centralized secrets file: secrets/.env.development.local.example",
+      fixable: true,
+    });
+  } else {
+    // Check that service secrets are in centralized file
+    const content = fs.readFileSync(centralSecretsPath, "utf8");
+    if (!content.includes(`${upperCaseName}_API_KEY`)) {
+      issues.push({
+        type: "warning",
+        category: "Environment Structure",
+        message: `Service secrets not found in centralized secrets file`,
+        fixable: true,
+      });
+    }
+  }
+
+  // Check Docker Compose environment file configuration
+  const dockerComposeFiles = ["docker-compose.yml", "docker-compose.dev.yml"];
+
+  for (const fileName of dockerComposeFiles) {
+    const filePath = path.join(projectRoot, fileName);
+    if (!fs.existsSync(filePath)) continue;
+
+    const content = fs.readFileSync(filePath, "utf8");
+    const serviceName_container = `${serviceName}-mcp-server`;
+
+    if (content.includes(serviceName_container)) {
+      // Check for proper env_file hierarchy based on file type
+      const isDev = fileName.includes(".dev.");
+      const expectedEnvFile = isDev
+        ? "secrets/.env.development.local"
+        : "env_file:";
+
+      if (!content.includes(expectedEnvFile)) {
+        issues.push({
+          type: "warning",
+          category: "Environment Structure",
+          message: `Docker Compose ${fileName} should use hierarchical env_file loading`,
+          file: fileName,
+          fixable: false,
+        });
+      }
     }
   }
 }
