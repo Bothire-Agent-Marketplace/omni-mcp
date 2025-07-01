@@ -26,10 +26,13 @@ claude_desktop_config.local.json
 
 # Database Data and Backups
 # =============================================================================
-data/dvdrental/*.dat
-data/dvdrental/*.sql
-data/dvdrental/*.bak
-!data/dvdrental/01_init.sh
+
+# Pagila Database Files (large SQL files should not be committed)
+data/pagila/pagila-data.sql
+data/pagila/pagila-insert-data.sql
+data/pagila/*.backup
+data/pagila/*-jsonb.backup
+
 *.db
 *.sqlite
 *.sqlite3

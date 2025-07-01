@@ -2,7 +2,7 @@
   "servers": {
     "linear": {
       "type": "mcp",
-      "url": "http://linear-mcp-server:3001",
+      "url": "http://localhost:3001",
       "capabilities": [
         "tools/list",
         "tools/call",
@@ -17,20 +17,7 @@
     "query-quill": {
       "type": "mcp",
       "description": "MCP Server for querying the Pagila sample database",
-      "url": "http://query-quill-mcp-server:3002",
-      "capabilities": [
-        "tools/list",
-        "tools/call",
-        "resources/list",
-        "resources/read",
-        "prompts/list",
-        "prompts/get"
-      ]
-    },
-    "probe": {
-      "type": "mcp",
-      "description": "Probes any sql database to create a database reference, and then an mcp server in the current directory",
-      "url": "http://probe-mcp-server:3003",
+      "url": "http://localhost:3002",
       "capabilities": [
         "tools/list",
         "tools/call",
@@ -43,10 +30,7 @@
   },
   "gateway": {
     "port": 37373,
-    "allowedOrigins": [
-      "http://localhost:3000",
-      "http://localhost:8080"
-    ],
+    "allowedOrigins": ["http://localhost:3000", "http://localhost:8080"],
     "jwtSecret": "your-jwt-secret-change-in-production",
     "sessionTimeout": 3600000,
     "maxConcurrentSessions": 100

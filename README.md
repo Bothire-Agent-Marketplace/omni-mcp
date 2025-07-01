@@ -10,18 +10,68 @@ git clone <repo-url>
 cd omni
 pnpm install
 
-# 2. Configure environment variables
+# 2. Set up local PostgreSQL database (required for query-quill server)
+./scripts/setup-pagila-local-db.sh
+
+# 3. Configure environment variables
 # Copy .env.example to .env and fill in any necessary values
 cp .env.example .env
+# Also ensure secrets/.env.development.local has the correct database settings
 
-# 3. Start all services
+# 4. Start all services
 pnpm dev
 
-# 4. Create your first MCP server
+# 5. Create your first MCP server
 pnpm omni create
 ```
 
 Your gateway will be running at **http://localhost:37373** 🎉
+
+## 🗄️ Database Setup
+
+The `query-quill-mcp-server` requires a PostgreSQL database with the Pagila sample data.
+
+### Prerequisites
+
+1. **Install PostgreSQL** (if not already installed):
+
+   - **macOS**: `brew install postgresql && brew services start postgresql`
+   - **Ubuntu**: `sudo apt-get install postgresql postgresql-contrib && sudo systemctl start postgresql`
+   - **Windows**: Download from [postgresql.org](https://www.postgresql.org/download/)
+
+2. **Run the setup script**:
+   ```bash
+   ./scripts/setup-pagila-local-db.sh
+   ```
+
+This script will:
+
+- Automatically download the Pagila sample database from GitHub (if not already present)
+- Create a local `pagila` database
+- Load the schema and sample data
+- Configure the connection for the `query-quill-mcp-server`
+
+> **Note**: The large SQL files are automatically downloaded and are gitignored to keep the repository size manageable.
+
+### Manual Database Setup
+
+If you prefer to set up the database manually:
+
+```bash
+# Download Pagila sample database (if needed)
+git clone https://github.com/devrimgunduz/pagila.git data/pagila
+rm -rf data/pagila/.git
+
+# Create database
+createdb pagila
+
+# Load schema and data
+psql -d pagila -f data/pagila/pagila-schema.sql
+psql -d pagila -f data/pagila/pagila-data.sql
+
+# Test connection
+psql -d pagila -c "SELECT COUNT(*) FROM film;"
+```
 
 ## ☁️ Deployment (Vercel)
 
@@ -52,6 +102,9 @@ Omni is a **production-ready MCP platform** that lets you:
 # Development
 pnpm dev              # Start all services with hot reload
 
+# Database
+./scripts/setup-pagila-local-db.sh  # Set up local PostgreSQL with sample data
+
 # MCP Server Management
 pnpm omni create      # Create a new MCP server (interactive)
 pnpm omni list        # List all servers
@@ -72,6 +125,9 @@ omni/
 ├── packages/             # Shared code
 │   ├── dev-tools/        # CLI toolkit (pnpm omni)
 │   └── ...               # Shared utilities, schemas, etc.
+├── data/                 # Sample databases and data
+│   └── pagila/           # PostgreSQL sample database
+├── scripts/              # Setup and utility scripts
 ├── docs/                 # Detailed documentation
 └── vercel.json           # Vercel deployment configuration
 ```
