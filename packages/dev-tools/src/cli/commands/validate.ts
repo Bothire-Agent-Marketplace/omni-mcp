@@ -28,7 +28,7 @@ export async function validateMcpServer(
   serviceName?: string,
   options: ValidateOptions = {}
 ) {
-  console.log("🔍 Validating MCP Server Enterprise Pattern Compliance");
+  console.log("🔍 Validating MCP Server Official SDK Pattern Compliance");
   console.log("=======================================================");
 
   const projectRoot = path.resolve(__dirname, "../../../../..");
@@ -110,13 +110,6 @@ async function validateServer(
     "servers",
     `${serviceName}-mcp-server`
   );
-  const schemasPath = path.join(
-    projectRoot,
-    "shared",
-    "schemas",
-    "src",
-    serviceName
-  );
 
   const issues: ValidationIssue[] = [];
   let score = 100;
@@ -124,19 +117,16 @@ async function validateServer(
   // 1. Check directory structure
   await validateDirectoryStructure(serviceName, serverPath, issues);
 
-  // 2. Check shared type usage
-  await validateSharedTypes(serviceName, serverPath, issues);
+  // 2. Check official MCP SDK usage
+  await validateOfficialMcpSdk(serviceName, serverPath, issues);
 
-  // 3. Check enterprise patterns
-  await validateEnterprisePatterns(serviceName, serverPath, issues);
+  // 3. Check server pattern compliance
+  await validateServerPatterns(serviceName, serverPath, issues);
 
-  // 4. Check schemas compliance
-  await validateSchemas(serviceName, schemasPath, issues);
-
-  // 5. Check Docker configuration
+  // 4. Check Docker configuration
   await validateDocker(serviceName, serverPath, issues);
 
-  // 6. Check hierarchical environment structure
+  // 5. Check hierarchical environment structure
   await validateEnvironmentStructure(
     serviceName,
     serverPath,
@@ -156,7 +146,7 @@ async function validateServer(
 
   // Apply fixes if requested
   if (options.fix && issues.some((i) => i.fixable)) {
-    await applyFixes(serviceName, serverPath, schemasPath, issues);
+    await applyFixes(serviceName, serverPath, issues);
   }
 
   return {
@@ -183,7 +173,6 @@ async function validateDirectoryStructure(
     "src/mcp-server/tools.ts",
     "src/mcp-server/resources.ts",
     "src/mcp-server/prompts.ts",
-    `src/mcp-server/tools/${serviceName}-tools.ts`,
   ];
 
   for (const file of requiredFiles) {
@@ -198,9 +187,25 @@ async function validateDirectoryStructure(
       });
     }
   }
+
+  // Check for old structure patterns (anti-patterns)
+  const oldPatterns = ["src/types/", "src/mcp-server/tools/"];
+
+  for (const pattern of oldPatterns) {
+    const patternPath = path.join(serverPath, pattern);
+    if (fs.existsSync(patternPath)) {
+      issues.push({
+        type: "warning",
+        category: "Structure",
+        message: `Old pattern detected: ${pattern} - should be removed in favor of official MCP SDK pattern`,
+        file: pattern,
+        fixable: false,
+      });
+    }
+  }
 }
 
-async function validateSharedTypes(
+async function validateOfficialMcpSdk(
   serviceName: string,
   serverPath: string,
   issues: ValidationIssue[]
@@ -217,131 +222,160 @@ async function validateSharedTypes(
 
     const content = fs.readFileSync(filePath, "utf8");
 
-    if (!content.includes("@mcp/schemas")) {
+    // Check for official MCP SDK imports
+    if (!content.includes("@modelcontextprotocol/sdk")) {
       issues.push({
         type: "error",
-        category: "Shared Types",
-        message: `File ${file} must import from @mcp/schemas`,
+        category: "Official SDK",
+        message: `File ${file} must import from @modelcontextprotocol/sdk`,
         file,
+        fixable: false,
+      });
+    }
+
+    // Check for proper register function pattern
+    const fileName = path.basename(file, ".ts");
+    const expectedFunction = `register${
+      fileName.charAt(0).toUpperCase() + fileName.slice(1)
+    }`;
+    if (!content.includes(expectedFunction)) {
+      issues.push({
+        type: "error",
+        category: "Official SDK",
+        message: `File ${file} must export ${expectedFunction} function`,
+        file,
+        fixable: false,
+      });
+    }
+
+    // Check for server.setRequestHandler usage
+    if (!content.includes("server.setRequestHandler")) {
+      issues.push({
+        type: "error",
+        category: "Official SDK",
+        message: `File ${file} must use server.setRequestHandler pattern`,
+        file,
+        fixable: false,
+      });
+    }
+
+    // Check for anti-patterns (old shared schemas)
+    if (content.includes("@mcp/schemas")) {
+      issues.push({
+        type: "error",
+        category: "Official SDK",
+        message: `File ${file} should not import from @mcp/schemas - use official MCP SDK instead`,
+        file,
+        fixable: false,
+      });
+    }
+  }
+
+  // Check package.json for official SDK dependency
+  const packageJsonPath = path.join(serverPath, "package.json");
+  if (fs.existsSync(packageJsonPath)) {
+    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+
+    if (!packageJson.dependencies?.["@modelcontextprotocol/sdk"]) {
+      issues.push({
+        type: "error",
+        category: "Official SDK",
+        message:
+          "package.json must include @modelcontextprotocol/sdk dependency",
+        file: "package.json",
         fixable: true,
       });
     }
 
-    if (!content.includes(`${serviceName.toUpperCase()}_`)) {
+    if (!packageJson.dependencies?.["zod"]) {
       issues.push({
         type: "error",
-        category: "Shared Types",
-        message: `File ${file} must use shared constants (${serviceName.toUpperCase()}_TOOLS, etc.)`,
-        file,
+        category: "Official SDK",
+        message:
+          "package.json must include zod dependency for input validation",
+        file: "package.json",
+        fixable: true,
+      });
+    }
+
+    // Check for old dependencies that should be removed
+    if (packageJson.dependencies?.["@mcp/schemas"]) {
+      issues.push({
+        type: "warning",
+        category: "Official SDK",
+        message:
+          "package.json should remove @mcp/schemas dependency - use official MCP SDK instead",
+        file: "package.json",
         fixable: true,
       });
     }
   }
 }
 
-async function validateEnterprisePatterns(
+async function validateServerPatterns(
   serviceName: string,
   serverPath: string,
   issues: ValidationIssue[]
 ) {
-  const toolsImplPath = path.join(
+  const serverFilePath = path.join(
     serverPath,
     "src",
     "mcp-server",
-    "tools",
-    `${serviceName}-tools.ts`
+    "server.ts"
   );
 
-  if (!fs.existsSync(toolsImplPath)) {
+  if (!fs.existsSync(serverFilePath)) {
     issues.push({
       type: "error",
-      category: "Enterprise Pattern",
-      message: "Missing tools implementation file",
-      file: toolsImplPath,
+      category: "Server Pattern",
+      message: "Missing server.ts file",
+      file: "src/mcp-server/server.ts",
     });
     return;
   }
 
-  const content = fs.readFileSync(toolsImplPath, "utf8");
+  const content = fs.readFileSync(serverFilePath, "utf8");
 
-  // Check for _execute pattern
-  if (!content.includes("_execute")) {
+  // Check for proper server creation pattern
+  if (!content.includes("new Server(")) {
     issues.push({
       type: "error",
-      category: "Enterprise Pattern",
-      message: "Tools must use _execute wrapper for error handling",
-      file: toolsImplPath,
+      category: "Server Pattern",
+      message: "server.ts must use 'new Server()' pattern",
+      file: "src/mcp-server/server.ts",
       fixable: false,
     });
   }
 
-  // Check for McpResponse usage
-  if (!content.includes("McpResponse")) {
-    issues.push({
-      type: "error",
-      category: "Enterprise Pattern",
-      message: "Tools must return McpResponse<T> type",
-      file: toolsImplPath,
-      fixable: false,
-    });
-  }
-
-  // Check for hardcoded schemas (anti-pattern)
-  if (content.includes("inputSchema:") && content.includes('type: "object"')) {
-    issues.push({
-      type: "warning",
-      category: "Enterprise Pattern",
-      message: "Avoid hardcoded schemas - use shared types instead",
-      file: toolsImplPath,
-      fixable: false,
-    });
-  }
-}
-
-async function validateSchemas(
-  serviceName: string,
-  schemasPath: string,
-  issues: ValidationIssue[]
-) {
-  if (!fs.existsSync(schemasPath)) {
-    issues.push({
-      type: "error",
-      category: "Schemas",
-      message: "Missing shared schemas directory",
-      fixable: true,
-    });
-    return;
-  }
-
-  const mcpTypesPath = path.join(schemasPath, "mcp-types.ts");
-  if (!fs.existsSync(mcpTypesPath)) {
-    issues.push({
-      type: "error",
-      category: "Schemas",
-      message: "Missing mcp-types.ts file in shared schemas",
-      file: mcpTypesPath,
-      fixable: true,
-    });
-    return;
-  }
-
-  const content = fs.readFileSync(mcpTypesPath, "utf8");
-  const upperCaseName = serviceName.toUpperCase();
-
-  // Check for required exports
-  const requiredExports = [
-    `${upperCaseName}_TOOLS`,
-    `${upperCaseName}_RESOURCES`,
-    `${upperCaseName}_PROMPTS`,
+  // Check for register function calls
+  const registerFunctions = [
+    "registerTools",
+    "registerResources",
+    "registerPrompts",
   ];
-
-  for (const exportName of requiredExports) {
-    if (!content.includes(exportName)) {
+  for (const func of registerFunctions) {
+    if (!content.includes(func)) {
       issues.push({
         type: "error",
-        category: "Schemas",
-        message: `Missing required export: ${exportName}`,
-        file: mcpTypesPath,
+        category: "Server Pattern",
+        message: `server.ts must call ${func}(server)`,
+        file: "src/mcp-server/server.ts",
+        fixable: false,
+      });
+    }
+  }
+
+  // Check config usage
+  const configPath = path.join(serverPath, "src", "config", "config.ts");
+  if (fs.existsSync(configPath)) {
+    const configContent = fs.readFileSync(configPath, "utf8");
+
+    if (!configContent.includes("loadEnvHierarchy")) {
+      issues.push({
+        type: "error",
+        category: "Server Pattern",
+        message: "config.ts must use loadEnvHierarchy from @mcp/utils",
+        file: "src/config/config.ts",
         fixable: false,
       });
     }
@@ -373,7 +407,7 @@ async function validateDocker(
       type: "warning",
       category: "Docker",
       message: "Dockerfile should use multi-stage build for optimization",
-      file: dockerfilePath,
+      file: "Dockerfile",
       fixable: false,
     });
   }
@@ -384,7 +418,19 @@ async function validateDocker(
       type: "info",
       category: "Docker",
       message: "Consider adding health check to Dockerfile",
-      file: dockerfilePath,
+      file: "Dockerfile",
+      fixable: false,
+    });
+  }
+
+  // Check for old shared/schemas references (should be removed)
+  if (content.includes("shared/schemas")) {
+    issues.push({
+      type: "warning",
+      category: "Docker",
+      message:
+        "Dockerfile should not reference shared/schemas - remove old pattern",
+      file: "Dockerfile",
       fixable: false,
     });
   }
@@ -400,7 +446,7 @@ function displayValidationResult(result: ValidationResult) {
   console.log(`${status} ${scoreColor} ${score}% compliance score`);
 
   if (issues.length === 0) {
-    console.log("🎉 Perfect compliance with Enterprise MCP Server Pattern!");
+    console.log("🎉 Perfect compliance with Official MCP SDK Pattern!");
     return;
   }
 
@@ -430,7 +476,6 @@ function displayValidationResult(result: ValidationResult) {
 async function applyFixes(
   serviceName: string,
   serverPath: string,
-  schemasPath: string,
   issues: ValidationIssue[]
 ) {
   console.log("\n🔧 Applying automatic fixes...");
@@ -503,38 +548,9 @@ async function validateEnvironmentStructure(
       issues.push({
         type: "warning",
         category: "Environment Structure",
-        message: `Service secrets not found in centralized secrets file`,
+        message: `Service API key not found in centralized secrets: ${upperCaseName}_API_KEY`,
         fixable: true,
       });
-    }
-  }
-
-  // Check Docker Compose environment file configuration
-  const dockerComposeFiles = ["docker-compose.yml", "docker-compose.dev.yml"];
-
-  for (const fileName of dockerComposeFiles) {
-    const filePath = path.join(projectRoot, fileName);
-    if (!fs.existsSync(filePath)) continue;
-
-    const content = fs.readFileSync(filePath, "utf8");
-    const serviceName_container = `${serviceName}-mcp-server`;
-
-    if (content.includes(serviceName_container)) {
-      // Check for proper env_file hierarchy based on file type
-      const isDev = fileName.includes(".dev.");
-      const expectedEnvFile = isDev
-        ? "secrets/.env.development.local"
-        : "env_file:";
-
-      if (!content.includes(expectedEnvFile)) {
-        issues.push({
-          type: "warning",
-          category: "Environment Structure",
-          message: `Docker Compose ${fileName} should use hierarchical env_file loading`,
-          file: fileName,
-          fixable: false,
-        });
-      }
     }
   }
 }

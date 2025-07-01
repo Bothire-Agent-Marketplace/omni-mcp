@@ -123,57 +123,81 @@ servers/github-mcp-server/
 ├── src/
 │   ├── index.ts                    # Entry point
 │   ├── config/config.ts            # Environment configuration
+│   ├── types/
+│   │   ├── mcp-types.ts            # Server-specific MCP definitions
+│   │   └── github-types.ts         # Domain-specific types
 │   └── mcp-server/
 │       ├── server.ts               # MCP server setup
-│       ├── tools.ts                # Shared type imports
-│       ├── resources.ts            # Shared type imports
-│       ├── prompts.ts              # Shared type imports
-│       └── tools/github-tools.ts   # Implementation with placeholders
+│       ├── tools.ts                # MCP tool definitions (what tools exist)
+│       ├── resources.ts            # MCP resource definitions
+│       ├── prompts.ts              # MCP prompt definitions
+│       └── tools/github-tools.ts   # Tool implementation classes (how tools work)
 ├── package.json                    # Full dependencies
 ├── tsconfig.json                   # TypeScript config
 ├── Dockerfile                      # Multi-stage build
 └── README.md                       # Complete documentation
-
-shared/schemas/src/github/
-├── mcp-types.ts                    # MCP definitions (tools/resources/prompts)
-└── github.ts                       # Simple placeholder domain types
 ```
 
 ### 🎯 Perfect Starting Template
 
-**Domain Types** (`github.ts`):
+**Domain Types** (`types/github-types.ts`):
 
 ```typescript
 // Simple placeholder types for customization
-export const CreateGithubSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-});
+export interface CreateGithubInput {
+  title: string;
+  description?: string;
+}
 
-export const GithubResultSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  url: z.string().optional(),
-});
+export interface GithubResult {
+  id: string;
+  title: string;
+  url?: string;
+}
 ```
 
-**Tool Implementation** (`github-tools.ts`):
+**Tool Implementation** (`tools/github-tools.ts`):
 
 ```typescript
 // Enterprise pattern with placeholder logic
-async github_create(args: CreateGithubInput): Promise<McpResponse<GithubResult>> {
-  return this._execute("github_create", async () => {
-    // TODO: Replace with actual GitHub API calls
-    const { title, description } = args;
+import { McpResponse } from "../types/mcp-types.js";
+import { CreateGithubInput, GithubResult } from "../types/github-types.js";
 
-    const result: GithubResult = {
-      id: "placeholder-id",
-      title,
-      url: `https://api.github.com/entities/placeholder-id`
-    };
+export class GithubTools {
+  private config: { apiKey: string };
 
-    return result;
-  });
+  constructor(config: { apiKey: string }) {
+    this.config = config;
+  }
+
+  private async _execute<T>(
+    toolName: string,
+    logic: () => Promise<T>
+  ): Promise<McpResponse<T>> {
+    try {
+      const data = await logic();
+      return { success: true, data };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async github_create(
+    args: CreateGithubInput
+  ): Promise<McpResponse<GithubResult>> {
+    return this._execute("github_create", async () => {
+      // TODO: Replace with actual GitHub API calls
+      const { title, description } = args;
+
+      const result: GithubResult = {
+        id: "placeholder-id",
+        title,
+        url: `https://api.github.com/entities/placeholder-id`,
+      };
+
+      return result;
+    });
+  }
 }
 ```
 
@@ -185,10 +209,11 @@ make validate-mcp SERVICE=github
 
 **Validation Checks:**
 
-- ✅ **Shared Type System**: Imports from `@mcp/schemas`
+- ✅ **Server-Specific Types**: All types defined in server's `types/` directory
 - ✅ **Error Handling**: `_execute()` wrapper pattern
 - ✅ **Response Types**: `McpResponse<T>` usage
 - ✅ **Directory Structure**: Required files present
+- ✅ **Environment Hierarchy**: Uses hierarchical config loading
 - ✅ **Docker Ready**: Multi-stage builds
 - ✅ **Documentation**: Complete README
 
@@ -222,13 +247,13 @@ cd servers/notion-mcp-server
 # Edit src/config/config.ts with Notion API key
 
 # 3. Customize types for your use case
-# Edit shared/schemas/src/notion/notion.ts
+# Edit src/types/notion-types.ts and src/types/mcp-types.ts
 
 # 4. Implement actual API calls
 # Edit src/mcp-server/tools/notion-tools.ts
 
 # 5. Build and validate
-pnpm build
+cd servers/notion-mcp-server && pnpm build
 make validate-mcp SERVICE=notion
 
 # 6. Test with Claude Desktop
@@ -276,12 +301,12 @@ omni-redis-dev            # :6379 (dev only)
 
 ```bash
 # Development
-make setup                        # Creates .env.development.local
-# Edit .env.development.local with your API keys
+make setup                        # Creates hierarchical environment files
+# Edit secrets/.env.development.local with your API keys
 make dev                         # Start with hot reload
 
 # Production
-cp .env.production .env.production.local
+make setup-prod                  # Creates .env.production.local
 # Edit .env.production.local with production secrets
 make prod                        # Start production environment
 ```
@@ -351,13 +376,14 @@ make status                   # Check service status
 
 ### Common Issues
 
-| Problem               | Solution                                                              |
-| --------------------- | --------------------------------------------------------------------- |
-| CLI command not found | `cd packages/dev-tools && pnpm build`                                 |
-| Validation errors     | Check shared type imports in `tools.ts`, `resources.ts`, `prompts.ts` |
-| Type errors           | Rebuild schemas: `cd shared/schemas && pnpm build`                    |
-| Docker issues         | `make clean && make build`                                            |
-| Port conflicts        | Check existing services on ports 37373, 5432, 6379                    |
+| Problem               | Solution                                                          |
+| --------------------- | ----------------------------------------------------------------- |
+| CLI command not found | `cd packages/dev-tools && pnpm build`                             |
+| Validation errors     | Check server-specific type imports in server's `types/` directory |
+| Type errors           | Rebuild server: `cd servers/[service]-mcp-server && pnpm build`   |
+| Environment issues    | Run `make setup` and edit `secrets/.env.development.local`        |
+| Docker issues         | `make clean && make build`                                        |
+| Port conflicts        | Check existing services on ports 37373, 5432, 6379                |
 
 ## 📁 Project Structure
 
@@ -371,11 +397,9 @@ omni/
 │   └── src/cli/                 # Command implementations
 ├── servers/                     # 🚀 Individual MCP servers
 │   └── linear-mcp-server/       # Example: Linear integration
-├── shared/schemas/              # 📋 Shared TypeScript types
-│   └── src/
-│       ├── mcp/types.ts         # Core MCP types
-│       ├── linear/              # Linear-specific types
-│       └── [service]/           # Generated service types
+├── shared/                      # 📋 Shared utilities and core types
+│   ├── schemas/                 # Core MCP interface definitions only
+│   └── utils/                   # Shared utility functions
 ├── gateway/                     # 🌐 MCP Gateway service
 ├── client-integrations/         # 📱 Claude Desktop configs
 └── data/                        # 💾 Persistent data

@@ -27,13 +27,17 @@ help: ## Show this help message
 setup: ## Initial project setup with environment files
 	@echo "🏗️  Setting up Omni MCP development environment..."
 	@mkdir -p data/files data/uploads secrets logs
+	@if [ ! -f secrets/.env.development.local ]; then \
+		cp secrets/.env.development.local.example secrets/.env.development.local; \
+		echo "✅ Created secrets/.env.development.local from example"; \
+	fi
 	@if [ ! -f .env.development.local ]; then \
 		cp .env.development.local.example .env.development.local; \
 		echo "✅ Created .env.development.local from example"; \
 	fi
-	@echo "📝 Please update .env.development.local with your actual API keys:"
+	@echo "📝 Please update secrets/.env.development.local with your actual API keys:"
 	@echo "   🔗 Linear API key: https://linear.app/settings/api"
-	@echo "⚠️  NEVER commit .env.*.local files - they contain secrets!"
+	@echo "⚠️  NEVER commit secrets/ or .env.*.local files - they contain secrets!"
 
 setup-prod: ## Setup production environment file
 	@echo "🏭 Setting up production environment..."

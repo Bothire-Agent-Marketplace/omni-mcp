@@ -8,7 +8,6 @@ const __dirname = path.dirname(__filename);
 interface CreateOptions {
   template: string;
   port: string;
-  skipSchemas?: boolean;
   skipDocker?: boolean;
 }
 
@@ -17,7 +16,7 @@ export async function createMcpServer(
   options: CreateOptions
 ) {
   console.log(
-    `🏗️  Creating ${serviceName} MCP server following Enterprise MCP Server Pattern...`
+    `🏗️  Creating ${serviceName} MCP server following Official MCP SDK Pattern...`
   );
 
   // Validate service name
@@ -34,13 +33,6 @@ export async function createMcpServer(
     "servers",
     `${serviceName}-mcp-server`
   );
-  const schemasPath = path.join(
-    projectRoot,
-    "shared",
-    "schemas",
-    "src",
-    serviceName
-  );
 
   // Check if server already exists
   if (fs.existsSync(serverPath)) {
@@ -54,11 +46,6 @@ export async function createMcpServer(
     // Create server directory structure
     await createServerStructure(serviceName, serverPath, options);
 
-    // Create shared schemas if not skipped
-    if (!options.skipSchemas) {
-      await createSharedSchemas(serviceName, schemasPath);
-    }
-
     // Update workspace configuration
     await updateWorkspaceConfig(serviceName, projectRoot);
 
@@ -66,19 +53,17 @@ export async function createMcpServer(
     console.log("");
     console.log("📁 Created files:");
     console.log(`   📂 servers/${serviceName}-mcp-server/`);
-    console.log(`   📂 shared/schemas/src/${serviceName}/`);
     console.log("");
     console.log("🚀 Next steps:");
     console.log(`   1. cd servers/${serviceName}-mcp-server`);
     console.log(`   2. Configure your API credentials in src/config/config.ts`);
+    console.log(`   3. Implement your tools in src/mcp-server/tools.ts`);
     console.log(
-      `   3. Implement your tools in src/mcp-server/tools/${serviceName}-tools.ts`
+      `   4. Implement your resources in src/mcp-server/resources.ts`
     );
-    console.log(
-      `   4. Update shared schemas in shared/schemas/src/${serviceName}/mcp-types.ts`
-    );
-    console.log(`   5. Run: pnpm build`);
-    console.log(`   6. Test: omni validate ${serviceName}`);
+    console.log(`   5. Implement your prompts in src/mcp-server/prompts.ts`);
+    console.log(`   6. Run: pnpm build`);
+    console.log(`   7. Test: omni validate ${serviceName}`);
   } catch (error) {
     console.error("❌ Error creating MCP server:", error);
     process.exit(1);
@@ -90,14 +75,10 @@ async function createServerStructure(
   serverPath: string,
   options: CreateOptions
 ) {
-  const templatesPath = path.join(__dirname, "..", "templates", "server");
-
   // Create directory structure
   fs.mkdirSync(serverPath, { recursive: true });
   fs.mkdirSync(path.join(serverPath, "src", "config"), { recursive: true });
-  fs.mkdirSync(path.join(serverPath, "src", "mcp-server", "tools"), {
-    recursive: true,
-  });
+  fs.mkdirSync(path.join(serverPath, "src", "mcp-server"), { recursive: true });
 
   // Generate files from templates
   const files = {
@@ -112,8 +93,6 @@ async function createServerStructure(
     "src/mcp-server/tools.ts": generateTools(serviceName),
     "src/mcp-server/resources.ts": generateResources(serviceName),
     "src/mcp-server/prompts.ts": generatePrompts(serviceName),
-    [`src/mcp-server/tools/${serviceName}-tools.ts`]:
-      generateToolsImplementation(serviceName),
   };
 
   for (const [filePath, content] of Object.entries(files)) {
@@ -124,36 +103,6 @@ async function createServerStructure(
 
   // Update centralized secrets file
   await updateCentralizedSecrets(serviceName);
-}
-
-async function createSharedSchemas(serviceName: string, schemasPath: string) {
-  fs.mkdirSync(schemasPath, { recursive: true });
-
-  // Generate both MCP types and domain-specific entity types
-  const mcpTypesContent = generateMcpTypes(serviceName);
-  const entityTypesContent = generateEntityTypes(serviceName);
-
-  fs.writeFileSync(path.join(schemasPath, "mcp-types.ts"), mcpTypesContent);
-  fs.writeFileSync(
-    path.join(schemasPath, `${serviceName}.ts`),
-    entityTypesContent
-  );
-
-  // Update shared schemas index
-  const indexPath = path.join(path.dirname(schemasPath), "index.ts");
-  const indexContent = fs.readFileSync(indexPath, "utf8");
-
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-  const newExports = `
-// ${capitalizedName}-specific types
-export * from "./${serviceName}/mcp-types.js";
-export * from "./${serviceName}/${serviceName}.js";
-`;
-
-  if (!indexContent.includes(`export * from "./${serviceName}/mcp-types.js"`)) {
-    fs.writeFileSync(indexPath, indexContent + newExports);
-  }
 }
 
 async function updateWorkspaceConfig(serviceName: string, projectRoot: string) {
@@ -174,7 +123,7 @@ function generatePackageJson(serviceName: string): string {
   return `{
   "name": "@mcp/${serviceName}-server",
   "version": "1.0.0",
-  "description": "${capitalizedName} MCP Server - Enterprise-grade ${capitalizedName} integration following Omni MCP patterns",
+  "description": "${capitalizedName} MCP Server - Official MCP SDK implementation following Omni patterns",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
@@ -185,9 +134,9 @@ function generatePackageJson(serviceName: string): string {
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",
@@ -198,7 +147,7 @@ function generatePackageJson(serviceName: string): string {
     "mcp",
     "model-context-protocol",
     "${serviceName}",
-    "enterprise",
+    "official-sdk",
     "omni"
   ],
   "author": "Omni MCP Team",
@@ -238,10 +187,6 @@ COPY package.json ./
 COPY pnpm-lock.yaml ./
 
 # Copy shared dependencies
-COPY shared/schemas/package.json ./shared/schemas/
-COPY shared/schemas/tsconfig.json ./shared/schemas/
-COPY shared/schemas/src/ ./shared/schemas/src/
-
 COPY shared/utils/package.json ./shared/utils/
 COPY shared/utils/tsconfig.json ./shared/utils/
 COPY shared/utils/src/ ./shared/utils/src/
@@ -258,7 +203,6 @@ RUN pnpm install --frozen-lockfile
 COPY servers/${serviceName}-mcp-server/src/ ./servers/${serviceName}-mcp-server/src/
 
 # Build shared dependencies first
-RUN cd shared/schemas && pnpm build
 RUN cd shared/utils && pnpm build
 
 # Build server
@@ -298,16 +242,17 @@ function generateReadme(serviceName: string): string {
 
   return `# ${capitalizedName} MCP Server
 
-Enterprise-grade ${capitalizedName} integration following **Omni MCP Enterprise Pattern**.
+Official MCP SDK implementation following **Omni MCP Enterprise Pattern**.
 
 ## 🏗️ Architecture
 
-This server implements the [Enterprise MCP Server Pattern](../../MCP_SERVER_PATTERN.md) with:
+This server implements the [Enterprise MCP Server Pattern](../../docs/MCP_SERVER_PATTERN.md) with:
 
-- ✅ Shared type system from \`@mcp/schemas\`
-- ✅ Standardized error handling with \`McpResponse<T>\`
+- ✅ Official MCP SDK pattern with \`server.registerTool()\`, \`server.registerResource()\`, \`server.registerPrompt()\`
+- ✅ Clean separation: tools.ts, resources.ts, prompts.ts, server.ts
+- ✅ Proper Zod validation within request handlers
 - ✅ Enterprise-grade Docker containerization
-- ✅ Comprehensive tool/resource/prompt definitions
+- ✅ Hierarchical environment variable management
 
 ## 🚀 Quick Start
 
@@ -327,17 +272,18 @@ pnpm start
 Edit \`src/config/config.ts\` with your ${capitalizedName} credentials:
 
 \`\`\`typescript
-export const ${serviceName.toUpperCase()}_CONFIG = {
-  API_KEY: process.env.${serviceName.toUpperCase()}_API_KEY,
-  BASE_URL: process.env.${serviceName.toUpperCase()}_BASE_URL || "https://api.${serviceName}.com",
+export const CONFIG = {
+  API_KEY: env.${serviceName.toUpperCase()}_API_KEY,
+  BASE_URL: env.${serviceName.toUpperCase()}_BASE_URL || "https://api.${serviceName}.com",
 };
 \`\`\`
 
 ## 🛠️ Implementation
 
-1. **Tools**: Implement your ${serviceName} tools in \`src/mcp-server/tools/${serviceName}-tools.ts\`
-2. **Schemas**: Define types in \`shared/schemas/src/${serviceName}/mcp-types.ts\`  
-3. **Configuration**: Add environment variables to \`src/config/config.ts\`
+1. **Tools**: Implement your ${serviceName} tools in \`src/mcp-server/tools.ts\`
+2. **Resources**: Implement your ${serviceName} resources in \`src/mcp-server/resources.ts\`
+3. **Prompts**: Implement your ${serviceName} prompts in \`src/mcp-server/prompts.ts\`
+4. **Configuration**: Add environment variables to \`src/config/config.ts\`
 
 ## 📊 Validation
 
@@ -361,9 +307,9 @@ docker run -e ${serviceName.toUpperCase()}_API_KEY=your_key ${serviceName}-mcp-s
 
 ## 📖 Documentation
 
-- [Enterprise MCP Server Pattern](../../MCP_SERVER_PATTERN.md)
-- [Shared Schemas](../../shared/schemas/README.md)
-- [Development Guide](../../README.md)
+- [Enterprise MCP Server Pattern](../../docs/MCP_SERVER_PATTERN.md)
+- [Development Guide](../../docs/DEVELOPMENT.md)
+- [Official MCP SDK](https://github.com/modelcontextprotocol/sdk)
 `;
 }
 
@@ -410,12 +356,17 @@ function generateConfig(serviceName: string): string {
     serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
   return `// ${capitalizedName} MCP Server Configuration
-// Following Enterprise MCP Server Pattern
+// Following Official MCP SDK Pattern
 
-export const ${upperCaseName}_CONFIG = {
+import { loadEnvHierarchy } from "@mcp/utils";
+
+// Load environment variables with proper hierarchy
+const env = loadEnvHierarchy();
+
+export const CONFIG = {
   // API Configuration
-  API_KEY: process.env.${upperCaseName}_API_KEY,
-  BASE_URL: process.env.${upperCaseName}_BASE_URL || "https://api.${serviceName}.com",
+  API_KEY: env.${upperCaseName}_API_KEY,
+  BASE_URL: env.${upperCaseName}_BASE_URL || "https://api.${serviceName}.com",
   
   // Server Configuration  
   NAME: "${serviceName}-mcp-server",
@@ -423,26 +374,26 @@ export const ${upperCaseName}_CONFIG = {
   
   // Rate Limiting
   RATE_LIMIT: {
-    REQUESTS_PER_MINUTE: parseInt(process.env.${upperCaseName}_RATE_LIMIT || "60"),
-    BURST_LIMIT: parseInt(process.env.${upperCaseName}_BURST_LIMIT || "10"),
+    REQUESTS_PER_MINUTE: parseInt(env.${upperCaseName}_RATE_LIMIT || "60"),
+    BURST_LIMIT: parseInt(env.${upperCaseName}_BURST_LIMIT || "10"),
   },
 
   // Timeouts
   TIMEOUTS: {
-    REQUEST_TIMEOUT: parseInt(process.env.${upperCaseName}_REQUEST_TIMEOUT || "30000"),
-    CONNECTION_TIMEOUT: parseInt(process.env.${upperCaseName}_CONNECTION_TIMEOUT || "10000"),
+    REQUEST_TIMEOUT: parseInt(env.${upperCaseName}_REQUEST_TIMEOUT || "30000"),
+    CONNECTION_TIMEOUT: parseInt(env.${upperCaseName}_CONNECTION_TIMEOUT || "10000"),
   },
 
   // Feature Flags
   FEATURES: {
-    ENABLE_CACHING: process.env.${upperCaseName}_ENABLE_CACHING === "true",
-    ENABLE_METRICS: process.env.${upperCaseName}_ENABLE_METRICS === "true",
-    DEBUG_MODE: process.env.NODE_ENV === "development",
+    ENABLE_CACHING: env.${upperCaseName}_ENABLE_CACHING === "true",
+    ENABLE_METRICS: env.${upperCaseName}_ENABLE_METRICS === "true",
+    DEBUG_MODE: env.NODE_ENV === "development",
   }
-};
+} as const;
 
 // Validation
-if (!${upperCaseName}_CONFIG.API_KEY) {
+if (!CONFIG.API_KEY) {
   console.error("❌ ${upperCaseName}_API_KEY environment variable is required");
   process.exit(1);
 }
@@ -456,28 +407,9 @@ function generateServer(serviceName: string): string {
     serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
   return `import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  ListResourcesRequestSchema,
-  ReadResourceRequestSchema,
-  ListPromptsRequestSchema,
-  GetPromptRequestSchema,
-  type CallToolRequest,
-  type ListToolsRequest,
-  type ListResourcesRequest,
-  type ReadResourceRequest,
-  type ListPromptsRequest,
-  type GetPromptRequest,
-  ErrorCode,
-  McpError,
-} from "@modelcontextprotocol/sdk/types.js";
-import { McpServerInterface, McpResponse } from "@mcp/schemas";
-import { ${serviceName.toUpperCase()}_CONFIG } from "../config/config.js";
-import { ${capitalizedName}Tools } from "./tools/${serviceName}-tools.js";
-import { TOOLS } from "./tools.js";
-import { RESOURCES } from "./resources.js";
-import { PROMPTS } from "./prompts.js";
+import { registerTools } from "./tools.js";
+import { registerResources } from "./resources.js";
+import { registerPrompts } from "./prompts.js";
 
 export function create${capitalizedName}McpServer() {
   const server = new Server(
@@ -494,146 +426,10 @@ export function create${capitalizedName}McpServer() {
     }
   );
 
-  const ${serviceName}Tools = new ${capitalizedName}Tools(${serviceName.toUpperCase()}_CONFIG.API_KEY!);
-
-  // Tools handlers
-  server.setRequestHandler(
-    ListToolsRequestSchema,
-    async (request: ListToolsRequest) => {
-      return {
-        tools: TOOLS,
-      };
-    }
-  );
-
-  server.setRequestHandler(
-    CallToolRequestSchema,
-    async (request: CallToolRequest) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        let result: McpResponse;
-        const toolName = name as keyof ${capitalizedName}Tools;
-
-        if (typeof ${serviceName}Tools[toolName] === "function") {
-          result = await (${serviceName}Tools[toolName] as any)(args);
-        } else {
-          throw new McpError(ErrorCode.MethodNotFound, \`Unknown tool: \${name}\`);
-        }
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
-        const errorResponse: McpResponse = {
-          success: false,
-          error: errorMessage,
-          timestamp: new Date().toISOString(),
-        };
-
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(errorResponse, null, 2),
-            },
-          ],
-          isError: true,
-        };
-      }
-    }
-  );
-
-  // Resources handlers
-  server.setRequestHandler(
-    ListResourcesRequestSchema,
-    async (request: ListResourcesRequest) => {
-      return {
-        resources: RESOURCES,
-      };
-    }
-  );
-
-  server.setRequestHandler(
-    ReadResourceRequestSchema,
-    async (request: ReadResourceRequest) => {
-      const { uri } = request.params;
-
-      try {
-        let result: McpResponse;
-
-        // TODO: Implement resource reading logic
-        // Example: if (uri === "${serviceName}://entities") { ... }
-        
-        throw new McpError(
-          ErrorCode.InvalidRequest,
-          \`Resource not implemented: \${uri}\`
-        );
-
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: "application/json",
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error occurred";
-        throw new McpError(
-          ErrorCode.InternalError,
-          \`Failed to read resource: \${errorMessage}\`
-        );
-      }
-    }
-  );
-
-  // Prompts handlers
-  server.setRequestHandler(
-    ListPromptsRequestSchema,
-    async (request: ListPromptsRequest) => {
-      return {
-        prompts: PROMPTS,
-      };
-    }
-  );
-
-  server.setRequestHandler(
-    GetPromptRequestSchema,
-    async (request: GetPromptRequest) => {
-      const { name, arguments: args } = request.params;
-
-      const prompt = PROMPTS.find((p) => p.name === name);
-      if (!prompt) {
-        throw new McpError(ErrorCode.InvalidRequest, \`Unknown prompt: \${name}\`);
-      }
-
-      // TODO: Generate dynamic prompt content based on the prompt name
-      let content = \`# \${prompt.description}\\n\\nTODO: Implement prompt content for \${name}\`;
-
-      return {
-        description: prompt.description,
-        messages: [
-          {
-            role: "user",
-            content: {
-              type: "text",
-              text: content,
-            },
-          },
-        ],
-      };
-    }
-  );
+  // Register all MCP primitives using official SDK pattern
+  registerTools(server);
+  registerResources(server);
+  registerPrompts(server);
 
   return server;
 }
@@ -641,358 +437,477 @@ export function create${capitalizedName}McpServer() {
 }
 
 function generateTools(serviceName: string): string {
-  const upperCaseName = serviceName.toUpperCase();
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
-  return `import { ${upperCaseName}_TOOLS, ToolDefinition } from "@mcp/schemas";
+  return `import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ErrorCode,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+import { CONFIG } from "../config/config.js";
 
-// Use standardized tool definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const TOOLS: readonly ToolDefinition[] = ${upperCaseName}_TOOLS;
+export function registerTools(server: Server) {
+  // Register list_tools handler
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+      {
+        name: "${serviceName}_search",
+        description: "Search ${serviceName} entities",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Search query",
+            },
+            limit: {
+              type: "number",
+              description: "Maximum number of results",
+              default: 10,
+            },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "${serviceName}_get",
+        description: "Get a specific ${serviceName} entity by ID",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "Entity ID",
+            },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "${serviceName}_create",
+        description: "Create a new ${serviceName} entity",
+        inputSchema: {
+          type: "object",
+          properties: {
+            title: {
+              type: "string",
+              description: "Entity title",
+            },
+            description: {
+              type: "string",
+              description: "Entity description",
+            },
+          },
+          required: ["title"],
+        },
+      },
+    ],
+  }));
+
+  // Register tool execution handler
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    switch (name) {
+      case "${serviceName}_search": {
+        const SearchSchema = z.object({
+          query: z.string(),
+          limit: z.number().optional().default(10),
+        });
+
+        try {
+          const { query, limit } = SearchSchema.parse(args);
+          
+          // TODO: Implement your ${serviceName} search logic here
+          const results = await search${capitalizedName}(query, limit);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: \`Found \${results.length} ${serviceName} entities for: \${query}\`,
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            \`Invalid search parameters: \${error}\`
+          );
+        }
+      }
+
+      case "${serviceName}_get": {
+        const GetSchema = z.object({
+          id: z.string(),
+        });
+
+        try {
+          const { id } = GetSchema.parse(args);
+          
+          // TODO: Implement your ${serviceName} get logic here
+          const entity = await get${capitalizedName}(id);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: \`Retrieved ${serviceName} entity: \${entity.title}\`,
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            \`Invalid get parameters: \${error}\`
+          );
+        }
+      }
+
+      case "${serviceName}_create": {
+        const CreateSchema = z.object({
+          title: z.string(),
+          description: z.string().optional(),
+        });
+
+        try {
+          const { title, description } = CreateSchema.parse(args);
+          
+          // TODO: Implement your ${serviceName} create logic here
+          const entity = await create${capitalizedName}({ title, description });
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: \`Created ${serviceName} entity: \${entity.title} (ID: \${entity.id})\`,
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            \`Invalid create parameters: \${error}\`
+          );
+        }
+      }
+
+      default:
+        throw new McpError(
+          ErrorCode.MethodNotFound,
+          \`Unknown tool: \${name}\`
+        );
+    }
+  });
+}
+
+// TODO: Implement these functions with your actual ${serviceName} API calls
+async function search${capitalizedName}(query: string, limit: number) {
+  // Placeholder implementation
+  return [
+    { id: "1", title: \`Sample \${query} result 1\`, description: "Description 1" },
+    { id: "2", title: \`Sample \${query} result 2\`, description: "Description 2" },
+  ].slice(0, limit);
+}
+
+async function get${capitalizedName}(id: string) {
+  // Placeholder implementation
+  return { id, title: \`Sample entity \${id}\`, description: \`Description for \${id}\` };
+}
+
+async function create${capitalizedName}(data: { title: string; description?: string }) {
+  // Placeholder implementation
+  return { id: Math.random().toString(36).substr(2, 9), ...data };
+}
 `;
 }
 
 function generateResources(serviceName: string): string {
-  const upperCaseName = serviceName.toUpperCase();
+  const capitalizedName =
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
-  return `import { ${upperCaseName}_RESOURCES, ResourceDefinition } from "@mcp/schemas";
+  return `import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+  ErrorCode,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
+import { CONFIG } from "../config/config.js";
 
-// Use standardized resource definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const RESOURCES: readonly ResourceDefinition[] = ${upperCaseName}_RESOURCES;
+export function registerResources(server: Server) {
+  // Register list_resources handler
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: "${serviceName}://entities",
+        name: "${capitalizedName} Entities",
+        description: "List of all ${serviceName} entities",
+        mimeType: "application/json",
+      },
+      {
+        uri: "${serviceName}://stats",
+        name: "${capitalizedName} Statistics",
+        description: "Usage statistics and metrics",
+        mimeType: "application/json",
+      },
+      {
+        uri: "${serviceName}://config",
+        name: "${capitalizedName} Configuration",
+        description: "Current server configuration",
+        mimeType: "application/json",
+      },
+    ],
+  }));
+
+  // Register resource reading handler
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    switch (uri) {
+      case "${serviceName}://entities": {
+        // TODO: Implement your ${serviceName} entities fetching logic
+        const entities = await get${capitalizedName}Entities();
+        
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "application/json",
+              text: JSON.stringify(entities, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "${serviceName}://stats": {
+        // TODO: Implement your ${serviceName} stats logic
+        const stats = await get${capitalizedName}Stats();
+        
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "application/json",
+              text: JSON.stringify(stats, null, 2),
+            },
+          ],
+        };
+      }
+
+      case "${serviceName}://config": {
+        const config = {
+          name: CONFIG.NAME,
+          version: CONFIG.VERSION,
+          baseUrl: CONFIG.BASE_URL,
+          features: CONFIG.FEATURES,
+        };
+        
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "application/json",
+              text: JSON.stringify(config, null, 2),
+            },
+          ],
+        };
+      }
+
+      default:
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          \`Unknown resource: \${uri}\`
+        );
+    }
+  });
+}
+
+// TODO: Implement these functions with your actual ${serviceName} API calls
+async function get${capitalizedName}Entities() {
+  // Placeholder implementation
+  return [
+    { id: "1", title: "Sample Entity 1", description: "Description 1" },
+    { id: "2", title: "Sample Entity 2", description: "Description 2" },
+    { id: "3", title: "Sample Entity 3", description: "Description 3" },
+  ];
+}
+
+async function get${capitalizedName}Stats() {
+  // Placeholder implementation
+  return {
+    totalEntities: 150,
+    activeUsers: 25,
+    requestsToday: 1250,
+    uptime: "99.9%",
+    lastUpdated: new Date().toISOString(),
+  };
+}
 `;
 }
 
 function generatePrompts(serviceName: string): string {
-  const upperCaseName = serviceName.toUpperCase();
-
-  return `import { ${upperCaseName}_PROMPTS, PromptDefinition } from "@mcp/schemas";
-
-// Use standardized prompt definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const PROMPTS: readonly PromptDefinition[] = ${upperCaseName}_PROMPTS;
-`;
-}
-
-function generateToolsImplementation(serviceName: string): string {
   const capitalizedName =
     serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
 
-  return `import { 
-  McpResponse,
-  Create${capitalizedName}Input,
-  ${capitalizedName}Result
-} from "@mcp/schemas";
-
-// ${capitalizedName} Tools Implementation
-// Following Enterprise MCP Server Pattern
-
-export class ${capitalizedName}Tools {
-  private apiKey: string;
-  private baseUrl: string;
-
-  constructor(apiKey: string, baseUrl?: string) {
-    if (!apiKey) {
-      throw new Error("${capitalizedName} API key is required");
-    }
-    this.apiKey = apiKey;
-    this.baseUrl = baseUrl || "https://api.${serviceName}.com";
-  }
-
-  // MANDATORY: Use _execute wrapper for consistent error handling
-  private async _execute<T = any>(
-    toolName: string,
-    logic: () => Promise<T>
-  ): Promise<McpResponse<T>> {
-    console.log(\`Executing tool: \${toolName}\`);
-    try {
-      const data = await logic();
-      return { success: true, data };
-    } catch (error: any) {
-      console.error(\`Error in \${toolName}:\`, error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // Example tool implementation - simple placeholders
-  async ${serviceName}_search(args: { query?: string; limit?: number } = {}): Promise<McpResponse> {
-    return this._execute("${serviceName}_search", async () => {
-      // TODO: Implement actual ${serviceName} search logic
-      const { query = "", limit = 10 } = args;
-      
-      // Example API call structure:
-      // const response = await fetch(\`\${this.baseUrl}/search?q=\${query}&limit=\${limit}\`, {
-      //   headers: {
-      //     'Authorization': \`Bearer \${this.apiKey}\`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      // const data = await response.json();
-      
-      return {
-        query,
-        results: [],
-        total: 0,
-        message: "TODO: Implement ${serviceName}_search functionality"
-      };
-    });
-  }
-
-  async ${serviceName}_create(args: Create${capitalizedName}Input): Promise<McpResponse<${capitalizedName}Result>> {
-    return this._execute("${serviceName}_create", async () => {
-      // TODO: Implement actual ${serviceName} creation logic
-      const { title, description } = args;
-      
-      // Example API call:
-      // const response = await fetch(\`\${this.baseUrl}/${serviceName}s\`, {
-      //   method: 'POST',
-      //   headers: {
-      //     'Authorization': \`Bearer \${this.apiKey}\`,
-      //     'Content-Type': 'application/json'
-      //   },
-      //   body: JSON.stringify({ title, description })
-      // });
-      // const result = await response.json();
-      
-      const result: ${capitalizedName}Result = {
-        id: "placeholder-id",
-        title,
-        url: \`https://api.${serviceName}.com/entities/placeholder-id\`
-      };
-      
-      return result;
-    });
-  }
-
-  async ${serviceName}_get(args: { id: string }): Promise<McpResponse> {
-    return this._execute("${serviceName}_get", async () => {
-      // TODO: Implement actual ${serviceName} retrieval logic
-      const { id } = args;
-      
-      // Example API call:
-      // const response = await fetch(\`\${this.baseUrl}/${serviceName}s/\${id}\`, {
-      //   headers: {
-      //     'Authorization': \`Bearer \${this.apiKey}\`,
-      //     'Content-Type': 'application/json'
-      //   }
-      // });
-      // const entity = await response.json();
-      
-      return {
-        id,
-        title: \`Sample \${id}\`,
-        description: "TODO: Fetch from actual API",
-        message: "TODO: Implement ${serviceName}_get functionality"
-      };
-    });
-  }
-}
-`;
-}
-
-function generateMcpTypes(serviceName: string): string {
-  const upperCaseName = serviceName.toUpperCase();
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-
-  return `import { z } from "zod";
+  return `import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
-  ToolDefinition,
-  ResourceDefinition,
-  PromptDefinition,
-  McpResponse,
-} from "../mcp/types.js";
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+  ErrorCode,
+  McpError,
+} from "@modelcontextprotocol/sdk/types.js";
+import { CONFIG } from "../config/config.js";
 
-// ============================================================================
-// ${upperCaseName}-SPECIFIC MCP TYPES
-// ============================================================================
-
-// ${capitalizedName} Entity Types
-export const ${capitalizedName}EntitySchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export type ${capitalizedName}Entity = z.infer<typeof ${capitalizedName}EntitySchema>;
-
-// ${capitalizedName} Tool Argument Types
-export const ${capitalizedName}SearchArgsSchema = z.object({
-  query: z.string().optional(),
-  limit: z.number().min(1).max(100).default(10),
-});
-
-export const ${capitalizedName}CreateArgsSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional(),
-});
-
-export const ${capitalizedName}GetArgsSchema = z.object({
-  id: z.string().min(1),
-});
-
-export type ${capitalizedName}SearchArgs = z.infer<typeof ${capitalizedName}SearchArgsSchema>;
-export type ${capitalizedName}CreateArgs = z.infer<typeof ${capitalizedName}CreateArgsSchema>;
-export type ${capitalizedName}GetArgs = z.infer<typeof ${capitalizedName}GetArgsSchema>;
-
-// ${capitalizedName} Response Types
-export type ${capitalizedName}SearchResponse = McpResponse<{
-  results: ${capitalizedName}Entity[];
-  total: number;
-  query: string;
-}>;
-
-export type ${capitalizedName}CreateResponse = McpResponse<${capitalizedName}Entity>;
-export type ${capitalizedName}GetResponse = McpResponse<${capitalizedName}Entity>;
-
-// ${capitalizedName} Tool Definitions
-export const ${upperCaseName}_TOOLS: readonly ToolDefinition[] = [
-  {
-    name: "${serviceName}_search",
-    description: "Search ${serviceName} entities",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Search query",
-        },
-        limit: {
-          type: "number",
-          description: "Maximum number of results to return",
-          minimum: 1,
-          maximum: 100,
-          default: 10,
-        },
-      },
-    },
-  },
-  {
-    name: "${serviceName}_create",
-    description: "Create a new ${serviceName} entity",
-    inputSchema: {
-      type: "object",
-      properties: {
-        title: {
-          type: "string",
-          description: "Title of the entity",
-        },
-        description: {
-          type: "string",
-          description: "Description of the entity",
-        },
-      },
-      required: ["title"],
-    },
-  },
-  {
-    name: "${serviceName}_get",
-    description: "Get a specific ${serviceName} entity by ID",
-    inputSchema: {
-      type: "object",
-      properties: {
-        id: {
-          type: "string",
-          description: "ID of the entity to retrieve",
-        },
-      },
-      required: ["id"],
-    },
-  },
-] as const;
-
-// ${capitalizedName} Resource Definitions
-export const ${upperCaseName}_RESOURCES: readonly ResourceDefinition[] = [
-  {
-    uri: "${serviceName}://entities",
-    name: "${capitalizedName} Entities",
-    description: "List of all ${serviceName} entities",
-    mimeType: "application/json",
-  },
-  {
-    uri: "${serviceName}://entity/{id}",
-    name: "${capitalizedName} Entity",
-    description: "Details of a specific ${serviceName} entity",
-    mimeType: "application/json",
-  },
-] as const;
-
-// ${capitalizedName} Prompt Definitions
-export const ${upperCaseName}_PROMPTS: readonly PromptDefinition[] = [
-  {
-    name: "${serviceName}_workflow",
-    description: "Standard workflow for working with ${serviceName} entities",
-    arguments: [],
-  },
-  {
-    name: "${serviceName}_analysis",
-    description: "Analyze ${serviceName} data and provide insights",
-    arguments: [
+export function registerPrompts(server: Server) {
+  // Register list_prompts handler
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts: [
       {
-        name: "timeframe",
-        description: "Time period for analysis",
-        required: false,
+        name: "${serviceName}_workflow",
+        description: "Generate a ${serviceName} workflow template",
+        arguments: [
+          {
+            name: "task_type",
+            description: "Type of task to create workflow for",
+            required: true,
+          },
+          {
+            name: "complexity",
+            description: "Workflow complexity level (simple, medium, complex)",
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "${serviceName}_analysis",
+        description: "Analyze ${serviceName} data and provide insights",
+        arguments: [
+          {
+            name: "data_type",
+            description: "Type of data to analyze",
+            required: true,
+          },
+          {
+            name: "time_period",
+            description: "Time period for analysis (day, week, month)",
+            required: false,
+          },
+        ],
+      },
+      {
+        name: "${serviceName}_report",
+        description: "Generate a comprehensive ${serviceName} report",
+        arguments: [
+          {
+            name: "report_type",
+            description: "Type of report to generate",
+            required: true,
+          },
+        ],
       },
     ],
-  },
-] as const;
-`;
+  }));
+
+  // Register prompt generation handler
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    switch (name) {
+      case "${serviceName}_workflow": {
+        const taskType = args?.task_type as string;
+        const complexity = (args?.complexity as string) || "medium";
+        
+        return {
+          description: \`${capitalizedName} workflow for \${taskType} (\${complexity} complexity)\`,
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: \`Create a \${complexity} ${serviceName} workflow for \${taskType}. Include step-by-step instructions, best practices, and potential pitfalls to avoid.\`,
+              },
+            },
+          ],
+        };
+      }
+
+      case "${serviceName}_analysis": {
+        const dataType = args?.data_type as string;
+        const timePeriod = (args?.time_period as string) || "week";
+        
+        return {
+          description: \`${capitalizedName} analysis for \${dataType} over \${timePeriod}\`,
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: \`Analyze the \${dataType} data from ${serviceName} over the past \${timePeriod}. Provide insights, trends, and actionable recommendations.\`,
+              },
+            },
+          ],
+        };
+      }
+
+      case "${serviceName}_report": {
+        const reportType = args?.report_type as string;
+        
+        return {
+          description: \`${capitalizedName} \${reportType} report\`,
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: \`Generate a comprehensive \${reportType} report for ${serviceName}. Include key metrics, performance indicators, and strategic recommendations.\`,
+              },
+            },
+          ],
+        };
+      }
+
+      default:
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          \`Unknown prompt: \${name}\`
+        );
+    }
+  });
 }
-
-function generateEntityTypes(serviceName: string): string {
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
-
-  return `import { z } from "zod";
-
-// Schema for creating an entity
-export const Create${capitalizedName}Schema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-});
-
-export type Create${capitalizedName}Input = z.infer<typeof Create${capitalizedName}Schema>;
-
-// Schema for the result of creating an entity
-export const ${capitalizedName}ResultSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  url: z.string().optional(),
-});
-
-export type ${capitalizedName}Result = z.infer<typeof ${capitalizedName}ResultSchema>;
 `;
 }
 
 function generateServiceEnvExample(serviceName: string): string {
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+  const upperCaseName = serviceName.toUpperCase();
 
-  return `# ${capitalizedName} MCP Server Environment Variables
-# Non-sensitive service-specific defaults only.
-# Secrets like ${serviceName.toUpperCase()}_API_KEY are defined in secrets/.env.development.local.example
+  return `# ${
+    serviceName.charAt(0).toUpperCase() + serviceName.slice(1)
+  } MCP Server Configuration
+# Service-specific environment variables (non-sensitive)
 
-# Optional: Node.js Environment
-# NODE_ENV=production
+# Server Configuration
+${upperCaseName}_BASE_URL=https://api.${serviceName}.com
+${upperCaseName}_RATE_LIMIT=60
+${upperCaseName}_BURST_LIMIT=10
+${upperCaseName}_REQUEST_TIMEOUT=30000
+${upperCaseName}_CONNECTION_TIMEOUT=10000
 
-# Optional: Logging Level
-# LOG_LEVEL=info
+# Feature Flags
+${upperCaseName}_ENABLE_CACHING=true
+${upperCaseName}_ENABLE_METRICS=true
 
-# Optional: Rate Limiting
-# ${serviceName.toUpperCase()}_RATE_LIMIT=60
-# ${serviceName.toUpperCase()}_BURST_LIMIT=10
+# Development Settings
+NODE_ENV=development
+LOG_LEVEL=info
 
-# Optional: Timeouts (in milliseconds)
-# ${serviceName.toUpperCase()}_REQUEST_TIMEOUT=30000
-# ${serviceName.toUpperCase()}_CONNECTION_TIMEOUT=10000
-
-# Optional: Feature Flags
-# ${serviceName.toUpperCase()}_ENABLE_CACHING=false
-# ${serviceName.toUpperCase()}_ENABLE_METRICS=false
-
-# Currently no non-sensitive service-specific defaults for ${capitalizedName} server.
-# Add any service-specific configuration here as needed.
+# NOTE: Sensitive values like API keys are stored in centralized secrets:
+# secrets/.env.development.local (for development)
+# secrets/.env.production.local (for production)
 `;
 }
 
@@ -1004,36 +919,26 @@ async function updateCentralizedSecrets(serviceName: string) {
     ".env.development.local.example"
   );
 
-  if (!fs.existsSync(secretsPath)) {
-    console.log("⚠️  Centralized secrets file not found, skipping update");
-    return;
-  }
-
   const upperCaseName = serviceName.toUpperCase();
-  const capitalizedName =
-    serviceName.charAt(0).toUpperCase() + serviceName.slice(1);
+  const newSecretLine = `${upperCaseName}_API_KEY=your_${serviceName}_api_key_here`;
 
-  let content = fs.readFileSync(secretsPath, "utf8");
-
-  // Check if service secrets already exist
-  if (content.includes(`${upperCaseName}_API_KEY`)) {
-    console.log(
-      `ℹ️  ${capitalizedName} secrets already exist in centralized secrets file`
+  if (fs.existsSync(secretsPath)) {
+    const content = fs.readFileSync(secretsPath, "utf8");
+    if (!content.includes(`${upperCaseName}_API_KEY`)) {
+      fs.appendFileSync(
+        secretsPath,
+        `\n# ${
+          serviceName.charAt(0).toUpperCase() + serviceName.slice(1)
+        } API Configuration\n${newSecretLine}\n`
+      );
+    }
+  } else {
+    fs.mkdirSync(path.dirname(secretsPath), { recursive: true });
+    fs.writeFileSync(
+      secretsPath,
+      `# Centralized Development Secrets\n# Copy to .env.development.local and add your actual values\n\n# ${
+        serviceName.charAt(0).toUpperCase() + serviceName.slice(1)
+      } API Configuration\n${newSecretLine}\n`
     );
-    return;
   }
-
-  // Add new service secrets section
-  const newSecretsSection = `
-# -- ${capitalizedName} MCP Server Secrets --
-${upperCaseName}_API_KEY=your-${serviceName}-api-key-goes-here
-${upperCaseName}_BASE_URL=https://api.${serviceName}.com`;
-
-  // Append to the file
-  content += newSecretsSection;
-
-  fs.writeFileSync(secretsPath, content);
-  console.log(
-    `✅ Added ${capitalizedName} secrets to centralized secrets file`
-  );
 }

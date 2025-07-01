@@ -34,17 +34,21 @@ pnpm install
 
 **3. Configure Environment Variables**
 
-The project uses environment variables for configuration. We use a `.env.development.local` file for development, which is ignored by Git.
+The project uses a **hierarchical environment variable system** for configuration. Environment variables are loaded in this order of precedence:
 
-Run the setup command to create the initial environment file:
+1. `secrets/.env.development.local` (highest priority - your local secrets)
+2. `.env.development.local` (service-specific overrides)
+3. `.env.example` (base configuration)
+
+Run the setup command to create the initial environment files:
 
 ```bash
 make setup
 ```
 
-This will create a `.env.development.local` file by copying `.env.development`. You must now edit this file and provide the necessary secrets.
+This will create the necessary environment files. You must edit `secrets/.env.development.local` and provide your actual API keys and secrets.
 
-**Essential Variables in `.env.development.local`:**
+**Essential Variables in `secrets/.env.development.local`:**
 
 | Variable            | Description                                                                               | Default          |
 | ------------------- | ----------------------------------------------------------------------------------------- | ---------------- |
@@ -52,6 +56,12 @@ This will create a `.env.development.local` file by copying `.env.development`. 
 | `POSTGRES_PASSWORD` | The password for the development database user. Can be any value.                         | `postgres`       |
 | `PGADMIN_EMAIL`     | The email address to use for logging into the pgAdmin interface.                          | `admin@omni.dev` |
 | `PGADMIN_PASSWORD`  | The password for the pgAdmin user.                                                        | `admin`          |
+
+**Environment File Hierarchy:**
+
+- `secrets/.env.development.local` - **Your actual secrets** (never commit this)
+- `servers/linear-mcp-server/.env.example` - Service-specific environment template
+- `.env.development.local.example` - Root environment template
 
 **4. Start the Development Environment**
 

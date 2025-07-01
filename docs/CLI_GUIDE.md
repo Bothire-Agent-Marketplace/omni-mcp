@@ -38,11 +38,11 @@ make create-mcp SERVICE=jira
 **Features:**
 
 - ✅ Full Enterprise MCP Server Pattern compliance
-- ✅ Shared type system integration
+- ✅ Server-specific type system
 - ✅ Docker containerization ready
 - ✅ TypeScript configuration
 - ✅ Tool/Resource/Prompt structure
-- ✅ Configuration templates
+- ✅ Hierarchical environment configuration
 - ✅ README documentation
 
 **Example:**
@@ -58,19 +58,20 @@ servers/github-mcp-server/
 ├── src/
 │   ├── index.ts
 │   ├── config/config.ts
+│   ├── types/
+│   │   ├── mcp-types.ts
+│   │   └── github-types.ts
 │   └── mcp-server/
 │       ├── server.ts
 │       ├── tools.ts
 │       ├── resources.ts
 │       ├── prompts.ts
 │       └── tools/github-tools.ts
+├── .env.example
 ├── package.json
 ├── tsconfig.json
 ├── Dockerfile
 └── README.md
-
-shared/schemas/src/github/
-└── mcp-types.ts
 ```
 
 ### 📋 List MCP Servers
@@ -117,9 +118,9 @@ node packages/dev-tools/dist/cli/index.js validate --fix
 **Validation Checks:**
 
 - 📁 **Directory Structure**: Required files and folders
-- 📊 **Shared Types**: Proper @mcp/schemas imports
+- 📊 **Server-Specific Types**: Proper type definitions in server's `types/` directory
 - 🏗️ **Enterprise Patterns**: \_execute wrapper, McpResponse usage
-- 📋 **Schemas**: Shared type definitions and exports
+- 🔧 **Environment Config**: Hierarchical environment variable loading
 - 🐳 **Docker**: Containerization setup
 
 **Scoring System:**
@@ -147,8 +148,7 @@ node packages/dev-tools/dist/cli/index.js remove github --force --keep-schemas
 **Cleanup Actions:**
 
 - 🗂️ Removes server directory
-- 📋 Removes shared schemas (unless --keep-schemas)
-- 📝 Updates shared schemas index
+- 📝 Cleans up any references in shared configuration
 - 🐳 Warns about Docker configuration cleanup
 
 ### 🚀 Development Commands
@@ -182,17 +182,15 @@ All generated servers follow the **Enterprise MCP Server Pattern**:
 
 ### ✅ Mandatory Requirements
 
-1. **Shared Type System**
+1. **Server-Specific Type System**
 
    ```typescript
-   // ❌ Anti-pattern - Local types
-   interface Tool {
-     name: string;
-   }
+   // ❌ Anti-pattern - Hardcoded types
+   const TOOLS = [{ name: "github_search", description: "Search GitHub" }];
 
-   // ✅ Enterprise pattern - Shared types
-   import { GITHUB_TOOLS, ToolDefinition } from "@mcp/schemas";
-   export const TOOLS: readonly ToolDefinition[] = GITHUB_TOOLS;
+   // ✅ Enterprise pattern - Server-specific types
+   import { GITHUB_TOOLS } from "../types/mcp-types.js";
+   export const TOOLS = GITHUB_TOOLS;
    ```
 
 2. **Standardized Error Handling**
@@ -216,13 +214,16 @@ service-mcp-server/
 ├── src/
 │   ├── index.ts              # Entry point
 │   ├── config/config.ts      # Environment configuration
+│   ├── types/
+│   │   ├── mcp-types.ts      # Server-specific MCP definitions
+│   │   └── service-types.ts  # Domain-specific types
 │   └── mcp-server/
 │       ├── server.ts         # MCP server setup
-│       ├── tools.ts          # Tool definitions (imports shared)
-│       ├── resources.ts      # Resource definitions (imports shared)
-│       ├── prompts.ts        # Prompt definitions (imports shared)
+│       ├── tools.ts          # MCP tool definitions (what tools exist)
+│       ├── resources.ts      # MCP resource definitions
+│       ├── prompts.ts        # MCP prompt definitions
 │       └── tools/
-│           └── service-tools.ts  # Tool implementations
+│           └── service-tools.ts  # Tool implementation classes (how tools work)
 ├── package.json              # Package configuration
 ├── tsconfig.json            # TypeScript configuration
 ├── Dockerfile               # Multi-stage Docker build
@@ -243,7 +244,7 @@ cd servers/slack-mcp-server
 
 # 3. Implement tools
 # Edit src/mcp-server/tools/slack-tools.ts
-# Edit shared/schemas/src/slack/mcp-types.ts
+# Edit src/types/mcp-types.ts and src/types/slack-types.ts
 
 # 4. Build and validate
 pnpm build
@@ -305,14 +306,14 @@ make validate-mcp SERVICE=myservice
 # Ensure 90%+ compliance score
 ```
 
-### 2. **Use Shared Types Exclusively**
+### 2. **Use Server-Specific Types**
 
 ```typescript
-// ❌ Don't define local types
-interface MyTool { ... }
+// ❌ Don't hardcode types
+const TOOLS = [{ name: "my_tool", ... }];
 
-// ✅ Use shared schemas
-import { MYSERVICE_TOOLS } from "@mcp/schemas";
+// ✅ Use server-specific type definitions
+import { MYSERVICE_TOOLS } from "../types/mcp-types.js";
 ```
 
 ### 3. **Follow Naming Conventions**
@@ -352,8 +353,8 @@ make validate-mcp SERVICE=myservice
 ### Type Errors
 
 ```bash
-# Rebuild shared schemas
-cd shared/schemas && pnpm build
+# Rebuild server
+cd servers/myservice-mcp-server && pnpm build
 
 # Update server dependencies
 cd servers/myservice-mcp-server && pnpm install
@@ -363,11 +364,12 @@ cd servers/myservice-mcp-server && pnpm install
 
 ### Existing MCP Servers → Enterprise Pattern
 
-1. **Add shared type imports**
-2. **Remove local type definitions**
+1. **Create server-specific types directory**
+2. **Move type definitions to server's `types/` directory**
 3. **Add \_execute wrapper to tools**
 4. **Use McpResponse<T> return types**
-5. **Validate compliance**
+5. **Implement hierarchical environment loading**
+6. **Validate compliance**
 
 ```bash
 # Migration validation

@@ -1,6 +1,6 @@
 # Enterprise MCP Server Pattern
 
-This document defines the **standardized pattern** that all MCP servers in this project must follow. The Linear MCP server serves as the **gold standard** implementation.
+This document defines the **standardized pattern** that all MCP servers in this project must follow. The Linear MCP server serves as the **gold standard** implementation using the **official MCP SDK pattern**.
 
 ## 🏗️ **Required Architecture**
 
@@ -12,125 +12,203 @@ servers/[service]-mcp-server/
 │   │   └── config.ts              # Environment configuration
 │   └── mcp-server/
 │       ├── server.ts              # Main server logic
-│       ├── tools.ts               # Tool definitions (using shared schemas)
-│       ├── resources.ts           # Resource definitions (using shared schemas)
-│       ├── prompts.ts             # Prompt definitions (using shared schemas)
-│       └── tools/
-│           └── [service]-tools.ts # Tool implementations
+│       ├── tools.ts               # MCP tool definitions
+│       ├── resources.ts           # MCP resource definitions
+│       └── prompts.ts             # MCP prompt definitions
 ├── package.json
 ├── tsconfig.json
 ├── Dockerfile
 └── README.md
 ```
 
-## 🎯 **1. Shared Type System Usage (MANDATORY)**
+## 🎯 **1. Official MCP SDK Pattern (MANDATORY)**
 
-### ❌ **WRONG - Local Type Definitions**
+### ✅ **CORRECT - Official MCP SDK Pattern**
 
-```typescript
-// DON'T DO THIS - redefining types locally
-interface Tool {
-  name: string;
-  description: string;
-  inputSchema: any;
-}
-
-export const TOOLS = [
-  {
-    name: "service_action",
-    description: "Local definition",
-    // ... schema definition
-  },
-] as const;
-```
-
-### ✅ **CORRECT - Shared Types from @mcp/schemas**
+All servers must use the official MCP SDK pattern with `server.registerTool()`, `server.registerResource()`, and `server.registerPrompt()`:
 
 ```typescript
 // tools.ts - GOLD STANDARD PATTERN
-import { LINEAR_TOOLS, ToolDefinition } from "@mcp/schemas";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
 
-// Use standardized tool definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const TOOLS: readonly ToolDefinition[] = LINEAR_TOOLS;
+export function registerTools(server: Server) {
+  // Register list_tools handler
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: [
+      {
+        name: "service_search",
+        description: "Search service entities",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: {
+              type: "string",
+              description: "Search query",
+            },
+          },
+          required: ["query"],
+        },
+      },
+    ],
+  }));
+
+  // Register tool execution handler
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    switch (name) {
+      case "service_search": {
+        // Use Zod for input validation within the handler
+        const SearchSchema = z.object({
+          query: z.string(),
+        });
+
+        try {
+          const { query } = SearchSchema.parse(args);
+
+          // Your business logic here
+          const results = await searchService(query);
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Found ${results.length} results for: ${query}`,
+              },
+            ],
+          };
+        } catch (error) {
+          throw new McpError(
+            ErrorCode.InvalidParams,
+            `Invalid search parameters: ${error}`
+          );
+        }
+      }
+
+      default:
+        throw new McpError(ErrorCode.MethodNotFound, `Unknown tool: ${name}`);
+    }
+  });
+}
 ```
 
 ```typescript
 // resources.ts - GOLD STANDARD PATTERN
-import { LINEAR_RESOURCES, ResourceDefinition } from "@mcp/schemas";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
-// Use standardized resource definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const RESOURCES: readonly ResourceDefinition[] = LINEAR_RESOURCES;
+export function registerResources(server: Server) {
+  // Register list_resources handler
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [
+      {
+        uri: "service://entities",
+        name: "Service Entities",
+        description: "List of service entities",
+        mimeType: "application/json",
+      },
+    ],
+  }));
+
+  // Register resource reading handler
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    switch (uri) {
+      case "service://entities": {
+        const entities = await getServiceEntities();
+
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: "application/json",
+              text: JSON.stringify(entities, null, 2),
+            },
+          ],
+        };
+      }
+
+      default:
+        throw new McpError(ErrorCode.InvalidParams, `Unknown resource: ${uri}`);
+    }
+  });
+}
 ```
 
 ```typescript
 // prompts.ts - GOLD STANDARD PATTERN
-import { LINEAR_PROMPTS, PromptDefinition } from "@mcp/schemas";
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import {
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
 
-// Use standardized prompt definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
-export const PROMPTS: readonly PromptDefinition[] = LINEAR_PROMPTS;
-```
+export function registerPrompts(server: Server) {
+  // Register list_prompts handler
+  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
+    prompts: [
+      {
+        name: "service_workflow",
+        description: "Service workflow template",
+        arguments: [
+          {
+            name: "task_type",
+            description: "Type of task to create workflow for",
+            required: true,
+          },
+        ],
+      },
+    ],
+  }));
 
-## 🔧 **2. Tool Implementation Pattern**
+  // Register prompt generation handler
+  server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
 
-### Main Tools Class
+    switch (name) {
+      case "service_workflow": {
+        const taskType = args?.task_type as string;
 
-```typescript
-// tools/[service]-tools.ts
-import { McpResponse, SearchArgs, CreateArgs, UpdateArgs } from "@mcp/schemas";
+        return {
+          description: `Service workflow for ${taskType}`,
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `Create a workflow for ${taskType} using our service.`,
+              },
+            },
+          ],
+        };
+      }
 
-export class ServiceTools {
-  private client: ServiceClient;
-
-  constructor(apiKey: string) {
-    if (!apiKey) throw new Error("Service API key is required");
-    this.client = new ServiceClient({ apiKey });
-  }
-
-  // MANDATORY: Use _execute wrapper for consistent error handling
-  private async _execute<T = any>(
-    toolName: string,
-    logic: () => Promise<T>
-  ): Promise<McpResponse<T>> {
-    console.log(`Executing tool: ${toolName}`);
-    try {
-      const data = await logic();
-      return { success: true, data };
-    } catch (error: any) {
-      console.error(`Error in ${toolName}:`, error);
-      return { success: false, error: error.message };
+      default:
+        throw new McpError(ErrorCode.InvalidParams, `Unknown prompt: ${name}`);
     }
-  }
-
-  // MANDATORY: All tools must return McpResponse<T>
-  async service_search(args: Partial<SearchArgs> = {}): Promise<McpResponse> {
-    return this._execute("service_search", async () => {
-      // Implementation logic here
-      return results;
-    });
-  }
-
-  async service_create(args: CreateArgs): Promise<McpResponse> {
-    return this._execute("service_create", async () => {
-      // Implementation logic here
-      return result;
-    });
-  }
+  });
 }
 ```
 
-## 📋 **3. Server Implementation Pattern**
+## 🔧 **2. Server Implementation Pattern**
 
 ```typescript
-// server.ts
-import { McpServerInterface, McpResponse } from "@mcp/schemas";
-import { TOOLS } from "./tools.js";
-import { RESOURCES } from "./resources.js";
-import { PROMPTS } from "./prompts.js";
+// server.ts - GOLD STANDARD PATTERN
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { registerTools } from "./tools.js";
+import { registerResources } from "./resources.js";
+import { registerPrompts } from "./prompts.js";
 
-export function createServiceMcpServer(): McpServerInterface {
+export function createServiceMcpServer() {
   const server = new Server(
     {
       name: "service-mcp-server",
@@ -145,103 +223,77 @@ export function createServiceMcpServer(): McpServerInterface {
     }
   );
 
-  const serviceTools = new ServiceTools(CONFIG.API_KEY!);
-
-  // MANDATORY: Use shared type definitions
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: TOOLS,
-  }));
-
-  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
-    resources: RESOURCES,
-  }));
-
-  server.setRequestHandler(ListPromptsRequestSchema, async () => ({
-    prompts: PROMPTS,
-  }));
+  // Register all MCP primitives
+  registerTools(server);
+  registerResources(server);
+  registerPrompts(server);
 
   return server;
 }
 ```
 
-## 🎨 **4. Shared Schema Definition Pattern**
+## 🎨 **3. Environment Configuration Pattern**
 
-All tool/resource/prompt definitions MUST be created in `shared/schemas/src/[service]/mcp-types.ts`:
+All servers must use hierarchical environment variable loading:
 
 ```typescript
-// shared/schemas/src/[service]/mcp-types.ts
-import {
-  ToolDefinition,
-  ResourceDefinition,
-  PromptDefinition,
-} from "../mcp/types.js";
+// config/config.ts
+import { loadEnvHierarchy } from "@mcp/utils";
 
-export const SERVICE_TOOLS: readonly ToolDefinition[] = [
-  {
-    name: "service_search",
-    description: "Search service entities",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Search query",
-        },
-      },
-    },
-  },
-] as const;
+// Load environment variables with proper hierarchy
+const env = loadEnvHierarchy();
 
-export const SERVICE_RESOURCES: readonly ResourceDefinition[] = [
-  {
-    uri: "service://entities",
-    name: "Service Entities",
-    description: "List of service entities",
-    mimeType: "application/json",
-  },
-] as const;
+export const CONFIG = {
+  // Service-specific configuration
+  API_KEY: env.SERVICE_API_KEY,
+  BASE_URL: env.SERVICE_BASE_URL || "https://api.service.com",
 
-export const SERVICE_PROMPTS: readonly PromptDefinition[] = [
-  {
-    name: "service_workflow",
-    description: "Service workflow template",
-    arguments: [],
-  },
-] as const;
+  // Common configuration
+  LOG_LEVEL: env.LOG_LEVEL || "info",
+  NODE_ENV: env.NODE_ENV || "development",
+} as const;
+
+// Validation
+if (!CONFIG.API_KEY) {
+  console.error("❌ SERVICE_API_KEY environment variable is required");
+  process.exit(1);
+}
 ```
 
-## 🚫 **5. Anti-Patterns (NEVER DO)**
+## 🚫 **4. Anti-Patterns (NEVER DO)**
 
-1. ❌ **Local type definitions** - Always import from `@mcp/schemas`
-2. ❌ **Inconsistent error handling** - Always use `_execute()` wrapper
-3. ❌ **Missing McpResponse<T>** - All tools must return standardized responses
-4. ❌ **Direct API responses** - Always transform to match schemas
-5. ❌ **Hardcoded schemas** - Always use shared definitions
+1. ❌ **Shared schema dependencies** - Each server should be autonomous
+2. ❌ **Complex type abstractions** - Use the official MCP SDK directly
+3. ❌ **Mixing Zod with JSON Schema incorrectly** - Use Zod for validation within handlers only
+4. ❌ **Over-engineering** - Keep it simple and follow official patterns
+5. ❌ **Hardcoded environment variables** - Always use hierarchical config loading
 
-## 🎯 **6. Validation Checklist**
+## 🎯 **5. Validation Checklist**
 
 Before submitting any MCP server:
 
-- ✅ Uses `@mcp/schemas` imports (no local type definitions)
-- ✅ All tools return `McpResponse<T>` format
-- ✅ Uses `_execute()` wrapper for error handling
-- ✅ Tool/Resource/Prompt definitions in shared schemas
+- ✅ Uses official MCP SDK pattern with `server.registerTool()`, `server.registerResource()`, `server.registerPrompt()`
+- ✅ Uses `server.setRequestHandler()` for all MCP request types
+- ✅ Proper Zod validation within handlers (not as separate schemas)
+- ✅ Clean separation: tools.ts, resources.ts, prompts.ts, server.ts
 - ✅ Follows standard directory structure
 - ✅ Includes proper TypeScript types
 - ✅ Has Dockerfile for containerization
+- ✅ Uses hierarchical environment variable loading
 - ✅ Includes comprehensive README
 
 ## 🚀 **Benefits of This Pattern**
 
-1. **Type Safety**: Shared types prevent runtime errors
-2. **Consistency**: All MCP servers behave identically
-3. **Maintainability**: Changes to types propagate everywhere
-4. **Scalability**: Easy to add new servers following the pattern
-5. **Documentation**: Self-documenting through shared schemas
-6. **Testing**: Standardized response formats enable universal testing
+1. **Official Compliance**: Follows the official MCP SDK documentation exactly
+2. **Simplicity**: No over-engineering or unnecessary abstractions
+3. **Server Autonomy**: Each server is self-contained and independent
+4. **Faster Development**: No shared dependency coordination needed
+5. **Type Safety**: Proper Zod validation where it belongs
+6. **Maintainability**: Clean, understandable code structure
+7. **Scalability**: Easy to add new servers without affecting others
 
 ## 📖 **References**
 
 - **Gold Standard**: `servers/linear-mcp-server/` (follow this exactly)
-- **Shared Types**: `shared/schemas/src/mcp/types.ts`
-- **Linear Example**: `shared/schemas/src/linear/mcp-types.ts`
+- **Official MCP SDK**: Uses `@modelcontextprotocol/sdk` correctly
+- **Official Documentation**: Follows MCP specification patterns

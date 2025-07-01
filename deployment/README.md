@@ -8,30 +8,52 @@ This directory contains all deployment-related configurations for the Omni MCP p
 
 - `docker-compose.yml` - Base services (PostgreSQL, shared networks, volumes)
 - `docker-compose.dev.yml` - Development-specific services and overrides
-- `docker-compose.prod.yml` - Production-specific services and overrides (TODO)
 
 ### Usage
 
 **Development Environment:**
 
 ```bash
-# Start all services for development
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# Use the Makefile for proper environment loading
+make dev                        # Recommended approach
+make dev-detached              # Background mode
 
-# Stop all services
-docker compose -f docker-compose.yml -f docker-compose.dev.yml down
+# Or manually with proper environment files
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file secrets/.env.development.local up -d
 ```
 
 **Production Environment:**
 
 ```bash
-# TODO: Create production compose file
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+# Use the Makefile for proper environment loading
+make prod                      # Recommended approach
+
+# Or manually with proper environment files
+docker compose -f docker-compose.yml --env-file .env.production.local up -d
+```
+
+## Environment Variable Hierarchy
+
+The project uses a hierarchical environment variable system:
+
+1. **`secrets/.env.development.local`** - Your actual secrets (never committed)
+2. **`.env.development.local.example`** - Development template
+3. **`.env.production.local.example`** - Production template
+4. **Service-specific**: `servers/[service]/.env.example` - Service templates
+
+### Setup Commands
+
+```bash
+# Development setup
+make setup                     # Creates secrets/.env.development.local
+
+# Production setup
+make setup-prod               # Creates .env.production.local
 ```
 
 ## MCP Client Configuration
 
-The `compose/mcp-compose.yaml` file is specifically for MCP client configuration and uses a different schema than Docker Compose. It defines how MCP servers are launched by Claude Desktop.
+The `client-integrations/claude-desktop/` directory contains Claude Desktop configurations that are automatically generated and synced.
 
 ## Directory Structure
 
@@ -39,8 +61,13 @@ The `compose/mcp-compose.yaml` file is specifically for MCP client configuration
 deployment/
 ├── docker-compose.yml          # Base infrastructure services
 ├── docker-compose.dev.yml      # Development overrides
-├── docker-compose.prod.yml     # Production overrides (TODO)
-├── fly/                        # Fly.io deployment configs
-├── kubernetes/                 # Kubernetes deployment configs
 └── README.md                   # This file
+
+Root level:
+├── secrets/                    # Centralized secrets (gitignored)
+│   └── .env.development.local  # Your actual development secrets
+├── .env.development.local.example  # Development template
+├── .env.production.local.example   # Production template
+└── servers/[service]/
+    └── .env.example           # Service-specific templates
 ```
