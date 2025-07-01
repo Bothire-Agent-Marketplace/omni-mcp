@@ -8,15 +8,8 @@ import {
   MCPResponse,
   Session,
   HealthStatus,
-} from "./types.js";
-
-interface IWebSocket {
-  send(data: string): void;
-  on(event: "message", listener: (data: Buffer) => void): this;
-  on(event: "close", listener: () => void): this;
-  on(event: "error", listener: (err: Error) => void): this;
-  close(): void;
-}
+  IWebSocket,
+} from "@mcp/schemas";
 
 export class MCPGateway {
   private logger = createMcpLogger("mcp-gateway-core");
@@ -70,6 +63,7 @@ export class MCPGateway {
     try {
       // Get or create session
       let session = this.getSessionFromHeaders(headers);
+      const isNewSession = !session;
 
       if (!session) {
         if (!this.sessionManager.canCreateNewSession()) {
@@ -95,7 +89,7 @@ export class MCPGateway {
       );
 
       // Include session token in response for new sessions
-      if (!this.getSessionFromHeaders(headers)) {
+      if (isNewSession) {
         httpResponse.sessionToken = this.sessionManager.generateToken(
           session.id
         );
@@ -205,7 +199,7 @@ export class MCPGateway {
     try {
       // Resolve capability to server
       const serverId = this.protocolAdapter.resolveCapability(
-        request.method,
+        request,
         this.capabilityMap
       );
 

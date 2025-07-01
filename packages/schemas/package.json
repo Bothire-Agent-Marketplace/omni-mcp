@@ -1,8 +1,8 @@
 {
-  "name": "@mcp/utils",
+  "name": "@mcp/schemas",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -11,12 +11,9 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@mcp/schemas": "workspace:*",
-    "dotenv": "^17.0.0",
-    "winston": "^3.17.0"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^24.0.8",
-    "typescript": "^5.8.3"
+    "typescript": "^5.3.3"
   }
 }

@@ -1,6 +1,6 @@
 import { EventEmitter } from "events";
 import { createMcpLogger } from "@mcp/utils";
-import { ServerConfig, ServerInstance, HealthStatus } from "./types.js";
+import { ServerConfig, ServerInstance, HealthStatus } from "@mcp/schemas";
 import fetch from "node-fetch";
 
 export class MCPServerManager extends EventEmitter {

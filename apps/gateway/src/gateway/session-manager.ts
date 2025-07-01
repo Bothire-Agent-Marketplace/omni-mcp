@@ -1,9 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
-import { WebSocket } from "ws";
-import { randomBytes } from "crypto";
 import { createMcpLogger } from "@mcp/utils";
-import { Session, GatewayConfig } from "./types.js";
+import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
 
 export class MCPSessionManager {
   private logger = createMcpLogger("mcp-gateway-session-manager");
@@ -64,7 +62,7 @@ export class MCPSessionManager {
     return null;
   }
 
-  attachWebSocket(sessionId: string, ws: WebSocket): boolean {
+  attachWebSocket(sessionId: string, ws: IWebSocket): boolean {
     const session = this.sessions.get(sessionId);
     if (session) {
       session.connection = ws;

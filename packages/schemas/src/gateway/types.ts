@@ -1,5 +1,3 @@
-import { WebSocket } from "ws";
-
 export interface ServerConfig {
   type: "mcp";
   url: string; // URL of the standalone MCP server
@@ -38,7 +36,7 @@ export interface Session {
   lastActivity: Date;
   serverConnections: Map<string, ServerInstance>;
   transport: "http" | "websocket";
-  connection?: WebSocket;
+  connection?: any;
 }
 
 export interface MCPRequest {
@@ -57,6 +55,14 @@ export interface MCPResponse {
     message: string;
     data?: any;
   };
+}
+
+export interface IWebSocket {
+  send(data: string): void;
+  on(event: "message", listener: (data: Buffer) => void): this;
+  on(event: "close", listener: () => void): this;
+  on(event: "error", listener: (err: Error) => void): this;
+  close(): void;
 }
 
 export interface HealthStatus {

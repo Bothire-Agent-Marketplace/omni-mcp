@@ -4,12 +4,11 @@
       "type": "mcp",
       "url": "http://localhost:3001",
       "capabilities": [
-        "tools/list",
-        "tools/call",
-        "resources/list",
-        "resources/read",
-        "prompts/list",
-        "prompts/get"
+        "linear_search_issues",
+        "linear_get_teams",
+        "linear_get_users",
+        "linear_get_projects",
+        "linear_get_issue"
       ],
       "description": "Linear MCP Server for issue tracking",
       "healthCheckInterval": 15000
@@ -19,12 +18,12 @@
       "description": "MCP Server for querying the Pagila sample database",
       "url": "http://localhost:3002",
       "capabilities": [
-        "tools/list",
-        "tools/call",
-        "resources/list",
-        "resources/read",
-        "prompts/list",
-        "prompts/get"
+        "customer_lookup",
+        "film_inventory",
+        "rental_analysis",
+        "payment_investigation",
+        "business_analytics",
+        "database_health"
       ]
     }
   },

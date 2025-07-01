@@ -202,15 +202,18 @@ importers:
   packages/schemas:
     dependencies:
       zod:
-        specifier: ^3.25.67
+        specifier: ^3.23.8
         version: 3.25.67
     devDependencies:
       typescript:
-        specifier: ^5.8.3
+        specifier: ^5.3.3
         version: 5.8.3
 
   packages/utils:
     dependencies:
+      '@mcp/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       dotenv:
         specifier: ^17.0.0
         version: 17.0.1
