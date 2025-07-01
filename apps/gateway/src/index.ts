@@ -8,15 +8,10 @@ import {
   createMcpLogger,
   setupGlobalErrorHandlers,
   envConfig,
+  getMCPServersConfig,
+  getGatewayConfig,
 } from "@mcp/utils";
-import { readFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
 import { FastifyInstance } from "fastify";
-
-// Get __dirname equivalent for ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 // Initialize MCP-compliant logger
 const logger = createMcpLogger("mcp-gateway");
@@ -31,13 +26,10 @@ async function main() {
   });
 
   try {
-    // Load configuration
-    const configFile =
-      process.env.NODE_ENV === "development"
-        ? "../master.config.dev.json"
-        : "../master.config.json";
-    const configPath = join(__dirname, configFile);
-    const config = JSON.parse(readFileSync(configPath, "utf-8"));
+    // Load configuration from environment
+    const servers = getMCPServersConfig(envConfig.NODE_ENV);
+    const gateway = getGatewayConfig(envConfig.NODE_ENV);
+    const config = { servers, gateway };
 
     logger.info("Starting MCP Gateway...");
 

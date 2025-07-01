@@ -34,6 +34,69 @@ export interface EnvironmentConfig {
   TZ?: string;
 }
 
+// MCP Server Configuration (replacing JSON files)
+export interface MCPServerConfig {
+  type: "mcp";
+  url: string;
+  capabilities: string[];
+  description: string;
+  healthCheckInterval: number;
+}
+
+export interface MCPServersConfig {
+  [key: string]: MCPServerConfig;
+}
+
+export function getMCPServersConfig(env: Environment): MCPServersConfig {
+  return {
+    linear: {
+      type: "mcp",
+      url: "http://localhost:3001",
+      capabilities: [
+        "linear_search_issues",
+        "linear_get_teams",
+        "linear_get_users",
+        "linear_get_projects",
+        "linear_get_issue",
+      ],
+      description: "Linear MCP Server for issue tracking",
+      healthCheckInterval: 15000,
+    },
+    queryQuill: {
+      type: "mcp",
+      url: "http://localhost:3002",
+      capabilities: [
+        "customer_lookup",
+        "film_inventory",
+        "rental_analysis",
+        "payment_investigation",
+        "business_analytics",
+        "database_health",
+      ],
+      description: "MCP Server for querying the Pagila sample database",
+      healthCheckInterval: 15000,
+    },
+  };
+}
+
+export interface GatewayConfig {
+  port: number;
+  allowedOrigins: string[];
+  jwtSecret: string;
+  sessionTimeout: number;
+  maxConcurrentSessions: number;
+}
+
+export function getGatewayConfig(env: Environment): GatewayConfig {
+  return {
+    port: 37373,
+    allowedOrigins: ["http://localhost:3000", "http://localhost:8080"],
+    jwtSecret: "your-jwt-secret-change-in-production",
+    sessionTimeout: 3600000,
+    maxConcurrentSessions: 100,
+  };
+}
+
 class EnvironmentManager {
   private config: EnvironmentConfig;
   private environment: Environment;

@@ -3,7 +3,7 @@ export interface ServerConfig {
   url: string; // URL of the standalone MCP server
   capabilities: string[];
   description: string;
-  healthCheckInterval: number;
+  healthCheckInterval?: number;
 }
 
 export interface GatewayConfig {

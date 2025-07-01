@@ -9,6 +9,11 @@ export {
 export {
   env,
   envConfig,
+  getMCPServersConfig,
+  getGatewayConfig,
   type Environment,
   type EnvironmentConfig,
+  type MCPServerConfig,
+  type MCPServersConfig,
+  type GatewayConfig,
 } from "./env.js";
