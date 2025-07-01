@@ -11,7 +11,7 @@ export const remove = new Command("remove")
   .option("-f, --force", "Force removal without confirmation")
   .action(async (serviceName, options) => {
     const serverId = `${serviceName}-mcp-server`;
-    const serverPath = path.resolve(process.cwd(), "servers", serverId);
+    const serverPath = path.resolve(process.cwd(), "apps", serverId);
 
     log(`🗑️  Attempting to remove ${serviceName} MCP server...`);
 
@@ -35,11 +35,11 @@ export const remove = new Command("remove")
     }
 
     try {
-      // 1. Remove from docker-compose.dev.yml
-      await updateDockerCompose(serviceName, serverId);
+      // 1. Remove from docker-compose.dev.yml (REMOVED)
+      // await updateDockerCompose(serviceName, serverId);
 
-      // 2. Remove from pnpm-workspace.yaml
-      await updatePnpmWorkspace(`servers/${serverId}`);
+      // 2. Remove from pnpm-workspace.yaml (No longer needed with wildcard)
+      // await updatePnpmWorkspace(`apps/${serverId}`);
 
       // 3. Remove from gateway master config
       await updateMasterConfig(serviceName);
@@ -65,6 +65,7 @@ export const remove = new Command("remove")
     }
   });
 
+/*
 async function updateDockerCompose(serviceName: string, serverId: string) {
   const composePath = "deployment/docker-compose.dev.yml";
   try {
@@ -96,7 +97,9 @@ async function updateDockerCompose(serviceName: string, serverId: string) {
     logError(`Could not update ${composePath}: ${error}`);
   }
 }
+*/
 
+/*
 async function updatePnpmWorkspace(serverPath: string) {
   const workspacePath = "pnpm-workspace.yaml";
   try {
@@ -118,9 +121,10 @@ async function updatePnpmWorkspace(serverPath: string) {
     logError(`Could not update ${workspacePath}: ${error}`);
   }
 }
+*/
 
 async function updateMasterConfig(serviceName: string) {
-  const configPath = "gateway/master.config.dev.json";
+  const configPath = "apps/gateway/master.config.dev.json";
   try {
     const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     if (config.servers && config.servers[serviceName]) {

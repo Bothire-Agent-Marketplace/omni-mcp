@@ -24,14 +24,14 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  gateway:
+  apps/gateway:
     dependencies:
       '@mcp/schemas':
         specifier: workspace:*
-        version: link:../shared/schemas
+        version: link:../../packages/schemas
       '@mcp/utils':
         specifier: workspace:*
-        version: link:../shared/utils
+        version: link:../../packages/utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.13.2
         version: 1.13.2
@@ -100,48 +100,17 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  packages/dev-tools:
-    dependencies:
-      chalk:
-        specifier: ^5.4.1
-        version: 5.4.1
-      chokidar:
-        specifier: ^4.0.3
-        version: 4.0.3
-      commander:
-        specifier: ^14.0.0
-        version: 14.0.0
-      fs-extra:
-        specifier: ^11.3.0
-        version: 11.3.0
-      js-yaml:
-        specifier: ^4.1.0
-        version: 4.1.0
-      prompts:
-        specifier: ^2.4.2
-        version: 2.4.2
-    devDependencies:
-      '@types/node':
-        specifier: ^24.0.8
-        version: 24.0.8
-      tsx:
-        specifier: ^4.20.3
-        version: 4.20.3
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
-
-  servers/linear-mcp-server:
+  apps/linear-mcp-server:
     dependencies:
       '@linear/sdk':
         specifier: ^44.1.0
         version: 44.1.0
       '@mcp/schemas':
         specifier: workspace:*
-        version: link:../../shared/schemas
+        version: link:../../packages/schemas
       '@mcp/utils':
         specifier: workspace:*
-        version: link:../../shared/utils
+        version: link:../../packages/utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.13.2
         version: 1.13.2
@@ -174,11 +143,11 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  servers/query-quill-mcp-server:
+  apps/query-quill-mcp-server:
     dependencies:
       '@mcp/utils':
         specifier: workspace:*
-        version: link:../../shared/utils
+        version: link:../../packages/utils
       '@modelcontextprotocol/sdk':
         specifier: ^1.13.2
         version: 1.13.2
@@ -217,7 +186,38 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  shared/schemas:
+  packages/dev-tools:
+    dependencies:
+      chalk:
+        specifier: ^5.4.1
+        version: 5.4.1
+      chokidar:
+        specifier: ^4.0.3
+        version: 4.0.3
+      commander:
+        specifier: ^14.0.0
+        version: 14.0.0
+      fs-extra:
+        specifier: ^11.3.0
+        version: 11.3.0
+      js-yaml:
+        specifier: ^4.1.0
+        version: 4.1.0
+      prompts:
+        specifier: ^2.4.2
+        version: 2.4.2
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.8
+        version: 24.0.8
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  packages/schemas:
     dependencies:
       zod:
         specifier: ^3.25.67
@@ -227,7 +227,7 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
-  shared/utils:
+  packages/utils:
     dependencies:
       dotenv:
         specifier: ^17.0.0

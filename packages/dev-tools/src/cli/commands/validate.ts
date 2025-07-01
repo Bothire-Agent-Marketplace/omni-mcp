@@ -20,9 +20,9 @@ export const validate = new Command("validate")
     log("🔍 Validating MCP Server Compliance");
     log("===================================");
 
-    const serversDir = path.resolve(process.cwd(), "servers");
+    const serversDir = path.resolve(process.cwd(), "apps");
     if (!fs.existsSync(serversDir)) {
-      logError("❌ No servers directory found at ./servers");
+      logError("❌ No apps directory found at ./apps");
       return;
     }
 
@@ -58,7 +58,7 @@ export const validate = new Command("validate")
 
 async function runValidationChecks(serviceName: string): Promise<boolean> {
   const serverId = `${serviceName}-mcp-server`;
-  const serverPath = path.resolve(process.cwd(), "servers", serverId);
+  const serverPath = path.resolve(process.cwd(), "apps", serverId);
 
   const checks: Check[] = [
     // File Structure
@@ -72,10 +72,10 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
       fn: async () =>
         checkFileExists(path.join(serverPath, "src/mcp-server/handlers.ts")),
     },
-    {
-      description: "Required file 'Dockerfile' exists",
-      fn: async () => checkFileExists(path.join(serverPath, "Dockerfile")),
-    },
+    // {
+    //   description: "Required file 'Dockerfile' exists",
+    //   fn: async () => checkFileExists(path.join(serverPath, "Dockerfile")),
+    // },
     // package.json checks
     {
       description: "'package.json' contains 'express' dependency",
@@ -85,23 +85,23 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
       description: "'package.json' dev script uses 'tsx'",
       fn: async () => checkPackageScript(serverPath, "dev", "tsx"),
     },
-    // Dockerfile check
-    {
-      description: "'Dockerfile' exposes a PORT",
-      fn: async () => checkDockerfileexpose(serverPath),
-    },
+    // Dockerfile check (REMOVED)
+    // {
+    //   description: "'Dockerfile' exposes a PORT",
+    //   fn: async () => checkDockerfileexpose(serverPath),
+    // },
     // Workspace Config Checks
     {
-      description: "Is configured in 'gateway/master.config.dev.json'",
+      description: "Is configured in 'apps/gateway/master.config.dev.json'",
       fn: async () => checkMasterConfig(serviceName),
     },
-    {
-      description: "Is configured in 'deployment/docker-compose.dev.yml'",
-      fn: async () => checkDockerCompose(serverId),
-    },
+    // {
+    //   description: "Is configured in 'deployment/docker-compose.dev.yml'",
+    //   fn: async () => checkDockerCompose(serverId),
+    // },
     {
       description: "Is configured in 'pnpm-workspace.yaml'",
-      fn: async () => checkPnpmWorkspace(`servers/${serverId}`),
+      fn: async () => checkPnpmWorkspace(`apps/${serverId}`),
     },
     {
       description: "'http-server.ts' uses the asyncHandler utility",
@@ -159,6 +159,7 @@ async function checkPackageScript(
   return pkg.scripts?.[scriptName]?.includes(expectedContent) ? "pass" : "fail";
 }
 
+/*
 async function checkDockerfileexpose(
   serverPath: string
 ): Promise<ValidationResult> {
@@ -169,19 +170,21 @@ async function checkDockerfileexpose(
     ? "pass"
     : "warn";
 }
+*/
 
 async function checkMasterConfig(
   serviceName: string
 ): Promise<ValidationResult> {
   const configPath = path.resolve(
     process.cwd(),
-    "gateway/master.config.dev.json"
+    "apps/gateway/master.config.dev.json"
   );
   if (!fs.existsSync(configPath)) return "fail";
   const config = await fs.readJson(configPath);
   return config.servers?.[serviceName]?.url ? "pass" : "fail";
 }
 
+/*
 async function checkDockerCompose(serverId: string): Promise<ValidationResult> {
   const composePath = path.resolve(
     process.cwd(),
@@ -191,6 +194,7 @@ async function checkDockerCompose(serverId: string): Promise<ValidationResult> {
   const compose = yaml.load(await fs.readFile(composePath, "utf8")) as any;
   return compose.services?.[serverId] ? "pass" : "fail";
 }
+*/
 
 async function checkPnpmWorkspace(
   serverPath: string

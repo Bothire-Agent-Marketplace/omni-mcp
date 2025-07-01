@@ -10,10 +10,10 @@ export const list = new Command("list")
     log("📋 Omni MCP Servers");
     log("===================");
 
-    const serversDir = path.resolve(process.cwd(), "servers");
+    const serversDir = path.resolve(process.cwd(), "apps");
 
     if (!fs.existsSync(serversDir)) {
-      logError("❌ No servers directory found at ./servers");
+      logError("❌ No apps directory found at ./apps");
       return;
     }
 

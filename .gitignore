@@ -293,3 +293,4 @@ temp/
 
 # Package manager files
 .turbo
+packages/schemas

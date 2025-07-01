@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.com/spec/vercel-json-v1",
+  "git": {
+    "deploymentEnabled": {
+      "gateway": false,
+      "linear-mcp-server": false,
+      "query-quill-mcp-server": false,
+      "dev-tools": false,
+      "schemas": false,
+      "utils": false
+    }
+  },
+  "buildCommand": "pnpm turbo build --filter={@repo/api-gateway}... --no-daemon",
+  "installCommand": "pnpm install --no-frozen-lockfile"
+}

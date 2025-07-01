@@ -19,7 +19,7 @@ async function findNextAvailablePort(): Promise<number> {
 
   // Check master.config.dev.json for used ports
   try {
-    const masterConfigPath = "gateway/master.config.dev.json";
+    const masterConfigPath = "apps/gateway/master.config.dev.json";
     if (fs.existsSync(masterConfigPath)) {
       const config = await getJson(masterConfigPath);
       for (const server of Object.values(config.servers || {})) {
@@ -142,7 +142,7 @@ export const create = new Command("create")
 
     const { serviceName, description, author, port } = responses;
     const serverId = `${serviceName}-mcp-server`;
-    const serverPath = path.join("servers", serverId);
+    const serverPath = path.join("apps", serverId);
 
     if (fs.existsSync(serverPath)) {
       logError(`A server already exists at ${serverPath}. Aborting.`);
@@ -166,10 +166,6 @@ export const create = new Command("create")
         fs.writeFile(
           path.join(serverPath, "tsconfig.json"),
           getTsConfigContent()
-        ),
-        fs.writeFile(
-          path.join(serverPath, "Dockerfile"),
-          getDockerfileContent(serviceName, port)
         ),
         fs.writeFile(
           path.join(serverPath, ".env.example"),
@@ -220,13 +216,13 @@ export const create = new Command("create")
       await updateMasterConfig(serviceName, description, port);
       log("✅ Gateway config (master.config.dev.json) updated.");
 
-      // 4. Update Docker Compose
-      await updateDockerCompose(serviceName, serverId, port);
-      log("✅ Docker Compose (docker-compose.dev.yml) updated.");
+      // 4. Update Docker Compose (REMOVED)
+      // await updateDockerCompose(serviceName, serverId, port);
+      // log("✅ Docker Compose (docker-compose.dev.yml) updated.");
 
-      // 5. Update pnpm-workspace.yaml
-      await updatePnpmWorkspace(serverPath);
-      log("✅ PNPM workspace (pnpm-workspace.yaml) updated.");
+      // 5. Update pnpm-workspace.yaml (No longer needed with wildcard path)
+      // await updatePnpmWorkspace(serverPath);
+      // log("✅ PNPM workspace (pnpm-workspace.yaml) updated.");
 
       // 6. Install dependencies
       log("📦 Installing dependencies with pnpm...");
@@ -292,7 +288,7 @@ const getPackageJsonContent = (name: string, author: string) =>
 const getTsConfigContent = () =>
   JSON.stringify(
     {
-      extends: "../../tsconfig.base.json",
+      extends: "../../../tsconfig.base.json",
       compilerOptions: {
         outDir: "./dist",
         rootDir: "./src",
@@ -655,50 +651,6 @@ export function setup${
 }
 `;
 
-const getDockerfileContent = (name: string, port: number) => `
-# Use the official builder image from the linear-mcp-server
-# This ensures a consistent build environment for all our servers
-FROM omni/linear-mcp-server:builder AS builder
-
-# Copy the source code for this specific server
-# We assume the context is the root of the monorepo
-COPY servers/${name}-mcp-server/ ./servers/${name}-mcp-server/
-
-# Build the TypeScript code
-# This relies on the builder having all workspace dependencies installed
-RUN cd servers/${name}-mcp-server && pnpm build
-
-# Stage 2: Production
-FROM node:20-alpine AS production
-
-WORKDIR /app
-
-# Set production environment
-ENV NODE_ENV=production
-
-# Copy dependency manifests for this server
-COPY servers/${name}-mcp-server/package.json ./
-
-# Install only production dependencies for this server
-# Using 'npm' because it's simpler and doesn't require the full workspace setup
-RUN npm install --omit=dev
-
-# Copy built code and production node_modules from builder stage
-COPY --from=builder /app/servers/${name}-mcp-server/dist ./dist
-# We need to copy the shared utils dist code as well
-# This path is based on the builder image's structure
-COPY --from=builder /app/shared/utils/dist ./shared/utils/dist
-COPY --from=builder /app/shared/utils/package.json ./shared/utils/
-
-# Expose the port the server will run on
-# The actual port is controlled by the .env file, but this is good practice
-EXPOSE ${port}
-
-# Command to run the service
-# The PORT can be overridden by docker-compose environment variables
-CMD ["node", "dist/index.js"]
-`;
-
 // =============================================================================
 // CONFIGURATION FILE UPDATERS
 // =============================================================================
@@ -708,7 +660,7 @@ async function updateMasterConfig(
   description: string,
   port: number
 ) {
-  const configPath = "gateway/master.config.dev.json";
+  const configPath = "apps/gateway/master.config.dev.json";
   const config = await getJson(configPath);
 
   if (config.servers[serviceName]) {
@@ -735,6 +687,8 @@ async function updateMasterConfig(
   await writeJson(configPath, config);
 }
 
+// No longer needed with wildcard workspace path
+/*
 async function updatePnpmWorkspace(serverPath: string) {
   const workspacePath = "pnpm-workspace.yaml";
   const workspaceConfig = yaml.load(fs.readFileSync(workspacePath, "utf8")) as {
@@ -746,7 +700,9 @@ async function updatePnpmWorkspace(serverPath: string) {
     fs.writeFileSync(workspacePath, yaml.dump(workspaceConfig));
   }
 }
+*/
 
+/*
 async function updateDockerCompose(
   serviceName: string,
   serverId: string,
@@ -765,22 +721,22 @@ async function updateDockerCompose(
   composeConfig.services[serverId] = {
     build: {
       context: "..",
-      dockerfile: `servers/${serverId}/Dockerfile`,
+      dockerfile: `apps/${serverId}/Dockerfile`,
       target: "builder",
     },
     container_name: `omni-${serviceName}-mcp-server`,
     env_file: [
       "../.env",
-      `../servers/${serverId}/.env`,
+      `../apps/${serverId}/.env`,
       "../secrets/.env.development.local",
     ],
     environment: ["NODE_ENV=development", "LOG_LEVEL=debug", `PORT=${port}`],
     volumes: [
-      `../servers/${serverId}/src:/app/servers/${serverId}/src:ro`,
-      `../servers/${serverId}/package.json:/app/servers/${serverId}/package.json:ro`,
-      "../shared:/app/shared:ro",
+      `../apps/${serverId}/src:/app/apps/${serverId}/src:ro`,
+      `../apps/${serverId}/package.json:/app/apps/${serverId}/package.json:ro`,
+      "../packages:/app/packages:ro",
     ],
-    command: ["sh", "-c", `cd servers/${serverId} && pnpm dev`],
+    command: ["sh", "-c", `cd apps/${serverId} && pnpm dev`],
     ports: [
       `${port}:${port}`,
       // Add a unique debug port (port + 1000 to avoid conflicts)
@@ -813,3 +769,4 @@ async function updateDockerCompose(
     yaml.dump(composeConfig, { indent: 2, lineWidth: -1 })
   );
 }
+*/
