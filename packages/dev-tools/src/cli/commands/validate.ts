@@ -103,6 +103,10 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
       description: "Is configured in 'pnpm-workspace.yaml'",
       fn: async () => checkPnpmWorkspace(`servers/${serverId}`),
     },
+    {
+      description: "'http-server.ts' uses the asyncHandler utility",
+      fn: async () => checkAsyncHandler(serverPath),
+    },
   ];
 
   let passedCount = 0;
@@ -161,7 +165,9 @@ async function checkDockerfileexpose(
   const dockerfilePath = path.join(serverPath, "Dockerfile");
   if (!fs.existsSync(dockerfilePath)) return "fail";
   const content = await fs.readFile(dockerfilePath, "utf8");
-  return /EXPOSE\s+\d+/.test(content) ? "pass" : "warn";
+  return /EXPOSE\s+\$[PORT]/.test(content) || /EXPOSE\s+\d+/.test(content)
+    ? "pass"
+    : "warn";
 }
 
 async function checkMasterConfig(
@@ -209,5 +215,17 @@ async function checkPnpmWorkspace(
     }
   }
 
+  return "fail";
+}
+
+async function checkAsyncHandler(
+  serverPath: string
+): Promise<ValidationResult> {
+  const httpPath = path.join(serverPath, "src/mcp-server/http-server.ts");
+  if (!fs.existsSync(httpPath)) return "fail";
+  const content = await fs.readFile(httpPath, "utf8");
+  if (content.includes("const asyncHandler =")) {
+    return "pass";
+  }
   return "fail";
 }

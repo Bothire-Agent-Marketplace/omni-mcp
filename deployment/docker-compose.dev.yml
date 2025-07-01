@@ -28,6 +28,7 @@ services:
       - mcp-network
     depends_on:
       - linear-mcp-server
+      - query-quill-mcp-server
       - probe-mcp-server
   linear-mcp-server:
     build:
@@ -122,6 +123,45 @@ services:
         - curl
         - '-f'
         - http://localhost:3003/health
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+  query-quill-mcp-server:
+    build:
+      context: ..
+      dockerfile: servers/query-quill-mcp-server/Dockerfile
+      target: builder
+    container_name: omni-query-quill-mcp-server
+    env_file:
+      - ../.env
+      - ../servers/query-quill-mcp-server/.env
+      - ../secrets/.env.development.local
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+      - PORT=3002
+    volumes:
+      - ../servers/query-quill-mcp-server/src:/app/servers/query-quill-mcp-server/src:ro
+      - ../servers/query-quill-mcp-server/package.json:/app/servers/query-quill-mcp-server/package.json:ro
+      - ../shared:/app/shared:ro
+    command:
+      - sh
+      - '-c'
+      - cd servers/query-quill-mcp-server && pnpm dev
+    ports:
+      - '3002:3002'
+      - '4002:9229'
+    networks:
+      - mcp-network
+    depends_on:
+      - postgres-pagila
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - '-f'
+        - http://localhost:3002/health
       interval: 10s
       timeout: 3s
       retries: 3
