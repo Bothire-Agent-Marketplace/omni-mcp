@@ -1,4 +1,3 @@
-
 import express, { Express } from "express";
 import cors from "cors";
 import { createMcpLogger } from "@mcp/utils";
@@ -9,7 +8,7 @@ const logger = createMcpLogger(`${CONFIG.SERVICE_NAME}-http`);
 
 // Map MCP tool names to their handler functions.
 const handlerMap: Record<string, (params: any) => Promise<any>> = {
-  "query-quill_search": handlers.handleExampleSearch,
+  query_quill_search: handlers.handleExampleSearch,
 };
 
 export function createHttpServer(): Express {
@@ -49,7 +48,7 @@ export function createHttpServer(): Express {
       const result = await handler(params?.arguments || {});
       res.json({ jsonrpc: "2.0", id, result });
     } catch (error: any) {
-      logger.error("Handler error", { toolName, error: error.message });
+      logger.error(`Handler error for ${toolName}:`, error);
       res.status(500).json({
         jsonrpc: "2.0",
         id,

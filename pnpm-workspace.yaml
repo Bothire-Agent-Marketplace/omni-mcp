@@ -5,3 +5,4 @@ packages:
   - shared/utils
   - gateway
   - servers/query-quill-mcp-server
+  - servers/probe-mcp-server

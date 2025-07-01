@@ -147,7 +147,7 @@ export function createHttpServer() {
 
 ## 🚀 **3. Entry Point**
 
-The `index.ts` file is now extremely simple: it just starts the HTTP server.
+The `index.ts` file just starts the HTTP server.
 
 ```typescript
 // index.ts - GOLD STANDARD PATTERN

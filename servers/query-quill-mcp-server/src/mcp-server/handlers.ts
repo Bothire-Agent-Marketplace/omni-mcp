@@ -1,12 +1,17 @@
-
 import { z } from "zod";
 
-const ExampleSearchSchema = z.object({
+// ============================================================================
+// QUERY-QUILL HANDLERS - Clean MCP SDK Pattern
+// ============================================================================
+
+// Input Schemas
+export const ExampleSearchInputSchema = z.object({
   query: z.string().min(1),
 });
 
+// Handler Functions
 export async function handleExampleSearch(params: unknown) {
-  const parsedParams = ExampleSearchSchema.safeParse(params);
+  const parsedParams = ExampleSearchInputSchema.safeParse(params);
 
   if (!parsedParams.success) {
     throw new Error(`Invalid parameters: ${parsedParams.error.message}`);
@@ -14,8 +19,8 @@ export async function handleExampleSearch(params: unknown) {
 
   const { query } = parsedParams.data;
 
-  // TODO: Replace with your actual business logic
-  console.log(`Searching with query: ${query}`);
+  // TODO: Replace with actual database query logic
+  console.log(`Searching database with query: ${query}`);
   const results = [
     { id: "1", title: `First result for '${query}'` },
     { id: "2", title: `Second result for '${query}'` },

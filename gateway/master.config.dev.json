@@ -26,11 +26,27 @@
         "prompts/list",
         "prompts/get"
       ]
+    },
+    "probe": {
+      "type": "mcp",
+      "description": "Probes any sql database to create a database reference, and then an mcp server in the current directory",
+      "url": "http://probe-mcp-server:3003",
+      "capabilities": [
+        "tools/list",
+        "tools/call",
+        "resources/list",
+        "resources/read",
+        "prompts/list",
+        "prompts/get"
+      ]
     }
   },
   "gateway": {
     "port": 37373,
-    "allowedOrigins": ["http://localhost:3000", "http://localhost:8080"],
+    "allowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:8080"
+    ],
     "jwtSecret": "your-jwt-secret-change-in-production",
     "sessionTimeout": 3600000,
     "maxConcurrentSessions": 100

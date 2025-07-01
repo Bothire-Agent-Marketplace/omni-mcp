@@ -195,6 +195,23 @@ export const create = new Command("create")
           path.join(serverPath, "src/mcp-server/handlers.ts"),
           getHandlersTsContent()
         ),
+        // MCP SDK Pattern Files
+        fs.writeFile(
+          path.join(serverPath, "src/mcp-server/server.ts"),
+          getServerTsContent(serviceName)
+        ),
+        fs.writeFile(
+          path.join(serverPath, "src/mcp-server/tools.ts"),
+          getToolsTsContent(serviceName)
+        ),
+        fs.writeFile(
+          path.join(serverPath, "src/mcp-server/resources.ts"),
+          getResourcesTsContent(serviceName)
+        ),
+        fs.writeFile(
+          path.join(serverPath, "src/mcp-server/prompts.ts"),
+          getPromptsTsContent(serviceName)
+        ),
       ];
       await Promise.all(fileCreationTasks);
       log("✅ Server files created.");
@@ -255,6 +272,7 @@ const getPackageJsonContent = (name: string, author: string) =>
       },
       dependencies: {
         "@mcp/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^0.5.0",
         cors: "^2.8.5",
         express: "^4.19.2",
         zod: "^3.23.8",
@@ -435,12 +453,13 @@ export function startHttpServer(port: number) {
 const getHandlersTsContent = () => `
 import { z } from "zod";
 
-const ExampleSearchSchema = z.object({
+// Example Input Schema
+export const ExampleSearchInputSchema = z.object({
   query: z.string().min(1),
 });
 
 export async function handleExampleSearch(params: unknown) {
-  const parsedParams = ExampleSearchSchema.safeParse(params);
+  const parsedParams = ExampleSearchInputSchema.safeParse(params);
 
   if (!parsedParams.success) {
     throw new Error(\`Invalid parameters: \${parsedParams.error.message}\`);
@@ -463,6 +482,165 @@ export async function handleExampleSearch(params: unknown) {
       },
     ],
   };
+}
+`;
+
+// MCP SDK Pattern Content Generators
+const getServerTsContent = (name: string) => `
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Tools } from "./tools.js";
+import { setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Resources } from "./resources.js";
+import { setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Prompts } from "./prompts.js";
+
+// ============================================================================
+// OFFICIAL MCP SDK PATTERN - Clean & Simple Server Setup
+// ============================================================================
+
+export function create${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}McpServer() {
+  // Create the MCP server
+  const server = new McpServer({
+    name: "@mcp/${name}-server",
+    version: "1.0.0",
+  });
+
+  // Setup all ${name} functionality
+  setup${name.charAt(0).toUpperCase() + name.slice(1)}Tools(server);
+  setup${name.charAt(0).toUpperCase() + name.slice(1)}Resources(server);
+  setup${name.charAt(0).toUpperCase() + name.slice(1)}Prompts(server);
+
+  return server;
+}
+
+// Entry point for stdio transport
+export async function main() {
+  const server = create${
+    name.charAt(0).toUpperCase() + name.slice(1)
+  }McpServer();
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+if (import.meta.url === \`file://\${process.argv[1]}\`) {
+  main().catch((error) => {
+    console.error("Server error:", error);
+    process.exit(1);
+  });
+}
+`;
+
+const getToolsTsContent = (name: string) => `
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  // Handlers
+  handleExampleSearch,
+
+  // Schemas
+  ExampleSearchInputSchema,
+} from "./handlers.js";
+
+// This object centralizes the metadata for all tools.
+const ToolMetadata = {
+  ${name}_search: {
+    title: "${name.charAt(0).toUpperCase() + name.slice(1)} Search",
+    description: "Search ${name} with optional filters",
+    inputSchema: ExampleSearchInputSchema.shape,
+  },
+};
+
+export function setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Tools(server: McpServer) {
+  // Register all tools using a loop for consistency and maintainability.
+  server.registerTool(
+    "${name}_search",
+    ToolMetadata.${name}_search,
+    handleExampleSearch
+  );
+}
+`;
+
+const getResourcesTsContent = (name: string) => `
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+
+// ============================================================================
+// ${name.toUpperCase()} RESOURCES - Clean MCP SDK Pattern
+// ============================================================================
+
+export function setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Resources(server: McpServer) {
+  // TODO: Add your resources here
+  
+  // Example resource:
+  // server.registerResource(
+  //   "${name}-data",
+  //   "${name}://data",
+  //   {
+  //     title: "${name.charAt(0).toUpperCase() + name.slice(1)} Data",
+  //     description: "Access to ${name} data",
+  //     mimeType: "application/json",
+  //   },
+  //   async (uri: any) => {
+  //     return {
+  //       contents: [
+  //         {
+  //           uri: uri.href,
+  //           text: JSON.stringify({ message: "Hello from ${name}!" }, null, 2),
+  //         },
+  //       ],
+  //     };
+  //   }
+  // );
+}
+`;
+
+const getPromptsTsContent = (name: string) => `
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+
+// ============================================================================
+// ${name.toUpperCase()} PROMPTS - Clean MCP SDK Pattern
+// ============================================================================
+
+export function setup${
+  name.charAt(0).toUpperCase() + name.slice(1)
+}Prompts(server: McpServer) {
+  // TODO: Add your prompts here
+  
+  // Example prompt:
+  // server.registerPrompt(
+  //   "${name}_workflow",
+  //   {
+  //     title: "${name.charAt(0).toUpperCase() + name.slice(1)} Workflow",
+  //     description: "Step-by-step workflow for working with ${name}",
+  //     argsSchema: {
+  //       context: z
+  //         .string()
+  //         .optional()
+  //         .describe("Additional context for the workflow"),
+  //     },
+  //   },
+  //   ({ context }) => ({
+  //     messages: [
+  //       {
+  //         role: "user",
+  //         content: {
+  //           type: "text",
+  //           text: \`Help me work with ${name}\${context ? \` in the context of: \${context}\` : ""}. Please guide me through the process step by step.\`,
+  //         },
+  //       },
+  //     ],
+  //   })
+  // );
 }
 `;
 
