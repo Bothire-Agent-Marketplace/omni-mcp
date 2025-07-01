@@ -50,7 +50,7 @@ export interface EnvironmentConfig {
   VERCEL_URL?: string;
 
   // Optional timezone
-  TZ?: string;
+  APP_TIMEZONE?: string;
 }
 
 // MCP Server Configuration (environment-based)
@@ -385,7 +385,7 @@ class EnvironmentManager {
       VERCEL_URL: process.env.VERCEL_URL,
 
       // Optional
-      TZ: process.env.TZ || "UTC",
+      APP_TIMEZONE: process.env.APP_TIMEZONE || "UTC",
     };
   }
 

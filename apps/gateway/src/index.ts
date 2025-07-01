@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import fastify from "fastify";
+import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
@@ -12,7 +12,6 @@ import {
   getMCPServersConfig,
   getGatewayConfig,
 } from "@mcp/utils";
-import { FastifyInstance } from "fastify";
 
 // Initialize MCP-compliant logger
 const logger = createMcpLogger("mcp-gateway");
@@ -20,7 +19,13 @@ const logger = createMcpLogger("mcp-gateway");
 // Setup global error handlers
 setupGlobalErrorHandlers(logger);
 
-async function main() {
+let serverInstance: FastifyInstance | null = null;
+
+async function createServer(): Promise<FastifyInstance> {
+  if (serverInstance) {
+    return serverInstance;
+  }
+
   logger.serverStartup(envConfig.GATEWAY_PORT, {
     service: "mcp-gateway",
     environment: envConfig.NODE_ENV,
@@ -39,9 +44,9 @@ async function main() {
     await mcpGateway.initialize();
 
     // Create Fastify server
-    const server: FastifyInstance = fastify({ 
+    const server: FastifyInstance = fastify({
       logger: false,
-      bodyLimit: config.gateway.maxRequestSizeMb * 1024 * 1024
+      bodyLimit: config.gateway.maxRequestSizeMb * 1024 * 1024,
     });
 
     // Register Security Middleware (must be first)
@@ -100,51 +105,6 @@ async function main() {
       mcpGateway.handleWebSocketConnection(connection);
     });
 
-    // Start server
-    const port = envConfig.GATEWAY_PORT;
-    await server.listen({ port, host: envConfig.GATEWAY_HOST });
-
-    logger.serverReady({
-      port,
-      host: envConfig.GATEWAY_HOST,
-      endpoints: ["/health", "/mcp", "/mcp/ws"],
-    });
-
-    logger.info(`🚀 MCP Gateway running on port ${port}`);
-    logger.info(`📋 Health check: http://localhost:${port}/health`);
-    logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
-    logger.info(`🌐 WebSocket MCP endpoint: ws://localhost:${port}/mcp/ws`);
-    
-    // Security Information
-    if (config.gateway.requireApiKey) {
-      logger.info(`🔐 API Key Authentication: ENABLED`);
-      if (envConfig.NODE_ENV === "development") {
-        logger.info(`🔑 Dev API Key: ${envConfig.MCP_API_KEY}`);
-        logger.info(`📝 Example request: curl -H "x-api-key: ${envConfig.MCP_API_KEY}" http://localhost:${port}/health`);
-      }
-    } else {
-      logger.info(`🔐 API Key Authentication: DISABLED (development mode)`);
-    }
-    
-    if (config.gateway.enableRateLimit) {
-      logger.info(`⏱️  Rate Limiting: ${config.gateway.rateLimitPerMinute} requests/minute`);
-    }
-    
-    logger.info("\n📡 Active MCP servers:");
-    Object.entries(config.servers).forEach(
-      ([name, serverConfig]: [string, any]) => {
-        logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
-      }
-    );
-
-    // Generate secure API key for production setup
-    if (envConfig.NODE_ENV === "production" && envConfig.MCP_API_KEY.includes("dev-")) {
-      logger.warn("\n🚨 PRODUCTION SECURITY WARNING:");
-      logger.warn("   Default API key detected in production!");
-      logger.warn(`   Generate a secure key: ${generateSecureApiKey()}`);
-      logger.warn("   Set MCP_API_KEY environment variable");
-    }
-
     // Graceful shutdown
     const close = async () => {
       await mcpGateway.shutdown();
@@ -162,6 +122,74 @@ async function main() {
       await close();
       process.exit(0);
     });
+
+    serverInstance = server;
+    return server;
+  } catch (error) {
+    logger.error("Failed to initialize MCP Gateway", error as Error);
+    process.exit(1);
+  }
+}
+
+async function main() {
+  const server = await createServer();
+  const config = {
+    servers: getMCPServersConfig(envConfig.NODE_ENV),
+    gateway: getGatewayConfig(envConfig.NODE_ENV),
+  };
+
+  try {
+    // Start server
+    const port = envConfig.GATEWAY_PORT;
+    await server.listen({ port, host: envConfig.GATEWAY_HOST });
+
+    logger.serverReady({
+      port,
+      host: envConfig.GATEWAY_HOST,
+      endpoints: ["/health", "/mcp", "/mcp/ws"],
+    });
+
+    logger.info(`🚀 MCP Gateway running on port ${port}`);
+    logger.info(`📋 Health check: http://localhost:${port}/health`);
+    logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
+    logger.info(`🌐 WebSocket MCP endpoint: ws://localhost:${port}/mcp/ws`);
+
+    // Security Information
+    if (config.gateway.requireApiKey) {
+      logger.info(`🔐 API Key Authentication: ENABLED`);
+      if (envConfig.NODE_ENV === "development") {
+        logger.info(`🔑 Dev API Key: ${envConfig.MCP_API_KEY}`);
+        logger.info(
+          `📝 Example request: curl -H "x-api-key: ${envConfig.MCP_API_KEY}" http://localhost:${port}/health`
+        );
+      }
+    } else {
+      logger.info(`🔐 API Key Authentication: DISABLED (development mode)`);
+    }
+
+    if (config.gateway.enableRateLimit) {
+      logger.info(
+        `⏱️  Rate Limiting: ${config.gateway.rateLimitPerMinute} requests/minute`
+      );
+    }
+
+    logger.info("\n📡 Active MCP servers:");
+    Object.entries(config.servers).forEach(
+      ([name, serverConfig]: [string, any]) => {
+        logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
+      }
+    );
+
+    // Generate secure API key for production setup
+    if (
+      envConfig.NODE_ENV === "production" &&
+      envConfig.MCP_API_KEY.includes("dev-")
+    ) {
+      logger.warn("\n🚨 PRODUCTION SECURITY WARNING:");
+      logger.warn("   Default API key detected in production!");
+      logger.warn(`   Generate a secure key: ${generateSecureApiKey()}`);
+      logger.warn("   Set MCP_API_KEY environment variable");
+    }
   } catch (error) {
     logger.error("Failed to start MCP Gateway", error as Error);
     process.exit(1);
@@ -170,8 +198,11 @@ async function main() {
 
 // Start the gateway
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main().catch((error) => {
-    logger.error("Gateway startup failed", error);
-    process.exit(1);
-  });
+  main();
 }
+
+export default async (req: any, res: any) => {
+  const server = await createServer();
+  await server.ready();
+  server.server.emit("request", req, res);
+};

@@ -1,46 +1,15 @@
 {
   "$schema": "https://openapi.vercel.com/spec/vercel-json-v1",
-  "git": {
-    "deploymentEnabled": {
-      "gateway": false,
-      "linear-mcp-server": false,
-      "query-quill-mcp-server": false,
-      "dev-tools": false,
-      "schemas": false,
-      "utils": false
-    }
-  },
   "version": 2,
   "name": "omni-mcp-gateway",
   "framework": "other",
-  "buildCommand": "pnpm build",
+  "buildCommand": "pnpm build:gateway",
   "installCommand": "pnpm install",
   "outputDirectory": "apps/gateway/dist",
-  "functions": {
-    "apps/gateway/dist/index.js": {
-      "runtime": "nodejs18.x",
-      "maxDuration": 30
-    }
-  },
   "routes": [
     {
-      "src": "/health",
-      "dest": "/api/gateway",
-      "methods": ["GET"]
-    },
-    {
-      "src": "/mcp",
-      "dest": "/api/gateway",
-      "methods": ["POST", "OPTIONS"]
-    },
-    {
-      "src": "/mcp/ws",
-      "dest": "/api/gateway",
-      "methods": ["GET"]
-    },
-    {
       "src": "/(.*)",
-      "dest": "/api/gateway"
+      "dest": "/apps/gateway/dist/index.js"
     }
   ],
   "env": {

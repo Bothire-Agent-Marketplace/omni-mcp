@@ -4,6 +4,7 @@
   "packageManager": "pnpm@9.15.2",
   "scripts": {
     "build": "turbo build",
+    "build:gateway": "turbo build --filter=@mcp/gateway...",
     "build:docker": "pnpm --filter dev-tools docker:build",
     "build:docker:all": "pnpm --filter dev-tools docker:build:all",
     "build:all": "pnpm build && pnpm build:docker:all",
