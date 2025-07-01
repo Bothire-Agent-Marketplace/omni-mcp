@@ -4,6 +4,7 @@ import fastify from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
+import { registerSecurityMiddleware, generateSecureApiKey } from "./middleware/security.js";
 import {
   createMcpLogger,
   setupGlobalErrorHandlers,
@@ -38,13 +39,32 @@ async function main() {
     await mcpGateway.initialize();
 
     // Create Fastify server
-    const server: FastifyInstance = fastify({ logger: false });
+    const server: FastifyInstance = fastify({ 
+      logger: false,
+      bodyLimit: config.gateway.maxRequestSizeMb * 1024 * 1024
+    });
 
-    // Middleware
+    // Register Security Middleware (must be first)
+    await registerSecurityMiddleware(server, {
+      enableRateLimit: config.gateway.enableRateLimit,
+      rateLimitPerMinute: config.gateway.rateLimitPerMinute,
+      requireApiKey: config.gateway.requireApiKey,
+      apiKey: envConfig.MCP_API_KEY,
+      maxRequestSizeMb: config.gateway.maxRequestSizeMb,
+      allowedOrigins: config.gateway.allowedOrigins,
+      corsCredentials: config.gateway.corsCredentials,
+      securityHeaders: config.gateway.securityHeaders,
+    });
+
+    // CORS Middleware
     server.register(cors, {
       origin: config.gateway.allowedOrigins,
-      credentials: true,
+      credentials: config.gateway.corsCredentials,
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
     });
+
+    // WebSocket Support
     server.register(websocket);
 
     // Health check endpoint
@@ -94,13 +114,36 @@ async function main() {
     logger.info(`📋 Health check: http://localhost:${port}/health`);
     logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
     logger.info(`🌐 WebSocket MCP endpoint: ws://localhost:${port}/mcp/ws`);
+    
+    // Security Information
+    if (config.gateway.requireApiKey) {
+      logger.info(`🔐 API Key Authentication: ENABLED`);
+      if (envConfig.NODE_ENV === "development") {
+        logger.info(`🔑 Dev API Key: ${envConfig.MCP_API_KEY}`);
+        logger.info(`📝 Example request: curl -H "x-api-key: ${envConfig.MCP_API_KEY}" http://localhost:${port}/health`);
+      }
+    } else {
+      logger.info(`🔐 API Key Authentication: DISABLED (development mode)`);
+    }
+    
+    if (config.gateway.enableRateLimit) {
+      logger.info(`⏱️  Rate Limiting: ${config.gateway.rateLimitPerMinute} requests/minute`);
+    }
+    
     logger.info("\n📡 Active MCP servers:");
-
     Object.entries(config.servers).forEach(
       ([name, serverConfig]: [string, any]) => {
         logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
       }
     );
+
+    // Generate secure API key for production setup
+    if (envConfig.NODE_ENV === "production" && envConfig.MCP_API_KEY.includes("dev-")) {
+      logger.warn("\n🚨 PRODUCTION SECURITY WARNING:");
+      logger.warn("   Default API key detected in production!");
+      logger.warn(`   Generate a secure key: ${generateSecureApiKey()}`);
+      logger.warn("   Set MCP_API_KEY environment variable");
+    }
 
     // Graceful shutdown
     const close = async () => {

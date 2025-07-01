@@ -38,7 +38,7 @@ export function createHttpServer(): FastifyInstance {
 
   server.get(
     "/health",
-    async (request: FastifyRequest, reply: FastifyReply) => {
+    async () => {
       return { status: "ok" };
     }
   );
