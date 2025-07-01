@@ -1,9 +1,20 @@
-import express, { type Express } from "express";
+import express, {
+  type Express,
+  Request,
+  Response,
+  NextFunction,
+} from "express";
 import cors from "cors";
 import { createMcpLogger } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
 const logger = createMcpLogger("linear-http-server");
+
+// Utility function to wrap async route handlers for cleaner error handling
+const asyncHandler =
+  (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 
 // A simple mapping from MCP tool names to their handler functions.
 const toolHandlerMap: Record<string, (params: any) => Promise<any>> = {
@@ -25,57 +36,76 @@ export function createHttpServer(): Express {
   });
 
   // Main MCP endpoint
-  app.post("/mcp", async (req, res) => {
-    const { jsonrpc, method, params, id } = req.body;
+  app.post(
+    "/mcp",
+    asyncHandler(async (req: Request, res: Response) => {
+      const { jsonrpc, method, params, id } = req.body;
 
-    if (jsonrpc !== "2.0" || !method) {
-      return res.status(400).json({
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32600, message: "Invalid Request" },
-      });
-    }
+      if (jsonrpc !== "2.0" || !method) {
+        res.status(400).json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32600, message: "Invalid Request" },
+        });
+        return;
+      }
 
-    // This is a simplified router. A more robust implementation would
-    // handle different method types like 'resources/read', etc.
-    if (method !== "tools/call") {
-      return res.status(404).json({
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32601, message: "Method not found" },
-      });
-    }
+      // This is a simplified router. A more robust implementation would
+      // handle different method types like 'resources/read', etc.
+      if (method !== "tools/call") {
+        res.status(404).json({
+          jsonrpc: "2.0",
+          id,
+          error: { code: -32601, message: "Method not found" },
+        });
+        return;
+      }
 
-    const toolName = params?.name;
-    const handler = toolHandlerMap[toolName];
+      const toolName = params?.name;
+      const handler = toolHandlerMap[toolName];
 
-    if (!handler) {
-      return res.status(404).json({
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32601,
-          message: "Method not found",
-          data: `Tool handler for '${toolName}' not found.`,
-        },
-      });
-    }
+      if (!handler) {
+        res.status(404).json({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32601,
+            message: "Method not found",
+            data: `Tool handler for '${toolName}' not found.`,
+          },
+        });
+        return;
+      }
 
-    try {
-      const result = await handler(params?.arguments || {});
-      res.json({ jsonrpc: "2.0", id, result });
-    } catch (error: any) {
-      logger.error("Handler error", error);
-      res.status(500).json({
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32603,
-          message: "Internal error",
-          data: error.message,
-        },
-      });
-    }
+      try {
+        const result = await handler(params?.arguments || {});
+        res.json({ jsonrpc: "2.0", id, result });
+      } catch (error: any) {
+        logger.error("Handler error", error);
+        res.status(500).json({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32603,
+            message: "Internal error",
+            data: error.message,
+          },
+        });
+      }
+    })
+  );
+
+  // Error handling middleware
+  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    logger.error("Unhandled error:", err);
+    res.status(500).json({
+      jsonrpc: "2.0",
+      error: {
+        code: -32603,
+        message: "Internal server error",
+        data: err.message,
+      },
+    });
   });
 
   return app;
