@@ -13,7 +13,7 @@
 PROJECT_NAME := omni-mcp
 COMPOSE_FILE := docker-compose.yml
 COMPOSE_DEV_FILE := docker-compose.dev.yml
-ENV_FILE := .env.development.local
+ENV_FILE := secrets/.env.development.local
 
 # =============================================================================
 # Help & Information
@@ -51,7 +51,7 @@ dev: ## Start development environment with hot reload
 	@echo "🚀 Starting development environment..."
 	@echo "🧹 Cleaning up any existing processes..."
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) down 2>/dev/null || true
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) up --build
 
 dev-local: ## Start local development with Claude Desktop integration
 	@echo "🛠️ Starting local development with Claude Desktop integration..."
@@ -67,7 +67,7 @@ dev-detached: ## Start development environment in background
 	@echo "🚀 Starting development environment (detached)..."
 	@echo "🧹 Cleaning up any existing processes..."
 	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) down 2>/dev/null || true
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up --build -d
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) up --build -d
 
 dev-gateway: ## Start only the MCP Gateway for on-demand server spawning
 	@echo "🚀 Starting MCP Gateway in on-demand mode..."
@@ -78,11 +78,11 @@ dev-gateway: ## Start only the MCP Gateway for on-demand server spawning
 	@echo "🔧 Ensuring Linear server is built..."
 	@cd servers/linear-mcp-server && pnpm build
 	@echo "🌐 Starting gateway with on-demand server spawning..."
-	@if [ ! -f .env.development.local ]; then \
-		echo "❌ .env.development.local not found. Run 'make setup' first."; \
+	@if [ ! -f $(ENV_FILE) ]; then \
+		echo "❌ $(ENV_FILE) not found. Run 'make setup' first."; \
 		exit 1; \
 	fi
-	@export $$(grep -v '^#' .env.development.local | grep -v '^$$' | xargs) && cd gateway && pnpm dev
+	@export $$(grep -v '^#' $(ENV_FILE) | grep -v '^$$' | xargs) && cd gateway && pnpm dev
 
 dev-down: ## Stop development environment
 	@echo "🛑 Stopping development environment..."
@@ -108,80 +108,240 @@ build-no-cache: ## Build all Docker images without cache
 
 dev-tools: ## Start only development tools (pgAdmin, mailhog, etc.)
 	@echo "🔧 Starting development tools..."
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local up pgadmin mailhog redis -d
+	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file $(ENV_FILE) up pgadmin mailhog redis -d
 
-##@ 📊 Monitoring & Logs
-logs: ## Real-time logs for all services (Docker + Local)
-	@echo "🚀 Real-time MCP & Service Monitoring"
-	@echo "====================================="
+##@ 📊 Unified Logging & Request Tracing
+logs: ## Real-time unified logs for all services with request correlation
+	@echo "🚀 Unified MCP Request Tracing & Service Monitoring"
+	@echo "=================================================="
+	@echo "🔍 Showing structured logs from all MCP services"
+	@echo "📡 Request correlation via requestId tracking"
+	@echo "⚡ Real-time tail with JSON parsing"
 	@echo ""
-	@echo "🐳 Docker Services (real-time tail):"
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps
+	@$(MAKE) logs-unified
 
-logs-mcp-only: ## Real-time logs for MCP servers only
-	@echo "🔧 Real-time MCP Servers Only"
+logs-unified: ## Unified structured logging with request correlation
+	@echo "🌐 Starting unified MCP logging (Ctrl+C to stop)..."
+	@echo ""
+	@pnpm dev 2>&1 | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		if echo "$$line" | grep -q '"timestamp".*"level".*"message"'; then \
+			service=$$(echo "$$line" | jq -r '.serverName // "unknown"' 2>/dev/null || echo "unknown"); \
+			level=$$(echo "$$line" | jq -r '.level // "info"' 2>/dev/null || echo "info"); \
+			message=$$(echo "$$line" | jq -r '.message // "no message"' 2>/dev/null || echo "no message"); \
+			requestId=$$(echo "$$line" | jq -r '.requestId // empty' 2>/dev/null || echo ""); \
+			method=$$(echo "$$line" | jq -r '.method // empty' 2>/dev/null || echo ""); \
+			phase=$$(echo "$$line" | jq -r '.phase // empty' 2>/dev/null || echo ""); \
+			if [ "$$level" = "error" ]; then \
+				printf "\033[31m[$$timestamp]\033[0m \033[91m$$level\033[0m \033[36m$$service\033[0m"; \
+			elif [ "$$level" = "warn" ]; then \
+				printf "\033[33m[$$timestamp]\033[0m \033[93m$$level\033[0m \033[36m$$service\033[0m"; \
+			elif [ "$$level" = "info" ]; then \
+				printf "\033[32m[$$timestamp]\033[0m \033[92m$$level\033[0m \033[36m$$service\033[0m"; \
+			else \
+				printf "\033[37m[$$timestamp]\033[0m \033[37m$$level\033[0m \033[36m$$service\033[0m"; \
+			fi; \
+			if [ -n "$$requestId" ]; then \
+				printf " \033[35mreq:$$requestId\033[0m"; \
+			fi; \
+			if [ -n "$$method" ]; then \
+				printf " \033[34m$$method\033[0m"; \
+			fi; \
+			if [ -n "$$phase" ]; then \
+				printf " \033[90m($$phase)\033[0m"; \
+			fi; \
+			printf " $$message\n"; \
+		else \
+			service=$$(echo "$$line" | sed -n 's/.*@\([^:]*\):dev:.*/\1/p' | head -1); \
+			if [ -n "$$service" ]; then \
+				clean_line=$$(echo "$$line" | sed 's/.*@[^:]*:dev: //'); \
+				printf "\033[37m[$$timestamp]\033[0m \033[90mraw\033[0m \033[36m$$service\033[0m $$clean_line\n"; \
+			else \
+				printf "\033[37m[$$timestamp]\033[0m \033[90msystem\033[0m $$line\n"; \
+			fi; \
+		fi; \
+	done
+
+logs-mcp-only: ## Real-time logs for MCP servers with request tracing
+	@echo "🔧 MCP Servers Request Tracing"
 	@echo "=============================="
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps linear-mcp-server filesystem-mcp-server mcp-gateway 2>/dev/null || \
-	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=20 --timestamps linear-mcp-server filesystem-mcp-server
-
-logs-local: ## Monitor local MCP servers (direct connections)
-	@echo "🖥️ Local MCP Server Monitoring"
-	@echo "==============================="
-	@echo "💡 For real-time local MCP logs, run in separate terminal:"
-	@echo "   log stream --predicate 'process CONTAINS \"node\" AND message CONTAINS \"Linear\"' --info"
+	@echo "🎯 Filtering: Linear server, Gateway, Tool executions"
 	@echo ""
-	@echo "🔍 Alternative - Monitor all node processes:"
-	@echo "   log stream --predicate 'process CONTAINS \"node\"' --info | grep -i mcp"
+	@pnpm dev 2>&1 | grep -E "(linear-mcp-server|mcp-gateway|toolExecution|mcpRequest)" | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		if echo "$$line" | grep -q '"requestId"'; then \
+			requestId=$$(echo "$$line" | jq -r '.requestId // "no-id"' 2>/dev/null); \
+			method=$$(echo "$$line" | jq -r '.method // .toolName // "unknown"' 2>/dev/null); \
+			printf "\033[35m[$$timestamp] 🔗 $$requestId\033[0m \033[34m$$method\033[0m\n"; \
+		fi; \
+		printf "\033[37m[$$timestamp]\033[0m $$line\n"; \
+	done
 
-tail: ## Real-time tail of ALL activity (MCP + Infrastructure)  
-	@echo "📡 Real-time tail of everything..."
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs -f --tail=10 --timestamps
-
-test-all-mcp: ## Test all MCP servers manually
-	@echo "🧪 Testing all MCP servers..."
-	@echo ""
-	@echo "📝 Linear MCP Server (local):"
-	@if [ -f servers/linear-mcp-server/dist/index.js ]; then \
-		cd servers/linear-mcp-server && echo '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | node dist/index.js 2>/dev/null || echo "✅ Linear server responded"; \
-	else \
-		echo "❌ Linear server not built. Run: pnpm build"; \
+logs-trace: ## Trace specific request by ID (usage: make logs-trace REQ_ID=req_123)
+	@if [ -z "$(REQ_ID)" ]; then \
+		echo "❌ Please specify REQ_ID: make logs-trace REQ_ID=req_123456"; \
+		exit 1; \
 	fi
-	@echo ""
-	@echo "🐳 Docker MCP Servers:"
-	@echo "  → Filesystem: $(shell docker ps --format '{{.Names}}' | grep filesystem-mcp || echo '❌ Not running')"
-	@echo "  → Database Toolbox: $(shell docker ps --format '{{.Names}}' | grep database || echo '❌ Not running')" 
-	@echo "  → Gateway: $(shell docker ps --format '{{.Names}}' | grep mcp-gateway || echo '❌ Not running')"
-	@echo "  → Linear (Docker): $(shell docker ps --format '{{.Names}}' | grep linear-mcp || echo '❌ Not running')"
+	@echo "🔍 Tracing request: $(REQ_ID)"
+	@echo "=========================="
+	@pnpm dev 2>&1 | grep "$(REQ_ID)" | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		phase=$$(echo "$$line" | jq -r '.phase // "unknown"' 2>/dev/null); \
+		service=$$(echo "$$line" | jq -r '.serverName // "unknown"' 2>/dev/null); \
+		printf "\033[35m[$$timestamp] 🔗 $(REQ_ID)\033[0m \033[36m$$service\033[0m \033[90m$$phase\033[0m\n"; \
+		echo "$$line" | jq . 2>/dev/null || echo "$$line"; \
+	done
 
-validate-mcp-pattern: ## Validate that MCP servers follow the enterprise pattern
-	@echo "🔍 Validating MCP Server Enterprise Pattern Compliance"
-	@echo "===================================================="
+logs-performance: ## Monitor performance metrics and timing
+	@echo "⚡ MCP Performance Monitoring"
+	@echo "============================="
+	@echo "🎯 Tracking: Tool execution times, request durations"
 	@echo ""
-	@echo "📋 Checking Linear MCP Server (Gold Standard):"
-	@echo "  ✅ Shared Type Usage:"
-	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/tools.ts && echo "    ✅ tools.ts imports @mcp/schemas" || echo "    ❌ tools.ts missing @mcp/schemas import"
-	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/resources.ts && echo "    ✅ resources.ts imports @mcp/schemas" || echo "    ❌ resources.ts missing @mcp/schemas import"
-	@grep -q "@mcp/schemas" servers/linear-mcp-server/src/mcp-server/prompts.ts && echo "    ✅ prompts.ts imports @mcp/schemas" || echo "    ❌ prompts.ts missing @mcp/schemas import"
-	@echo ""
-	@echo "  ✅ No Local Type Definitions:"
-	@! grep -q "interface.*Tool\|interface.*Resource\|interface.*Prompt" servers/linear-mcp-server/src/mcp-server/tools.ts servers/linear-mcp-server/src/mcp-server/resources.ts servers/linear-mcp-server/src/mcp-server/prompts.ts 2>/dev/null && echo "    ✅ No local type redefinitions found" || echo "    ❌ Found local type redefinitions"
-	@echo ""
-	@echo "  ✅ Shared Constants Usage:"
-	@grep -q "LINEAR_TOOLS\|LINEAR_RESOURCES\|LINEAR_PROMPTS" servers/linear-mcp-server/src/mcp-server/tools.ts servers/linear-mcp-server/src/mcp-server/resources.ts servers/linear-mcp-server/src/mcp-server/prompts.ts && echo "    ✅ Uses shared schema constants" || echo "    ❌ Missing shared schema constants"
-	@echo ""
-	@echo "  ✅ McpResponse Pattern:"
-	@grep -q "McpResponse" servers/linear-mcp-server/src/mcp-server/tools/linear-tools.ts && echo "    ✅ Uses McpResponse<T> pattern" || echo "    ❌ Missing McpResponse<T> pattern"
-	@echo ""
-	@echo "📖 Pattern Documentation: MCP_SERVER_PATTERN.md"
-	@echo "🏆 Gold Standard Reference: servers/linear-mcp-server/"
+	@pnpm dev 2>&1 | grep -E "(duration|timing|completed|performance)" | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		if echo "$$line" | grep -q '"duration"'; then \
+			duration=$$(echo "$$line" | jq -r '.duration // 0' 2>/dev/null); \
+			toolName=$$(echo "$$line" | jq -r '.toolName // .method // "unknown"' 2>/dev/null); \
+			if [ "$$duration" -gt 1000 ]; then \
+				printf "\033[31m[$$timestamp] ⚠️  SLOW ($$duration ms)\033[0m \033[34m$$toolName\033[0m\n"; \
+			elif [ "$$duration" -gt 500 ]; then \
+				printf "\033[33m[$$timestamp] ⚡ $$duration ms\033[0m \033[34m$$toolName\033[0m\n"; \
+			else \
+				printf "\033[32m[$$timestamp] ✅ $$duration ms\033[0m \033[34m$$toolName\033[0m\n"; \
+			fi; \
+		else \
+			printf "\033[37m[$$timestamp]\033[0m $$line\n"; \
+		fi; \
+	done
 
-status: ## Show status of all services
-	@echo "📊 Service Status:"
-	@docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) --env-file .env.development.local ps
+logs-errors: ## Monitor errors and failures across all services
+	@echo "🚨 Error Monitoring"
+	@echo "=================="
+	@echo "🎯 Tracking: Errors, failures, exceptions"
+	@echo ""
+	@pnpm dev 2>&1 | grep -E "(error|Error|ERROR|failed|Failed|exception)" | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		if echo "$$line" | grep -q '"level":"error"'; then \
+			service=$$(echo "$$line" | jq -r '.serverName // "unknown"' 2>/dev/null); \
+			message=$$(echo "$$line" | jq -r '.message // "no message"' 2>/dev/null); \
+			printf "\033[31m[$$timestamp] 🚨 ERROR\033[0m \033[36m$$service\033[0m $$message\n"; \
+			errorStack=$$(echo "$$line" | jq -r '.errorStack // empty' 2>/dev/null); \
+			if [ -n "$$errorStack" ]; then \
+				echo "$$errorStack" | head -3 | sed 's/^/  \033[90m|\033[0m /'; \
+			fi; \
+		else \
+			printf "\033[31m[$$timestamp] ❌\033[0m $$line\n"; \
+		fi; \
+	done
 
-health: ## Check health of all services
-	@echo "🏥 Health Check:"
-	@docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" --filter "name=$(PROJECT_NAME)"
+logs-json: ## Raw JSON logs for external processing
+	@echo "📄 Raw JSON MCP Logs"
+	@echo "===================="
+	@pnpm dev 2>&1 | grep -E '"timestamp".*"level".*"message"' | \
+	while IFS= read -r line; do \
+		echo "$$line" | jq -c .; \
+	done
+
+logs-dev: ## Development-friendly logs with syntax highlighting
+	@echo "🛠️  Development Logs"
+	@echo "==================="
+	@pnpm dev 2>&1 | \
+	while IFS= read -r line; do \
+		timestamp=$$(date '+%H:%M:%S.%3N'); \
+		if echo "$$line" | grep -q '"timestamp"'; then \
+			echo "$$line" | jq . 2>/dev/null | sed "s/^/\033[37m[$$timestamp]\033[0m /" || echo "$$line"; \
+		else \
+			printf "\033[37m[$$timestamp]\033[0m $$line\n"; \
+		fi; \
+	done
+
+##@ 🔍 Request Testing & Tracing
+test-linear-with-trace: ## Test Linear API with full request tracing
+	@echo "🧪 Testing Linear MCP with Request Tracing"
+	@echo "=========================================="
+	@echo "🚀 Starting services..."
+	@$(MAKE) dev-detached
+	@sleep 8
+	@echo ""
+	@echo "🔍 Making Linear API call with trace..."
+	@REQUEST_ID=$$(date +%s)_test; \
+	echo "📡 Request ID: $$REQUEST_ID"; \
+	curl -X POST http://localhost:37373/mcp \
+		-H "Content-Type: application/json" \
+		-H "X-Request-ID: $$REQUEST_ID" \
+		-d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"linear_search_issues","arguments":{"limit":3}}}' \
+		2>/dev/null | jq . && \
+	echo "" && \
+	echo "🔍 Checking logs for request: $$REQUEST_ID" && \
+	docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs --since=30s | grep "$$REQUEST_ID" || echo "No trace found in Docker logs"
+
+test-all-endpoints: ## Test all MCP endpoints with tracing
+	@echo "🧪 Testing All MCP Endpoints"
+	@echo "============================"
+	@$(MAKE) dev-detached
+	@sleep 8
+	@echo ""
+	@echo "📋 Testing tools/list..."
+	@curl -s -X POST http://localhost:37373/mcp -H "Content-Type: application/json" \
+		-d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' | jq '.data.tools[].name'
+	@echo ""
+	@echo "📋 Testing resources/list..."
+	@curl -s -X POST http://localhost:37373/mcp -H "Content-Type: application/json" \
+		-d '{"jsonrpc":"2.0","id":2,"method":"resources/list","params":{}}' | jq '.data.resources[].name'
+	@echo ""
+	@echo "📋 Testing prompts/list..."
+	@curl -s -X POST http://localhost:37373/mcp -H "Content-Type: application/json" \
+		-d '{"jsonrpc":"2.0","id":3,"method":"prompts/list","params":{}}' | jq '.data.prompts[].name'
+
+##@ 📊 Service Monitoring
+monitor: ## Real-time service monitoring dashboard
+	@echo "📊 MCP Service Monitoring Dashboard"
+	@echo "==================================="
+	@while true; do \
+		clear; \
+		echo "📊 MCP Services Status - $$(date '+%H:%M:%S')"; \
+		echo "=========================================="; \
+		echo ""; \
+		echo "🐳 Docker Services:"; \
+		docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || echo "  No Docker services running"; \
+		echo ""; \
+		echo "🌐 Network Endpoints:"; \
+		curl -s http://localhost:37373/health 2>/dev/null | jq -r '"  Gateway: " + .status' || echo "  Gateway: ❌ Not responding"; \
+		echo ""; \
+		echo "📈 Recent Activity (last 10 lines):"; \
+		docker-compose -f $(COMPOSE_FILE) -f $(COMPOSE_DEV_FILE) logs --tail=10 --timestamps 2>/dev/null | tail -5 | sed 's/^/  /' || echo "  No recent activity"; \
+		echo ""; \
+		echo "Press Ctrl+C to stop monitoring..."; \
+		sleep 5; \
+	done
+
+##@ 🧪 Advanced Testing
+stress-test: ## Stress test MCP services with concurrent requests
+	@echo "⚡ MCP Stress Testing"
+	@echo "==================="
+	@$(MAKE) dev-detached
+	@sleep 8
+	@echo "🚀 Sending 10 concurrent Linear search requests..."
+	@for i in $$(seq 1 10); do \
+		(curl -s -X POST http://localhost:37373/mcp \
+			-H "Content-Type: application/json" \
+			-d "{\"jsonrpc\":\"2.0\",\"id\":$$i,\"method\":\"tools/call\",\"params\":{\"name\":\"linear_search_issues\",\"arguments\":{\"limit\":2}}}" \
+			> /tmp/mcp_test_$$i.json &); \
+	done; \
+	wait; \
+	echo "✅ All requests completed. Results:"; \
+	for i in $$(seq 1 10); do \
+		if [ -f /tmp/mcp_test_$$i.json ]; then \
+			success=$$(cat /tmp/mcp_test_$$i.json | jq -r '.success // false'); \
+			echo "  Request $$i: $$success"; \
+			rm -f /tmp/mcp_test_$$i.json; \
+		fi; \
+	done
 
 ##@ 🧪 Testing & Quality
 test: ## Run all tests

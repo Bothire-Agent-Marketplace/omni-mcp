@@ -1,8 +1,8 @@
 import { WebSocket } from "ws";
-import { Logger } from "@mcp/utils";
-import { ServerManager } from "./server-manager.js";
-import { SessionManager } from "./session-manager.js";
-import { ProtocolAdapter } from "./protocol-adapter.js";
+import { MCPServerManager } from "./server-manager.js";
+import { MCPSessionManager } from "./session-manager.js";
+import { MCPProtocolAdapter } from "./protocol-adapter.js";
+import { createMcpLogger } from "@mcp/utils";
 import {
   MasterConfig,
   MCPRequest,
@@ -12,18 +12,18 @@ import {
 } from "./types.js";
 
 export class MCPGateway {
-  private logger = Logger.getInstance("mcp-gateway-core");
+  private logger = createMcpLogger("mcp-gateway-core");
   private config: MasterConfig;
-  private serverManager: ServerManager;
-  private sessionManager: SessionManager;
-  private protocolAdapter: ProtocolAdapter;
+  private serverManager: MCPServerManager;
+  private sessionManager: MCPSessionManager;
+  private protocolAdapter: MCPProtocolAdapter;
   private capabilityMap = new Map<string, string[]>();
 
   constructor(config: MasterConfig) {
     this.config = config;
-    this.serverManager = new ServerManager(config.servers);
-    this.sessionManager = new SessionManager(config.gateway);
-    this.protocolAdapter = new ProtocolAdapter();
+    this.serverManager = new MCPServerManager(config.servers);
+    this.sessionManager = new MCPSessionManager(config.gateway);
+    this.protocolAdapter = new MCPProtocolAdapter();
 
     // Build capability map
     this.buildCapabilityMap();
@@ -36,7 +36,10 @@ export class MCPGateway {
       await this.serverManager.initialize();
       this.logger.info("MCP Gateway initialized successfully");
     } catch (error) {
-      this.logger.error("Failed to initialize MCP Gateway:", error);
+      this.logger.error(
+        "Failed to initialize MCP Gateway",
+        error instanceof Error ? error : new Error(String(error))
+      );
       throw error;
     }
   }
@@ -49,7 +52,10 @@ export class MCPGateway {
       this.sessionManager.shutdown();
       this.logger.info("MCP Gateway shutdown complete");
     } catch (error) {
-      this.logger.error("Error during gateway shutdown:", error);
+      this.logger.error(
+        "Error during gateway shutdown",
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 
@@ -90,7 +96,10 @@ export class MCPGateway {
 
       return httpResponse;
     } catch (error) {
-      this.logger.error("HTTP request handling error:", error);
+      this.logger.error(
+        "HTTP request handling error",
+        error instanceof Error ? error : new Error(String(error))
+      );
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
@@ -121,7 +130,7 @@ export class MCPGateway {
     ws.on("message", async (data: Buffer) => {
       try {
         const message = data.toString();
-        this.logger.debug("Received WebSocket message:", message);
+        this.logger.debug("Received WebSocket message", { message });
 
         const mcpRequest = this.protocolAdapter.handleWebSocketMessage(
           ws,
@@ -135,7 +144,10 @@ export class MCPGateway {
         );
         this.protocolAdapter.sendWebSocketResponse(ws, mcpResponse);
       } catch (error) {
-        this.logger.error("WebSocket message handling error:", error);
+        this.logger.error(
+          "WebSocket message handling error",
+          error instanceof Error ? error : new Error(String(error))
+        );
 
         const errorResponse: MCPResponse = {
           jsonrpc: "2.0",
@@ -171,6 +183,18 @@ export class MCPGateway {
     request: MCPRequest,
     session: Session
   ): Promise<MCPResponse> {
+    const requestId = `req_${Date.now()}_${Math.random()
+      .toString(36)
+      .substr(2, 9)}`;
+    const startTime = Date.now();
+
+    // Log incoming MCP request with full details
+    this.logger.mcpRequest(request.method, requestId, {
+      sessionId: session.id,
+      requestParams: request.params,
+      mcpRequestId: String(request.id),
+    });
+
     try {
       // Resolve capability to server
       const serverId = this.protocolAdapter.resolveCapability(
@@ -178,7 +202,23 @@ export class MCPGateway {
         this.capabilityMap
       );
 
+      this.logger.info(`Routing request to server: ${serverId}`, {
+        requestId,
+        method: request.method,
+        serverId,
+        phase: "routing_decision",
+      });
+
       if (!serverId) {
+        this.logger.error(
+          `No server found for capability: ${request.method}`,
+          undefined,
+          {
+            requestId,
+            method: request.method,
+            phase: "routing_failed",
+          }
+        );
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -197,6 +237,16 @@ export class MCPGateway {
       );
 
       if (!serverInstance) {
+        this.logger.error(
+          `No healthy server instances available for: ${serverId}`,
+          undefined,
+          {
+            requestId,
+            method: request.method,
+            serverId,
+            phase: "server_unavailable",
+          }
+        );
         return {
           jsonrpc: "2.0",
           id: request.id,
@@ -208,19 +258,44 @@ export class MCPGateway {
         };
       }
 
+      this.logger.info(`Executing request on server instance`, {
+        requestId,
+        method: request.method,
+        serverId,
+        serverInstanceId: serverInstance.id,
+        phase: "server_execution_start",
+      });
+
       try {
         // Execute request
         const response = await this.protocolAdapter.sendMCPRequest(
           serverInstance,
           request
         );
+
+        const duration = Date.now() - startTime;
+        this.logger.mcpResponse(request.method, requestId, true, duration, {
+          sessionId: session.id,
+          serverId,
+          serverInstanceId: serverInstance.id,
+        });
+
         return response;
       } finally {
         // Release server instance
         this.serverManager.releaseServerInstance(serverInstance);
       }
     } catch (error) {
-      this.logger.error("Error routing/executing request:", error);
+      const duration = Date.now() - startTime;
+      this.logger.mcpError(
+        request.method,
+        requestId,
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          sessionId: session.id,
+          duration,
+        }
+      );
 
       return {
         jsonrpc: "2.0",

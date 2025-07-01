@@ -1,4 +1,4 @@
-import { SessionManager } from "../../src/gateway/session-manager";
+import { MCPSessionManager } from "../../src/gateway/session-manager";
 import { GatewayConfig } from "../../src/gateway/types";
 
 // Mock the logger
@@ -13,8 +13,8 @@ jest.mock("@mcp/utils", () => ({
   },
 }));
 
-describe("SessionManager", () => {
-  let sessionManager: SessionManager;
+describe("MCPSessionManager", () => {
+  let sessionManager: MCPSessionManager;
   let mockConfig: GatewayConfig;
 
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe("SessionManager", () => {
       maxConcurrentSessions: 10,
     };
 
-    sessionManager = new SessionManager(mockConfig);
+    sessionManager = new MCPSessionManager(mockConfig);
   });
 
   afterEach(() => {

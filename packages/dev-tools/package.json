@@ -8,7 +8,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsx src/cli/index.ts",
+    "dev": "echo 'Dev-tools CLI is ready. Use: pnpm omni --help'",
     "watch:claude-config": "node watch-claude-config.js",
     "docker:build": "node docker-build.js",
     "docker:pull": "node external-docker.js",

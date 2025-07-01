@@ -1,11 +1,11 @@
-import { ProtocolAdapter } from "../../src/gateway/protocol-adapter";
+import { MCPProtocolAdapter } from "../../src/gateway/protocol-adapter";
 import { MCPRequest, MCPResponse } from "../../src/gateway/types";
 
-describe("ProtocolAdapter", () => {
-  let protocolAdapter: ProtocolAdapter;
+describe("MCPProtocolAdapter", () => {
+  let protocolAdapter: MCPProtocolAdapter;
 
   beforeEach(() => {
-    protocolAdapter = new ProtocolAdapter();
+    protocolAdapter = new MCPProtocolAdapter();
   });
 
   describe("handleHttpToMCP", () => {

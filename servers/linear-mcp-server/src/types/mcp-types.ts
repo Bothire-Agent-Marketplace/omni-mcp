@@ -1,106 +1,23 @@
-import { z } from "zod";
 import {
-  Tool,
-  Resource,
-  Prompt,
   ToolDefinition,
   ResourceDefinition,
   PromptDefinition,
   McpResponse,
-  ToolSchema,
-  ResourceSchema,
-  PromptSchema,
-} from "../mcp/types.js";
+} from "@mcp/schemas";
+import {
+  SearchIssuesArgs,
+  CreateIssueArgs,
+  UpdateIssueArgs,
+  LinearIssue,
+  LinearTeam,
+  LinearProject,
+  LinearWorkflowState,
+  LinearUser,
+} from "./linear-types.js";
 
 // ============================================================================
-// LINEAR-SPECIFIC MCP TYPES
+// LINEAR MCP DEFINITIONS - Server-specific
 // ============================================================================
-
-// Linear Issue Types
-export const LinearIssueSchema = z.object({
-  id: z.string(),
-  identifier: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  priority: z.number().min(0).max(4),
-  state: z.string().optional(),
-  assignee: z.string().optional(),
-  team: z.string().optional(),
-  url: z.string().url(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export const LinearTeamSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  key: z.string(),
-  description: z.string().optional(),
-});
-
-export const LinearProjectSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  teamId: z.string(),
-  state: z.string(),
-});
-
-export const LinearWorkflowStateSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  type: z.string(),
-  teamId: z.string(),
-});
-
-export const LinearUserSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  displayName: z.string().optional(),
-  email: z.string().email(),
-  active: z.boolean(),
-});
-
-export type LinearIssue = z.infer<typeof LinearIssueSchema>;
-export type LinearTeam = z.infer<typeof LinearTeamSchema>;
-export type LinearProject = z.infer<typeof LinearProjectSchema>;
-export type LinearWorkflowState = z.infer<typeof LinearWorkflowStateSchema>;
-export type LinearUser = z.infer<typeof LinearUserSchema>;
-
-// Linear Tool Argument Types
-export const SearchIssuesArgsSchema = z.object({
-  query: z.string().optional(),
-  teamId: z.string().optional(),
-  status: z.string().optional(),
-  assigneeId: z.string().optional(),
-  priority: z.number().min(0).max(4).optional(),
-  limit: z.number().min(1).max(50).default(10),
-});
-
-export const CreateIssueArgsSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().optional(),
-  teamId: z.string().min(1),
-  assigneeId: z.string().optional(),
-  priority: z.number().min(0).max(4).optional(),
-  labelIds: z.array(z.string()).optional(),
-  projectId: z.string().optional(),
-  estimate: z.number().min(0).optional(),
-});
-
-export const UpdateIssueArgsSchema = z.object({
-  issueId: z.string().min(1),
-  title: z.string().optional(),
-  description: z.string().optional(),
-  assigneeId: z.string().optional(),
-  priority: z.number().min(0).max(4).optional(),
-  stateId: z.string().optional(),
-  estimate: z.number().min(0).optional(),
-});
-
-export type SearchIssuesArgs = z.infer<typeof SearchIssuesArgsSchema>;
-export type CreateIssueArgs = z.infer<typeof CreateIssueArgsSchema>;
-export type UpdateIssueArgs = z.infer<typeof UpdateIssueArgsSchema>;
 
 // Linear Response Types
 export type LinearSearchResponse = McpResponse<{
@@ -125,7 +42,7 @@ export type LinearUsersResponse = McpResponse<{
   users: LinearUser[];
 }>;
 
-// Linear Tool Definitions (using readonly-compatible type)
+// Linear Tool Definitions
 export const LINEAR_TOOLS: readonly ToolDefinition[] = [
   {
     name: "linear_search_issues",
@@ -213,9 +130,51 @@ export const LINEAR_TOOLS: readonly ToolDefinition[] = [
       required: ["title", "teamId"],
     },
   },
+  {
+    name: "linear_update_issue",
+    description: "Update an existing Linear issue",
+    inputSchema: {
+      type: "object",
+      properties: {
+        issueId: {
+          type: "string",
+          description: "ID of the issue to update (required)",
+        },
+        title: {
+          type: "string",
+          description: "New issue title",
+        },
+        description: {
+          type: "string",
+          description: "New issue description",
+        },
+        assigneeId: {
+          type: "string",
+          description: "New assignee user ID",
+        },
+        priority: {
+          type: "number",
+          description:
+            "New priority (0=No priority, 1=Urgent, 2=High, 3=Normal, 4=Low)",
+          minimum: 0,
+          maximum: 4,
+        },
+        stateId: {
+          type: "string",
+          description: "New workflow state ID",
+        },
+        estimate: {
+          type: "number",
+          description: "New story point estimate",
+          minimum: 0,
+        },
+      },
+      required: ["issueId"],
+    },
+  },
 ] as const;
 
-// Linear Resource Definitions (using readonly-compatible type)
+// Linear Resource Definitions
 export const LINEAR_RESOURCES: readonly ResourceDefinition[] = [
   {
     uri: "linear://teams",
@@ -243,7 +202,7 @@ export const LINEAR_RESOURCES: readonly ResourceDefinition[] = [
   },
 ] as const;
 
-// Linear Prompt Definitions (using readonly-compatible type)
+// Linear Prompt Definitions
 export const LINEAR_PROMPTS: readonly PromptDefinition[] = [
   {
     name: "create_issue_workflow",

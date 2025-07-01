@@ -1,5 +1,6 @@
-import { LINEAR_RESOURCES, ResourceDefinition } from "@mcp/schemas";
+import { ResourceDefinition } from "@mcp/schemas";
+import { LINEAR_RESOURCES } from "../types/mcp-types.js";
 
-// Use standardized resource definitions from shared schemas
-// This ensures consistency across all MCP servers in the project
+// Use standardized resource definitions from server-specific types
+// This ensures the Linear server owns its resource definitions
 export const RESOURCES: readonly ResourceDefinition[] = LINEAR_RESOURCES;

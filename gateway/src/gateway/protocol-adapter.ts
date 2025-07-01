@@ -1,9 +1,9 @@
 import { WebSocket } from "ws";
-import { Logger } from "@mcp/utils";
+import { createMcpLogger } from "@mcp/utils";
 import { MCPRequest, MCPResponse, ServerInstance } from "./types.js";
 
-export class ProtocolAdapter {
-  private logger = Logger.getInstance("mcp-gateway-protocol-adapter");
+export class MCPProtocolAdapter {
+  private logger = createMcpLogger("mcp-gateway-protocol-adapter");
 
   async sendMCPRequest(
     instance: ServerInstance,
@@ -36,7 +36,10 @@ export class ProtocolAdapter {
             }
           }
         } catch (error) {
-          this.logger.error("Error parsing MCP response:", error);
+          this.logger.error(
+            "Error parsing MCP response",
+            error instanceof Error ? error : new Error(String(error))
+          );
         }
       };
 
@@ -53,10 +56,10 @@ export class ProtocolAdapter {
       // Send the request
       try {
         const requestJson = JSON.stringify(mcpRequest);
-        this.logger.debug(
-          `Sending MCP request to ${instance.serverId}:`,
-          requestJson
-        );
+        this.logger.debug(`Sending MCP request to ${instance.serverId}`, {
+          serverId: instance.serverId,
+          request: requestJson,
+        });
         instance.process.stdin.write(requestJson + "\n");
       } catch (error) {
         clearTimeout(timeout);
@@ -126,7 +129,10 @@ export class ProtocolAdapter {
       ws.send(JSON.stringify(errorResponse));
       return null;
     } catch (error) {
-      this.logger.error("Error parsing WebSocket message:", error);
+      this.logger.error(
+        "Error parsing WebSocket message",
+        error instanceof Error ? error : new Error(String(error))
+      );
 
       const errorResponse: MCPResponse = {
         jsonrpc: "2.0",
@@ -146,7 +152,10 @@ export class ProtocolAdapter {
     try {
       ws.send(JSON.stringify(response));
     } catch (error) {
-      this.logger.error("Error sending WebSocket response:", error);
+      this.logger.error(
+        "Error sending WebSocket response",
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 

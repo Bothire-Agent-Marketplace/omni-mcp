@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import { WebSocket } from "ws";
-import { Logger } from "@mcp/utils";
+import { randomBytes } from "crypto";
+import { createMcpLogger } from "@mcp/utils";
 import { Session, GatewayConfig } from "./types.js";
 
-export class SessionManager {
-  private logger = Logger.getInstance("mcp-gateway-session-manager");
+export class MCPSessionManager {
+  private logger = createMcpLogger("mcp-gateway-session-manager");
   private sessions = new Map<string, Session>();
   private config: GatewayConfig;
   private cleanupInterval: NodeJS.Timeout;
@@ -86,7 +87,7 @@ export class SessionManager {
       const decoded = jwt.verify(token, this.config.jwtSecret) as any;
       return decoded.sessionId;
     } catch (error) {
-      this.logger.warn("Invalid token:", error);
+      this.logger.warn("Invalid token", { error: String(error) });
       return null;
     }
   }

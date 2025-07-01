@@ -5,7 +5,11 @@ import cors from "cors";
 import { WebSocketServer } from "ws";
 import { createServer } from "http";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
-import { Logger, envConfig } from "@mcp/utils";
+import {
+  createMcpLogger,
+  setupGlobalErrorHandlers,
+  envConfig,
+} from "@mcp/utils";
 import { readFileSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -14,9 +18,18 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const logger = Logger.getInstance("mcp-gateway");
+// Initialize MCP-compliant logger
+const logger = createMcpLogger("mcp-gateway");
+
+// Setup global error handlers
+setupGlobalErrorHandlers(logger);
 
 async function main() {
+  logger.serverStartup(envConfig.GATEWAY_PORT, {
+    service: "mcp-gateway",
+    environment: envConfig.NODE_ENV,
+  });
+
   try {
     // Load configuration
     const configFile =
@@ -63,7 +76,7 @@ async function main() {
         );
         res.json(response);
       } catch (error) {
-        logger.error("HTTP request error:", error);
+        logger.error("HTTP request error", error as Error);
         res.status(500).json({
           error: "Internal server error",
           message: error instanceof Error ? error.message : "Unknown error",
@@ -85,6 +98,12 @@ async function main() {
     // Start server
     const port = envConfig.GATEWAY_PORT;
     server.listen(port, envConfig.GATEWAY_HOST, () => {
+      logger.serverReady({
+        port,
+        host: envConfig.GATEWAY_HOST,
+        endpoints: ["/health", "/mcp", "/mcp/ws"],
+      });
+
       logger.info(`🚀 MCP Gateway running on port ${port}`);
       logger.info(`📋 Health check: http://localhost:${port}/health`);
       logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
@@ -100,7 +119,7 @@ async function main() {
 
     // Graceful shutdown
     process.on("SIGINT", async () => {
-      logger.info("Received SIGINT, shutting down gracefully...");
+      logger.serverShutdown({ signal: "SIGINT" });
       await mcpGateway.shutdown();
       server.close(() => {
         process.exit(0);
@@ -108,14 +127,14 @@ async function main() {
     });
 
     process.on("SIGTERM", async () => {
-      logger.info("Received SIGTERM, shutting down gracefully...");
+      logger.serverShutdown({ signal: "SIGTERM" });
       await mcpGateway.shutdown();
       server.close(() => {
         process.exit(0);
       });
     });
   } catch (error) {
-    logger.error("Failed to start MCP Gateway:", error);
+    logger.error("Failed to start MCP Gateway", error as Error);
     process.exit(1);
   }
 }
@@ -123,7 +142,7 @@ async function main() {
 // Start the gateway
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
-    console.error("Gateway startup failed:", error);
+    logger.error("Gateway startup failed", error);
     process.exit(1);
   });
 }

@@ -1,15 +1,17 @@
 import { spawn, ChildProcess } from "child_process";
 import { v4 as uuidv4 } from "uuid";
-import { Logger, envConfig } from "@mcp/utils";
+import { EventEmitter } from "events";
+import { createMcpLogger } from "@mcp/utils";
 import { ServerConfig, ServerInstance, HealthStatus } from "./types.js";
 
-export class ServerManager {
-  private logger = Logger.getInstance("mcp-gateway-server-manager");
+export class MCPServerManager extends EventEmitter {
+  private logger = createMcpLogger("mcp-gateway-server-manager");
   private serverInstances = new Map<string, ServerInstance[]>();
   private serverConfigs = new Map<string, ServerConfig>();
   private healthCheckIntervals = new Map<string, NodeJS.Timeout>();
 
   constructor(serverConfigs: Record<string, ServerConfig>) {
+    super();
     Object.entries(serverConfigs).forEach(([serverId, config]) => {
       this.serverConfigs.set(serverId, config);
       this.serverInstances.set(serverId, []);
@@ -118,8 +120,8 @@ export class ServerManager {
           );
         } catch (error) {
           this.logger.error(
-            `Failed to create instance for ${serverId}:`,
-            error
+            `Failed to create instance for ${serverId}`,
+            error instanceof Error ? error : new Error(String(error))
           );
         }
       }
@@ -150,10 +152,10 @@ export class ServerManager {
     });
 
     // Set environment from our centralized config (gateway-specific only)
-    serverEnv.NODE_ENV = envConfig.NODE_ENV;
-    serverEnv.LOG_LEVEL = envConfig.LOG_LEVEL;
-    if (envConfig.TZ) {
-      serverEnv.TZ = envConfig.TZ;
+    serverEnv.NODE_ENV = process.env.NODE_ENV || "production";
+    serverEnv.LOG_LEVEL = process.env.LOG_LEVEL || "info";
+    if (process.env.TZ) {
+      serverEnv.TZ = process.env.TZ;
     }
 
     // Process any config-specific environment variables (if any)
@@ -228,7 +230,7 @@ export class ServerManager {
         );
         this.logger.error(`Process still running: ${!instance.process.killed}`);
         reject(new Error("MCP handshake timeout"));
-      }, envConfig.MCP_HANDSHAKE_TIMEOUT);
+      }, 5000);
 
       // Send initialization request
       const initRequest = {
@@ -309,7 +311,7 @@ export class ServerManager {
               .LINEAR_API_KEY}`
           );
           this.logger.debug(
-            `envConfig LINEAR_API_KEY present: ${!!envConfig.LINEAR_API_KEY}`
+            `envConfig LINEAR_API_KEY present: ${!!process.env.LINEAR_API_KEY}`
           );
         }
       };
@@ -346,8 +348,8 @@ export class ServerManager {
         }
       } catch (error) {
         this.logger.error(
-          `Health check failed for ${serverId}/${instance.id}:`,
-          error
+          `Health check failed for ${serverId}/${instance.id}`,
+          error instanceof Error ? error : new Error(String(error))
         );
         instance.isHealthy = false;
       }
@@ -378,7 +380,10 @@ export class ServerManager {
         }, 5000);
       }
     } catch (error) {
-      this.logger.error(`Error terminating instance ${instance.id}:`, error);
+      this.logger.error(
+        `Error terminating instance ${instance.id}`,
+        error instanceof Error ? error : new Error(String(error))
+      );
     }
   }
 }

@@ -1,44 +1,60 @@
 #!/usr/bin/env node
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import { createLinearMcpServer } from "./mcp-server/server.js";
-import { LINEAR_CONFIG } from "./config/config.js";
+
+// Initialize MCP-compliant logger
+const logger = createMcpLogger("linear-mcp-server");
+
+// Setup global error handlers
+setupGlobalErrorHandlers(logger);
 
 async function main() {
-  const server = createLinearMcpServer();
-  const transport = new StdioServerTransport();
-
-  // Graceful shutdown
-  process.on("SIGINT", async () => {
-    console.error("Received SIGINT, shutting down gracefully...");
-    await server.close();
-    process.exit(0);
-  });
-
-  process.on("SIGTERM", async () => {
-    console.error("Received SIGTERM, shutting down gracefully...");
-    await server.close();
-    process.exit(0);
-  });
+  logger.serverStartup();
 
   try {
+    // Create the Linear MCP server
+    const server = createLinearMcpServer();
+
+    // Create stdio transport
+    const transport = new StdioServerTransport();
+
+    // Connect server to transport
     await server.connect(transport);
-    console.error("Linear MCP Server running on stdio");
-    console.error("Server: linear-mcp-server v1.0.0");
-    console.error(
-      "Linear API Key:",
-      LINEAR_CONFIG.API_KEY ? "✓ Configured" : "✗ Missing"
-    );
+
+    logger.serverReady({
+      transport: "stdio",
+      capabilities: ["tools", "resources", "prompts"],
+    });
+
+    // Log server info to stderr (MCP compliant)
+    process.stderr.write("Linear MCP Server running on stdio\n");
+    process.stderr.write("Server: linear-mcp-server v1.0.0\n");
+    process.stderr.write("Linear API Key: ✓ Configured\n");
   } catch (error) {
-    console.error("Failed to start server:", error);
+    logger.error("Failed to start Linear MCP server", error as Error);
     process.exit(1);
   }
 }
 
+// Graceful shutdown handlers
+process.on("SIGTERM", () => {
+  logger.serverShutdown({ signal: "SIGTERM" });
+  process.stderr.write("Received SIGTERM, shutting down gracefully...\n");
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  logger.serverShutdown({ signal: "SIGINT" });
+  process.stderr.write("Received SIGINT, shutting down gracefully...\n");
+  process.exit(0);
+});
+
 // Start the server
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((error) => {
-    console.error("Server startup failed:", error);
+    logger.error("Unhandled error in main", error);
     process.exit(1);
   });
 }
