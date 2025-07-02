@@ -212,9 +212,9 @@ export const create = new Command("create")
       await Promise.all(fileCreationTasks);
       log("✅ Server files created.");
 
-      // 3. Update master config
-      await updateMasterConfig(serviceName, description, port);
-      log("✅ Gateway config (master.config.dev.json) updated.");
+      // 3. Update master config (REMOVED - now managed in @mcp/utils/env.ts)
+      // await updateMasterConfig(serviceName, description, port);
+      // log("✅ Gateway config (master.config.dev.json) updated.");
 
       // 4. Update Docker Compose (REMOVED)
       // await updateDockerCompose(serviceName, serverId, port);
@@ -232,9 +232,10 @@ export const create = new Command("create")
 
       logSuccess(`\n🎉 MCP server '${serverId}' created successfully!`);
       logWarning(`\nNext steps:
-1. Update 'secrets/.env.development.local' with any required API keys for '${serviceName}'.
-2. Implement your tool logic in '${serverPath}/src/mcp-server/handlers.ts'.
-3. Run 'make dev' to start the new server alongside the gateway.
+1. Update 'packages/utils/src/env.ts' to include the new server configuration for development and production.
+2. Update 'secrets/.env.development.local' with any required API keys for '${serviceName}'.
+3. Implement your tool logic in '${serverPath}/src/mcp-server/handlers.ts'.
+4. Run 'pnpm dev' to start the new server alongside the gateway.
 `);
     } catch (error) {
       logError(
@@ -268,15 +269,15 @@ const getPackageJsonContent = (name: string, author: string) =>
       },
       dependencies: {
         "@mcp/utils": "workspace:*",
-        "@modelcontextprotocol/sdk": "^0.5.0",
-        cors: "^2.8.5",
-        express: "^4.19.2",
+        "@fastify/cors": "^9.0.1",
+        fastify: "^4.28.1",
         zod: "^3.23.8",
       },
       devDependencies: {
+        "@types/node": "^20.11.24",
         "@types/cors": "^2.8.17",
         "@types/express": "^4.17.21",
-        "@types/node": "^20.11.24",
+        "@types/fastify": "^4.28.1",
         tsx: "^4.7.1",
         typescript: "^5.3.3",
       },
@@ -369,91 +370,91 @@ export const CONFIG = {
 `;
 
 const getHttpServerTsContent = (name: string) => `
-import express, { Express, Request, Response, NextFunction } from "express";
-import cors from "cors";
+import fastify, {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from "fastify";
+import cors from "@fastify/cors";
 import { createMcpLogger } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 import { CONFIG } from "../config/config.js";
 
 const logger = createMcpLogger(\`\${CONFIG.SERVICE_NAME}-http\`);
 
-// Utility function to wrap async route handlers for cleaner error handling
-const asyncHandler =
-  (fn: Function) => (req: Request, res: Response, next: NextFunction) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
-  };
-
 // Map MCP tool names to their handler functions.
 const handlerMap: Record<string, (params: any) => Promise<any>> = {
-  "${name}_search": handlers.handleExampleSearch,
+  "\${name}_search": handlers.handleExampleSearch,
 };
 
-export function createHttpServer(): Express {
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
+export function createHttpServer(): FastifyInstance {
+  const server = fastify({ logger: false });
 
-  // Health check endpoint
-  app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok" });
-  });
+  server.register(cors);
 
-  // Main MCP endpoint for tool calls
-  app.post(
-    "/mcp",
-    asyncHandler(async (req: Request, res: Response) => {
-      const { jsonrpc, method, params, id } = req.body;
-
-      if (jsonrpc !== "2.0" || !method || method !== "tools/call") {
-        res.status(400).json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32600, message: "Invalid Request" },
-        });
-        return;
-      }
-
-      const toolName = params?.name;
-      const handler = handlerMap[toolName];
-
-      if (!handler) {
-        res.status(404).json({
-          jsonrpc: "2.0",
-          id,
-          error: { code: -32601, message: \`Method not found: \${toolName}\` },
-        });
-        return;
-      }
-
-      const result = await handler(params?.arguments || {});
-      res.json({ jsonrpc: "2.0", id, result });
-    })
+  server.setErrorHandler(
+    (error: Error, request: FastifyRequest, reply: FastifyReply) => {
+      logger.error("Unhandled error:", error);
+      reply.status(500).send({
+        jsonrpc: "2.0",
+        error: {
+          code: -32603,
+          message: "Internal server error",
+          data: error.message,
+        },
+      });
+    }
   );
 
-  // Error handling middleware
-  app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-    logger.error("Unhandled error:", err);
-    res.status(500).json({
-      jsonrpc: "2.0",
-      error: {
-        code: -32603,
-        message: "Internal server error",
-        data: err.message,
-      },
-    });
+  server.get(
+    "/health",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      return { status: "ok" };
+    }
+  );
+
+  server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
+    const { jsonrpc, method, params, id } = request.body as any;
+
+    if (jsonrpc !== "2.0" || method !== "tools/call") {
+      reply.status(400).send({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32600, message: "Invalid Request" },
+      });
+      return;
+    }
+
+    const toolName = params?.name;
+    const handler = handlerMap[toolName];
+
+    if (!handler) {
+      reply.status(404).send({
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32601, message: \`Method not found: \${toolName}\` },
+      });
+      return;
+    }
+
+    const result = await handler(params?.arguments || {});
+    return { jsonrpc: "2.0", id, result };
   });
 
-  return app;
+  return server;
 }
 
 export function startHttpServer(port: number) {
-  const app = createHttpServer();
+  const server = createHttpServer();
 
-  app.listen(port, () => {
-    logger.info(\`🚀 ${name} MCP HTTP server listening on port \${port}\`);
-    logger.info(\`📋 Health check: http://localhost:\${port}/health\`);
-    logger.info(\`🔌 MCP endpoint: http://localhost:\${port}/mcp\`);
+  server.listen({ port, host: "0.0.0.0" }).catch((err) => {
+    logger.error("Error starting server", err);
+    process.exit(1);
   });
+
+  logger.info(\`🚀 \${name} MCP HTTP server listening on port \${port}\`);
+  logger.info(\`📋 Health check: http://localhost:\${port}/health\`);
+  logger.info(\`🔌 MCP endpoint: http://localhost:\${port}/mcp\`);
 }
 `;
 
@@ -655,6 +656,7 @@ export function setup${
 // CONFIGURATION FILE UPDATERS
 // =============================================================================
 
+/*
 async function updateMasterConfig(
   serviceName: string,
   description: string,
@@ -665,7 +667,7 @@ async function updateMasterConfig(
 
   if (config.servers[serviceName]) {
     logWarning(
-      `Server '${serviceName}' already exists in ${configPath}. Skipping update.`
+      \`Server '\${serviceName}' already exists in \${configPath}. Skipping update.\`
     );
     return;
   }
@@ -673,7 +675,7 @@ async function updateMasterConfig(
   config.servers[serviceName] = {
     type: "mcp",
     description: description,
-    url: `http://${serviceName}-mcp-server:${port}`,
+    url: \`http://\${serviceName}-mcp-server:\${port}\`,
     capabilities: [
       "tools/list",
       "tools/call",
@@ -686,6 +688,7 @@ async function updateMasterConfig(
 
   await writeJson(configPath, config);
 }
+*/
 
 // No longer needed with wildcard workspace path
 /*

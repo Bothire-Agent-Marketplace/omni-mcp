@@ -54,7 +54,7 @@ Omni implements a **hub-and-spoke microservices architecture** optimized for sca
 
 ### **Service Registration**
 
-- **Configuration-Driven**: Services registered via `master.config.dev.json`
+- **Configuration-Driven**: Services for the development environment are defined directly within the `getMCPServersConfig` function in `@mcp/utils/src/env.ts`. For production, configurations are loaded from environment variables.
 - **Docker Compose Integration**: Automatic service orchestration and networking
 - **Dynamic Discovery**: Gateway polls registered services for availability
 
@@ -62,16 +62,16 @@ Omni implements a **hub-and-spoke microservices architecture** optimized for sca
 
 1. **Create**: `pnpm omni create` - Scaffold new MCP server with templates
 2. **Validate**: `pnpm omni validate` - Check compliance with enterprise patterns
-3. **Deploy**: `make dev` - Start all services with hot reload
+3. **Deploy**: `pnpm dev` - Start all services with hot reload
 4. **Monitor**: Built-in health checks and logging
 
 ## 📦 Deployment Architecture
 
 ### **Development Environment**
 
-- **Docker Compose**: Multi-service orchestration with shared networking
-- **Hot Reload**: Live code updates without container rebuilds
-- **Shared Volumes**: Source code mounted for instant development feedback
+- **Turbo Build System**: Fast, incremental builds with intelligent caching
+- **pnpm Workspace**: Monorepo management with efficient dependency resolution
+- **Development Commands**: `pnpm dev` for local development, `pnpm build` for production builds
 
 ### **Production Considerations**
 

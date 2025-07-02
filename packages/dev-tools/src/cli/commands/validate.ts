@@ -61,7 +61,6 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
   const serverPath = path.resolve(process.cwd(), "apps", serverId);
 
   const checks: Check[] = [
-    // File Structure
     {
       description: "Required file 'src/mcp-server/http-server.ts' exists",
       fn: async () =>
@@ -72,40 +71,29 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
       fn: async () =>
         checkFileExists(path.join(serverPath, "src/mcp-server/handlers.ts")),
     },
-    // {
-    //   description: "Required file 'Dockerfile' exists",
-    //   fn: async () => checkFileExists(path.join(serverPath, "Dockerfile")),
-    // },
-    // package.json checks
     {
-      description: "'package.json' contains 'express' dependency",
-      fn: async () => checkPackageDependency(serverPath, "express"),
+      description: "'package.json' contains 'fastify' dependency",
+      fn: async () => checkPackageDependency(serverPath, "fastify"),
     },
     {
       description: "'package.json' dev script uses 'tsx'",
       fn: async () => checkPackageScript(serverPath, "dev", "tsx"),
     },
-    // Dockerfile check (REMOVED)
-    // {
-    //   description: "'Dockerfile' exposes a PORT",
-    //   fn: async () => checkDockerfileexpose(serverPath),
-    // },
-    // Workspace Config Checks
     {
-      description: "Is configured in 'apps/gateway/master.config.dev.json'",
-      fn: async () => checkMasterConfig(serviceName),
+      description: "Is configured in 'packages/utils/src/env.ts'",
+      fn: async () => checkEnvTsConfig(serviceName),
     },
-    // {
-    //   description: "Is configured in 'deployment/docker-compose.dev.yml'",
-    //   fn: async () => checkDockerCompose(serverId),
-    // },
     {
       description: "Is configured in 'pnpm-workspace.yaml'",
       fn: async () => checkPnpmWorkspace(`apps/${serverId}`),
     },
     {
-      description: "'http-server.ts' uses the asyncHandler utility",
-      fn: async () => checkAsyncHandler(serverPath),
+      description: "'http-server.ts' imports 'fastify'",
+      fn: async () =>
+        checkHttpServerImports(
+          path.join(serverPath, "src/mcp-server/http-server.ts"),
+          "fastify"
+        ),
     },
   ];
 
@@ -159,42 +147,15 @@ async function checkPackageScript(
   return pkg.scripts?.[scriptName]?.includes(expectedContent) ? "pass" : "fail";
 }
 
-/*
-async function checkDockerfileexpose(
-  serverPath: string
-): Promise<ValidationResult> {
-  const dockerfilePath = path.join(serverPath, "Dockerfile");
-  if (!fs.existsSync(dockerfilePath)) return "fail";
-  const content = await fs.readFile(dockerfilePath, "utf8");
-  return /EXPOSE\s+\$[PORT]/.test(content) || /EXPOSE\s+\d+/.test(content)
-    ? "pass"
-    : "warn";
-}
-*/
-
-async function checkMasterConfig(
+async function checkEnvTsConfig(
   serviceName: string
 ): Promise<ValidationResult> {
-  const configPath = path.resolve(
-    process.cwd(),
-    "apps/gateway/master.config.dev.json"
-  );
+  const configPath = path.resolve(process.cwd(), "packages/utils/src/env.ts");
   if (!fs.existsSync(configPath)) return "fail";
-  const config = await fs.readJson(configPath);
-  return config.servers?.[serviceName]?.url ? "pass" : "fail";
+  const content = await fs.readFile(configPath, "utf8");
+  const regex = new RegExp(`['"]?${serviceName}['"]?:\\s*\\{`);
+  return regex.test(content) ? "pass" : "fail";
 }
-
-/*
-async function checkDockerCompose(serverId: string): Promise<ValidationResult> {
-  const composePath = path.resolve(
-    process.cwd(),
-    "deployment/docker-compose.dev.yml"
-  );
-  if (!fs.existsSync(composePath)) return "fail";
-  const compose = yaml.load(await fs.readFile(composePath, "utf8")) as any;
-  return compose.services?.[serverId] ? "pass" : "fail";
-}
-*/
 
 async function checkPnpmWorkspace(
   serverPath: string
@@ -205,31 +166,27 @@ async function checkPnpmWorkspace(
     packages: string[];
   };
 
-  // Check if the server path matches any of the workspace patterns
   for (const pattern of workspace.packages || []) {
     if (pattern === serverPath) {
-      return "pass"; // Exact match
+      return "pass";
     }
-    // Check for glob patterns like "servers/*"
     if (
       pattern.endsWith("/*") &&
       serverPath.startsWith(pattern.slice(0, -2) + "/")
     ) {
-      return "pass"; // Glob pattern match
+      return "pass";
     }
   }
 
   return "fail";
 }
 
-async function checkAsyncHandler(
-  serverPath: string
+async function checkHttpServerImports(
+  httpPath: string,
+  importName: string
 ): Promise<ValidationResult> {
-  const httpPath = path.join(serverPath, "src/mcp-server/http-server.ts");
   if (!fs.existsSync(httpPath)) return "fail";
   const content = await fs.readFile(httpPath, "utf8");
-  if (content.includes("const asyncHandler =")) {
-    return "pass";
-  }
-  return "fail";
+  const regex = new RegExp(`import .* from "${importName}";`);
+  return regex.test(content) ? "pass" : "fail";
 }

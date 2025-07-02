@@ -5,17 +5,18 @@ This document defines the **standardized, serverless-ready pattern** that all ne
 ## 🏗️ **Required Architecture**
 
 ```
-servers/[service]-mcp-server/
+apps/[service]-mcp-server/
 ├── src/
 │   ├── index.ts                    # Entry point: starts the HTTP server
 │   ├── config/
 │   │   └── config.ts               # Environment configuration
 │   └── mcp-server/
-│       ├── http-server.ts          # NEW: Express.js server (transport layer)
-│       ├── handlers.ts             # NEW: Core business logic handlers
-│       ├── tools.ts                # MCP tool definitions (wiring layer)
-│       ├── resources.ts            # MCP resource definitions (wiring layer)
-│       └── prompts.ts              # MCP prompt definitions (wiring layer)
+│       ├── http-server.ts          # Primary: Fastify server (transport layer)
+│       ├── handlers.ts             # Core business logic handlers
+│       ├── tools.ts                # MCP tool definitions
+│       ├── resources.ts            # MCP resource definitions
+│       ├── prompts.ts              # MCP prompt definitions
+│       └── server.ts               # Legacy: stdio transport (for testing/debug)
 ├── package.json
 ├── tsconfig.json
 ├── Dockerfile
@@ -85,14 +86,14 @@ export async function handleGetEntities(params: unknown) {
 
 ## 🔌 **2. The HTTP Server Pattern (Transport Layer)**
 
-The handlers are exposed to the network via an Express.js server. This server is responsible for routing, request/response handling, and health checks.
+The handlers are exposed to the network via a Fastify server. This server is responsible for routing, request/response handling, and health checks.
 
 ### ✅ **CORRECT - HTTP Server Pattern**
 
 ```typescript
 // mcp-server/http-server.ts - GOLD STANDARD PATTERN
-import express from "express";
-import cors from "cors";
+import fastify from "fastify";
+import cors from "@fastify/cors";
 import * as handlers from "./handlers.js";
 
 // A simple mapping from MCP method names to their handler functions.
@@ -104,36 +105,35 @@ const handlerMap: Record<string, (params: any) => Promise<any>> = {
 };
 
 export function createHttpServer() {
-  const app = express();
-  app.use(cors());
-  app.use(express.json());
+  const app = fastify();
+  app.register(cors);
 
   // Health check endpoint
   app.get("/health", (req, res) => {
-    res.status(200).json({ status: "ok" });
+    res.status(200).send({ status: "ok" });
   });
 
   // Main MCP endpoint for tool calls
   app.post("/mcp", async (req, res) => {
-    const { jsonrpc, method, params, id } = req.body;
+    const { jsonrpc, method, params, id } = req.body as any;
 
     if (jsonrpc !== "2.0" || !method || method !== "tools/call") {
       // Basic validation
-      return res.status(400).json({ error: { message: "Invalid Request" } });
+      return res.status(400).send({ error: { message: "Invalid Request" } });
     }
 
     const toolName = params?.name;
     const handler = handlerMap[toolName];
 
     if (!handler) {
-      return res.status(404).json({ error: { message: "Method not found" } });
+      return res.status(404).send({ error: { message: "Method not found" } });
     }
 
     try {
       const result = await handler(params?.arguments || {});
-      res.json({ jsonrpc: "2.0", id, result });
+      res.send({ jsonrpc: "2.0", id, result });
     } catch (error: any) {
-      res.status(500).json({
+      res.status(500).send({
         jsonrpc: "2.0",
         id,
         error: { code: -32603, message: "Internal error", data: error.message },
@@ -188,10 +188,10 @@ if (!CONFIG.API_KEY) {
 }
 ```
 
-## 🚫 **5. Anti-Patterns (NEVER DO)**
+## �� **5. Anti-Patterns & Legacy Code**
 
 1.  ❌ **Mixing business logic in `http-server.ts`** - Keep the transport layer clean. All logic goes in `handlers.ts`.
-2.  ❌ **Using the old MCP SDK `Server` class for HTTP services** - The SDK's server is for stdio-based transport.
+2.  ⚠️ **Legacy Stdio Server**: The primary entry point for a service must be the `http-server.ts`. The presence of a `server.ts` using the MCP SDK's `StdioServerTransport` indicates a legacy or alternative execution mode (e.g., for local debugging). It should not be invoked by `index.ts` for standard deployments.
 3.  ❌ **Hardcoding URLs or ports** - Always use environment variables via the `config.ts` pattern.
 4.  ❌ **Creating complex routing logic** - The gateway handles smart routing. The MCP server should have a simple `/mcp` endpoint.
 
@@ -200,7 +200,7 @@ if (!CONFIG.API_KEY) {
 Before submitting any MCP server:
 
 - ✅ **Serverless-Ready**: Business logic is in transport-agnostic `handlers.ts`.
-- ✅ **HTTP Transport**: Uses Express.js in `http-server.ts` to expose handlers.
+- ✅ **HTTP Transport**: Uses Fastify in `http-server.ts` to expose handlers.
 - ✅ **Health Check**: Implements a `/health` endpoint.
 - ✅ **Clean Entrypoint**: `index.ts` only starts the server.
 - ✅ **Follows Standard Directory Structure**: Includes `http-server.ts` and `handlers.ts`.
@@ -219,6 +219,6 @@ Before submitting any MCP server:
 
 ## 📖 **References**
 
-- **Gold Standard**: `servers/linear-mcp-server/` (follow this exactly)
+- **Gold Standard**: `apps/linear-mcp-server/` (follow this exactly)
 - **Official MCP SDK**: Uses `@modelcontextprotocol/sdk` correctly
 - **Official Documentation**: Follows MCP specification patterns

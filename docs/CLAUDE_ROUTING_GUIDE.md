@@ -22,13 +22,13 @@ Claude Desktop → MCP Gateway → MCP Server (via HTTP)
 ### **1. MCP Gateway Core**
 
 - **Protocol Adaptation**: Converts between client-facing HTTP/WebSocket and backend MCP HTTP requests.
-- **Request Routing**: Maps capabilities listed in `master.config.dev.json` to the correct server URL.
+- **Request Routing**: Maps capabilities defined in `@mcp/utils/env.ts` to the correct server URL.
 - **Session Management**: Issues JWTs to track client sessions.
 
 ### **2. Server Manager**
 
 - **Network Health Monitoring**: Periodically sends HTTP GET requests to each server's `/health` endpoint. Unhealthy servers are temporarily removed from the routing pool.
-- **Configuration-Driven**: Manages a static list of servers defined by URL in the master config file. There is no on-demand spawning.
+- **Configuration-Driven**: Manages a static list of servers defined in the `getMCPServersConfig` function in `@mcp/utils/env.ts`.
 - **Load Balancing**: (Future) Can be extended to support multiple instances per service for load balancing.
 
 ### **3. Session Manager**
@@ -37,23 +37,16 @@ Claude Desktop → MCP Gateway → MCP Server (via HTTP)
 - **Token Management**: JWT-based session authentication.
 - **Concurrent Limits**: Configurable session limits for resource control.
 
-## 🔧 **Configuration Commands**
+## 🔧 **Configuration & Monitoring**
 
-| Command                      | Description                       | Use Case                      |
-| ---------------------------- | --------------------------------- | ----------------------------- |
-| `make claude-config-dev`     | **Gateway (Default)**             | Standard local development    |
-| `make claude-config-gateway` | All through gateway               | Alias for `claude-config-dev` |
-| `make claude-config-direct`  | Direct connection to Linear's URL | For isolated server debugging |
-| `make claude-config-prod`    | Docker containers via Gateway     | Production deployment         |
+The project uses `pnpm` scripts for managing development, configuration, and monitoring tasks. Refer to the root `package.json` for a complete list of commands.
 
-## 📊 **Monitoring Commands**
-
-| Command             | Purpose                | Shows                             |
-| ------------------- | ---------------------- | --------------------------------- |
-| `make logs`         | All services real-time | Docker services with timestamps   |
-| `make logs-local`   | Local server help      | Instructions for local monitoring |
-| `make tail`         | Everything live        | Real-time tail of all activity    |
-| `make test-all-mcp` | Test all servers       | Manual MCP server testing         |
+| Command             | Description                                              |
+| ------------------- | -------------------------------------------------------- |
+| `pnpm dev`          | Starts all services in development mode with hot-reload. |
+| `pnpm build`        | Builds all packages and apps for production.             |
+| `pnpm omni list`    | Lists all available MCP servers.                         |
+| `pnpm watch:config` | Watches for changes in Claude config files.              |
 
 ## 🚀 **Modern Request Flow Details**
 
@@ -64,7 +57,7 @@ Claude Desktop → Gateway (HTTP/WebSocket on port 37373)
   ↓
 Session Creation (JWT token issued)
   ↓
-Capability Resolution (e.g., "linear_get_teams" maps to the Linear server URL)
+Capability Resolution (e.g., "linear_get_teams" maps to the Linear server URL defined in the gateway's config)
 ```
 
 ### **2. Server Request**
@@ -103,7 +96,7 @@ When the server becomes healthy again, the gateway resumes routing.
 
 ```bash
 # Terminal 1: Start all services
-make dev
+pnpm dev
 
 # Terminal 2: Check gateway health (includes backend server status)
 curl http://localhost:37373/health | jq
@@ -113,6 +106,7 @@ curl -X POST http://localhost:37373/mcp -d '{"jsonrpc": "2.0", "method": "tools/
 
 # Claude Desktop: Try MCP requests:
 # - "Search Linear issues for Phoenix team"
+# - "Look up customer 'MARY SMITH'"
 ```
 
 **What you'll see in logs:**
@@ -130,7 +124,7 @@ curl -X POST http://localhost:37373/mcp -d '{"jsonrpc": "2.0", "method": "tools/
 graph TD
     A[Claude Desktop] --> B{MCP Gateway<br/>(Reverse Proxy)}
     B --> |HTTP POST to /mcp| K[Linear MCP Server<br/>http://...:3001]
-    B --> |HTTP POST to /mcp| M[Filesystem MCP Server<br/>http://...:3002]
+    B --> |HTTP POST to /mcp| M[Query Quill MCP Server<br/>http://...:3002]
     B --> |...| O[Other MCP Servers]
 
     subgraph "Gateway Health Checks"
@@ -141,7 +135,7 @@ graph TD
     end
 
     K --> N[Linear API]
-    M --> P[File System]
+    M --> P[Pagila Database]
 
     style B fill:#e1f5fe,stroke:#333,stroke-width:2px
     style K fill:#e8f5e8,stroke:#333,stroke-width:1px
@@ -165,7 +159,7 @@ graph TD
 
 ### **Gateway Environment**
 
-- **Centralized Config**: `gateway/master.config.dev.json` now defines server URLs.
+- **Centralized Config**: Server URLs are defined in `@mcp/utils/env.ts`.
 - **Security**: Servers still manage their own API keys, loaded via their own `.env` files.
 - **Timeouts**: Network timeouts are handled gracefully by the gateway.
 
@@ -180,9 +174,9 @@ graph TD
 ### **1. Default Development (Gateway)**
 
 ```bash
-make dev              # Start all services
-make claude-config-dev # Configure Claude Desktop
-make tail             # Monitor everything in real-time
+pnpm dev              # Start all services
+pnpm watch:config     # Configure Claude Desktop and watch for changes
+# Monitor service logs in the terminal where "pnpm dev" is running
 ```
 
 **Benefits**: Production parity, centralized logging, load balancing, session management
@@ -227,31 +221,27 @@ make logs                # Monitor containerized services
 1.  **Server Unhealthy in Gateway**
 
     - `curl http://localhost:3001/health` directly. Does it return `{"status":"ok"}`?
-    - Check the server logs (`docker logs omni-linear-mcp-server`) for errors on startup.
-    - Ensure the server's `PORT` in its `.env` file matches the port in the gateway's config URL.
+    - Check the server logs from the `pnpm dev` output for errors on startup.
+    - Ensure the server's `PORT` in its `.env` file matches the port used in the gateway's configuration.
 
 2.  **Gateway Request Fails (e.g., 500 error)**
 
-    - Check the gateway logs (`docker logs omni-mcp-gateway`) for details. It will show the proxy error.
+    - Check the gateway logs from the `pnpm dev` output. It will show the proxy error.
     - Check the target server's logs. It might be crashing when handling the request.
     - The server's API key might be missing or invalid.
 
 3.  **Connection Refused**
-    - Are all containers running? (`docker ps`)
-    - Are the gateway and server on the same Docker network? (Check `docker-compose.dev.yml`)
+    - Are all services running correctly in the `pnpm dev` output?
+    - Are the ports configured correctly and free on your machine?
 
 ### **Debug Commands**
 
 ```bash
-# Check gateway configuration
-cat gateway/master.config.dev.json
+# Check gateway configuration by inspecting:
+# packages/utils/src/env.ts
 
-# Monitor server spawning
-make tail | grep "server-manager"
+# Test a server directly
+curl -X POST http://localhost:3001/mcp -d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "linear_get_teams"}, "id": 1}'
 
-# Test MCP handshake manually
-make test-all-mcp
-
-# Check environment variables
-make env-debug
+# Check environment variables loaded for a specific service by adding logs to its config file.
 ```
