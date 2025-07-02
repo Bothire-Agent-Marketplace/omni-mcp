@@ -106,4 +106,13 @@ Omni implements a **hub-and-spoke microservices architecture** optimized for sca
 
 ---
 
-**Architecture Status**: ✅ **Production Ready** - System successfully manages multiple MCP servers with automatic scaling, health monitoring, and developer tooling.
+**Architecture Status**: ✅ **Production Ready** - System successfully manages multiple MCP servers with automatic scaling, health monitoring, developer tooling, and full Claude Desktop integration.
+
+## 🎯 Claude Desktop Integration
+
+The system includes a complete Claude Desktop integration with stdio-to-HTTP bridge:
+
+- **Bridge Component**: `packages/dev-tools/src/claude/mcp-bridge.cjs` handles protocol conversion
+- **Automatic Configuration**: Config watcher syncs changes to Claude Desktop
+- **Tool Access**: All 11 tools (5 Linear + 6 QueryQuill) available in Claude Desktop
+- **Protocol Compliance**: Full MCP 2.0 JSON-RPC support with proper error handling
