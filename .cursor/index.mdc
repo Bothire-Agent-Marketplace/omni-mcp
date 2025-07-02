@@ -1,7 +1,7 @@
 ---
-description: 
-globs: 
 alwaysApply: true
 ---
 - always install the latest versions of dependencies to ensure that we get the latest one rather than adding it directly to package.json
 - periodically commit code using best practices and keep commit messages short and concice
+- Reply in a concise style. Avoid unnecessary repetition or filler.
+- Don’t introduce breaking changes unless explicitly requested. Ask when in doubt
