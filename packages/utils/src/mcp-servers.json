@@ -1,0 +1,29 @@
+{
+  "linear": {
+    "port": 3001,
+    "capabilities": [
+      "linear_search_issues",
+      "linear_get_teams",
+      "linear_get_users",
+      "linear_get_projects",
+      "linear_get_issue"
+    ],
+    "description": "Linear MCP Server for issue tracking",
+    "productionUrl": "https://linear-mcp.vercel.app",
+    "envVar": "LINEAR_SERVER_URL"
+  },
+  "queryQuill": {
+    "port": 3002,
+    "capabilities": [
+      "customer_lookup",
+      "film_inventory",
+      "rental_analysis",
+      "payment_investigation",
+      "business_analytics",
+      "database_health"
+    ],
+    "description": "MCP Server for querying the Pagila database",
+    "productionUrl": "https://queryquill-mcp.vercel.app",
+    "envVar": "QUERYQUILL_SERVER_URL"
+  }
+}

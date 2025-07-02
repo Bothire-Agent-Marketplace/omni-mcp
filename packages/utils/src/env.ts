@@ -1,7 +1,11 @@
 import { config } from "dotenv";
 import { join, dirname } from "path";
 import { existsSync, readFileSync } from "fs";
+import { fileURLToPath } from "url";
 import { MasterConfig } from "@mcp/schemas";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export type Environment = "development" | "production" | "test";
 
@@ -68,80 +72,66 @@ export interface MCPServersConfig {
   [key: string]: MCPServerConfig;
 }
 
-export function getMCPServersConfig(env: Environment): MCPServersConfig {
-  if (env === "production") {
-    // Production URLs - these should be set via environment variables
-    return {
-      linear: {
-        type: "mcp",
-        url: process.env.LINEAR_SERVER_URL || "https://linear-mcp.vercel.app",
-        capabilities: [
-          "linear_search_issues",
-          "linear_get_teams",
-          "linear_get_users",
-          "linear_get_projects",
-          "linear_get_issue",
-        ],
-        description: "Linear MCP Server for issue tracking",
-        healthCheckInterval: 30000,
-        requiresAuth: true,
-        maxRetries: 3,
-      },
-      queryQuill: {
-        type: "mcp",
-        url:
-          process.env.QUERYQUILL_SERVER_URL ||
-          "https://queryquill-mcp.vercel.app",
-        capabilities: [
-          "customer_lookup",
-          "film_inventory",
-          "rental_analysis",
-          "payment_investigation",
-          "business_analytics",
-          "database_health",
-        ],
-        description: "MCP Server for querying the Pagila database",
-        healthCheckInterval: 30000,
-        requiresAuth: true,
-        maxRetries: 3,
-      },
-    };
+interface MCPServerJsonConfig {
+  port: number;
+  capabilities: string[];
+  description: string;
+  productionUrl: string;
+  envVar: string;
+}
+
+interface MCPServersJsonConfig {
+  [key: string]: MCPServerJsonConfig;
+}
+
+function loadMCPServersFromJson(): MCPServersJsonConfig {
+  const configPath = join(__dirname, "mcp-servers.json");
+  if (!existsSync(configPath)) {
+    console.warn(
+      `MCP servers config not found at ${configPath}, using empty config`
+    );
+    return {};
   }
 
-  // Development configuration
-  return {
-    linear: {
-      type: "mcp",
-      url: "http://localhost:3001",
-      capabilities: [
-        "linear_search_issues",
-        "linear_get_teams",
-        "linear_get_users",
-        "linear_get_projects",
-        "linear_get_issue",
-      ],
-      description: "Linear MCP Server for issue tracking",
-      healthCheckInterval: 15000,
-      requiresAuth: false,
-      maxRetries: 1,
-    },
-    queryQuill: {
-      type: "mcp",
-      url: "http://localhost:3002",
-      capabilities: [
-        "customer_lookup",
-        "film_inventory",
-        "rental_analysis",
-        "payment_investigation",
-        "business_analytics",
-        "database_health",
-      ],
-      description: "MCP Server for querying the Pagila sample database",
-      healthCheckInterval: 15000,
-      requiresAuth: false,
-      maxRetries: 1,
-    },
-  };
+  try {
+    const content = readFileSync(configPath, "utf8");
+    return JSON.parse(content);
+  } catch (error) {
+    console.error(`Error reading MCP servers config: ${error}`);
+    return {};
+  }
+}
+
+export function getMCPServersConfig(env: Environment): MCPServersConfig {
+  const serversConfig = loadMCPServersFromJson();
+  const result: MCPServersConfig = {};
+
+  for (const [serviceName, config] of Object.entries(serversConfig)) {
+    if (env === "production") {
+      result[serviceName] = {
+        type: "mcp",
+        url: process.env[config.envVar] || config.productionUrl,
+        capabilities: config.capabilities,
+        description: config.description,
+        healthCheckInterval: 30000,
+        requiresAuth: true,
+        maxRetries: 3,
+      };
+    } else {
+      // Development configuration
+      result[serviceName] = {
+        type: "mcp",
+        url: `http://localhost:${config.port}`,
+        capabilities: config.capabilities,
+        description: config.description,
+        healthCheckInterval: 15000,
+        requiresAuth: false,
+        maxRetries: 1,
+      };
+    }
+  }
+
+  return result;
 }
 
 export interface GatewayConfig {

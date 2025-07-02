@@ -17,24 +17,22 @@ import yaml from "js-yaml";
 async function findNextAvailablePort(): Promise<number> {
   const usedPorts = new Set<number>();
 
-  // Check packages/utils/src/env.ts for used ports
+  // Check packages/utils/src/mcp-servers.json for used ports
   try {
-    const envTsPath = "packages/utils/src/env.ts";
-    if (fs.existsSync(envTsPath)) {
-      const content = await fs.readFile(envTsPath, "utf8");
-      const portRegex = /port:\s*(\d+)|url:\s*".*?:(\d+)"/g;
-      let match;
-      while ((match = portRegex.exec(content)) !== null) {
-        if (match[1]) {
-          usedPorts.add(parseInt(match[1], 10));
-        }
-        if (match[2]) {
-          usedPorts.add(parseInt(match[2], 10));
+    const configPath = "packages/utils/src/mcp-servers.json";
+    if (fs.existsSync(configPath)) {
+      const content = await fs.readFile(configPath, "utf8");
+      const config = JSON.parse(content);
+
+      for (const serverConfig of Object.values(config)) {
+        const server = serverConfig as any;
+        if (server.port) {
+          usedPorts.add(server.port);
         }
       }
     }
   } catch (error) {
-    console.warn("Could not read packages/utils/src/env.ts:", error);
+    console.warn("Could not read packages/utils/src/mcp-servers.json:", error);
   }
 
   // Find next available port starting from 3001
@@ -183,9 +181,11 @@ export const create = new Command("create")
       await Promise.all(fileCreationTasks);
       log("✅ Server files created.");
 
-      // 3. Update packages/utils/src/env.ts configuration
-      await updateEnvTsConfig(serviceName, description, port);
-      log("✅ Server configuration added to packages/utils/src/env.ts.");
+      // 3. Update packages/utils/src/mcp-servers.json configuration
+      await updateMCPServersJson(serviceName, description, port);
+      log(
+        "✅ Server configuration added to packages/utils/src/mcp-servers.json."
+      );
 
       // 4. Install dependencies
       log("📦 Installing dependencies with pnpm...");
@@ -237,9 +237,6 @@ const getPackageJsonContent = (name: string, author: string) =>
       },
       devDependencies: {
         "@types/node": "^20.11.24",
-        "@types/cors": "^2.8.17",
-        "@types/express": "^4.17.21",
-        "@types/fastify": "^4.28.1",
         tsx: "^4.7.1",
         typescript: "^5.3.3",
       },
@@ -310,18 +307,16 @@ startHttpServer(CONFIG.PORT);
 `;
 
 const getConfigTsContent = (name: string, port: number) => `
-import { loadEnvHierarchy } from "@mcp/utils";
-
-const env = loadEnvHierarchy("${name}");
+import { envConfig } from "@mcp/utils";
 
 export const CONFIG = {
   SERVICE_NAME: "${name}-mcp-server",
-  NODE_ENV: env.NODE_ENV || "development",
-  LOG_LEVEL: env.LOG_LEVEL || "info",
-  PORT: parseInt(env.PORT || "${port}", 10),
+  NODE_ENV: envConfig.NODE_ENV,
+  LOG_LEVEL: envConfig.LOG_LEVEL,
+  PORT: parseInt(process.env.PORT || "${port}", 10),
 
   // TODO: Add your service-specific environment variables here
-  // EXAMPLE_API_KEY: env.EXAMPLE_API_KEY,
+  // EXAMPLE_API_KEY: process.env.EXAMPLE_API_KEY,
 } as const;
 
 // Example validation:
@@ -618,72 +613,33 @@ export function setup${
 // CONFIGURATION FILE UPDATERS
 // =============================================================================
 
-async function updateEnvTsConfig(
+async function updateMCPServersJson(
   serviceName: string,
   description: string,
   port: number
 ) {
-  const envTsPath = path.resolve(process.cwd(), "packages/utils/src/env.ts");
-
-  if (!fs.existsSync(envTsPath)) {
-    throw new Error(`Could not find ${envTsPath}`);
-  }
-
-  let content = await fs.readFile(envTsPath, "utf8");
-
-  // Create the server configuration object
-  const serverConfig = `    ${serviceName}: {
-      type: "mcp",
-      url: "http://localhost:${port}",
-      capabilities: [
-        "${serviceName}_search",
-      ],
-      description: "${description}",
-      healthCheckInterval: 15000,
-      requiresAuth: false,
-      maxRetries: 1,
-    },`;
-
-  const productionServerConfig = `      ${serviceName}: {
-        type: "mcp",
-        url: process.env.${serviceName.toUpperCase()}_SERVER_URL || "https://${serviceName}-mcp.vercel.app",
-        capabilities: [
-          "${serviceName}_search",
-        ],
-        description: "${description}",
-        healthCheckInterval: 30000,
-        requiresAuth: true,
-        maxRetries: 3,
-      },`;
-
-  // Add to development configuration
-  const devReturnMatch = content.match(
-    /(\/\/ Development configuration\s*\n\s*return\s*\{[^}]*)\s*\};/s
+  const configPath = path.resolve(
+    process.cwd(),
+    "packages/utils/src/mcp-servers.json"
   );
-  if (devReturnMatch) {
-    const beforeClosing = devReturnMatch[1];
-    const replacement = beforeClosing + "\n" + serverConfig + "\n  };";
-    content = content.replace(devReturnMatch[0], replacement);
-  } else {
-    throw new Error(
-      "Could not find development configuration return statement in env.ts"
-    );
+
+  if (!fs.existsSync(configPath)) {
+    throw new Error(`Could not find MCP servers config at ${configPath}`);
   }
 
-  // Add to production configuration
-  const prodReturnMatch = content.match(
-    /(if \(env === "production"\) \{\s*\/\/ Production URLs[^}]*return\s*\{[^}]*)\s*\};/s
-  );
-  if (prodReturnMatch) {
-    const beforeClosing = prodReturnMatch[1];
-    const replacement =
-      beforeClosing + "\n" + productionServerConfig + "\n    };";
-    content = content.replace(prodReturnMatch[0], replacement);
-  } else {
-    throw new Error(
-      "Could not find production configuration return statement in env.ts"
-    );
-  }
+  // Read existing config
+  const content = await fs.readFile(configPath, "utf8");
+  const config = JSON.parse(content);
 
-  await fs.writeFile(envTsPath, content);
+  // Add new server
+  config[serviceName] = {
+    port: port,
+    capabilities: [`${serviceName}_search`],
+    description: description,
+    productionUrl: `https://${serviceName}-mcp.vercel.app`,
+    envVar: `${serviceName.toUpperCase()}_SERVER_URL`,
+  };
+
+  // Write back to file
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 }

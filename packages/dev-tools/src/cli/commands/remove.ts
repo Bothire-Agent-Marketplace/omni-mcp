@@ -35,20 +35,14 @@ export const remove = new Command("remove")
     }
 
     try {
-      // 1. Remove from docker-compose.dev.yml (REMOVED)
-      // await updateDockerCompose(serviceName, serverId);
+      // 1. Remove from MCP servers JSON configuration
+      await updateMCPServersJson(serviceName);
 
-      // 2. Remove from pnpm-workspace.yaml (No longer needed with wildcard)
-      // await updatePnpmWorkspace(`apps/${serverId}`);
-
-      // 3. Remove from gateway master config
-      await updateMasterConfig(serviceName);
-
-      // 4. Remove the server directory
+      // 2. Remove the server directory
       await fs.remove(serverPath);
       log(`✅ Removed directory: ${serverPath}`);
 
-      // 5. Run pnpm install to update lockfile
+      // 3. Run pnpm install to update workspace
       log("📦 Running pnpm install to update workspace...");
       await runCommand("pnpm", ["install"], { stdio: "inherit" });
 
@@ -65,78 +59,33 @@ export const remove = new Command("remove")
     }
   });
 
-/*
-async function updateDockerCompose(serviceName: string, serverId: string) {
-  const composePath = "deployment/docker-compose.dev.yml";
+async function updateMCPServersJson(serviceName: string) {
+  const configPath = path.resolve(
+    process.cwd(),
+    "packages/utils/src/mcp-servers.json"
+  );
+
   try {
-    const composeConfig = yaml.load(
-      fs.readFileSync(composePath, "utf8")
-    ) as any;
-    if (composeConfig.services && composeConfig.services[serverId]) {
-      delete composeConfig.services[serverId];
+    if (!fs.existsSync(configPath)) {
+      logWarning(`MCP servers config not found at ${configPath}. Skipping.`);
+      return;
+    }
 
-      // Remove from gateway's depends_on
-      if (composeConfig.services["mcp-gateway"]?.depends_on) {
-        composeConfig.services["mcp-gateway"].depends_on =
-          composeConfig.services["mcp-gateway"].depends_on.filter(
-            (dep: string) => dep !== serverId
-          );
-      }
+    const content = await fs.readFile(configPath, "utf8");
+    const config = JSON.parse(content);
 
-      fs.writeFileSync(
-        composePath,
-        yaml.dump(composeConfig, { indent: 2, lineWidth: -1 })
+    if (config[serviceName]) {
+      delete config[serviceName];
+      await fs.writeFile(configPath, JSON.stringify(config, null, 2));
+      log(
+        `✅ Removed '${serviceName}' from packages/utils/src/mcp-servers.json`
       );
-      log(`✅ Removed '${serverId}' service from ${composePath}`);
     } else {
       logWarning(
-        `Service '${serverId}' not found in ${composePath}. Skipping.`
+        `Server '${serviceName}' not found in mcp-servers.json. Skipping.`
       );
     }
   } catch (error) {
-    logError(`Could not update ${composePath}: ${error}`);
-  }
-}
-*/
-
-/*
-async function updatePnpmWorkspace(serverPath: string) {
-  const workspacePath = "pnpm-workspace.yaml";
-  try {
-    const workspaceConfig = yaml.load(
-      fs.readFileSync(workspacePath, "utf8")
-    ) as { packages: string[] };
-    if (workspaceConfig.packages?.includes(serverPath)) {
-      workspaceConfig.packages = workspaceConfig.packages.filter(
-        (p) => p !== serverPath
-      );
-      fs.writeFileSync(workspacePath, yaml.dump(workspaceConfig));
-      log(`✅ Removed '${serverPath}' from ${workspacePath}`);
-    } else {
-      logWarning(
-        `Path '${serverPath}' not found in ${workspacePath}. Skipping.`
-      );
-    }
-  } catch (error) {
-    logError(`Could not update ${workspacePath}: ${error}`);
-  }
-}
-*/
-
-async function updateMasterConfig(serviceName: string) {
-  const configPath = "apps/gateway/master.config.dev.json";
-  try {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
-    if (config.servers && config.servers[serviceName]) {
-      delete config.servers[serviceName];
-      fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-      log(`✅ Removed '${serviceName}' server from ${configPath}`);
-    } else {
-      logWarning(
-        `Server '${serviceName}' not found in ${configPath}. Skipping.`
-      );
-    }
-  } catch (error) {
-    logError(`Could not update ${configPath}: ${error}`);
+    logError(`Could not update mcp-servers.json: ${error}`);
   }
 }

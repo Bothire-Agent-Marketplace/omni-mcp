@@ -80,8 +80,8 @@ async function runValidationChecks(serviceName: string): Promise<boolean> {
       fn: async () => checkPackageScript(serverPath, "dev", "tsx"),
     },
     {
-      description: "Is configured in 'packages/utils/src/env.ts'",
-      fn: async () => checkEnvTsConfig(serviceName),
+      description: "Is configured in 'packages/utils/src/mcp-servers.json'",
+      fn: async () => checkMCPServersJsonConfig(serviceName),
     },
     {
       description: "Is configured in 'pnpm-workspace.yaml'",
@@ -147,16 +147,6 @@ async function checkPackageScript(
   return pkg.scripts?.[scriptName]?.includes(expectedContent) ? "pass" : "fail";
 }
 
-async function checkEnvTsConfig(
-  serviceName: string
-): Promise<ValidationResult> {
-  const configPath = path.resolve(process.cwd(), "packages/utils/src/env.ts");
-  if (!fs.existsSync(configPath)) return "fail";
-  const content = await fs.readFile(configPath, "utf8");
-  const regex = new RegExp(`['"]?${serviceName}['"]?:\\s*\\{`);
-  return regex.test(content) ? "pass" : "fail";
-}
-
 async function checkPnpmWorkspace(
   serverPath: string
 ): Promise<ValidationResult> {
@@ -188,4 +178,22 @@ async function checkHttpServerImports(
   if (!fs.existsSync(httpPath)) return "fail";
   const content = await fs.readFile(httpPath, "utf8");
   return content.includes(`from "fastify"`) ? "pass" : "fail";
+}
+
+async function checkMCPServersJsonConfig(
+  serviceName: string
+): Promise<ValidationResult> {
+  const configPath = path.resolve(
+    process.cwd(),
+    "packages/utils/src/mcp-servers.json"
+  );
+  if (!fs.existsSync(configPath)) return "fail";
+
+  try {
+    const content = await fs.readFile(configPath, "utf8");
+    const config = JSON.parse(content);
+    return config[serviceName] ? "pass" : "fail";
+  } catch (error) {
+    return "fail";
+  }
 }
