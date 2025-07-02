@@ -1,7 +1,6 @@
-
 import { createMcpLogger } from "@mcp/utils";
-import { startHttpServer } from "./mcp-server/http-server.js";
 import { CONFIG } from "./config/config.js";
+import { startHttpServer } from "./mcp-server/http-server.js";
 
 const logger = createMcpLogger(CONFIG.SERVICE_NAME);
 

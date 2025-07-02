@@ -1,8 +1,7 @@
-import { config } from "dotenv";
-import { join, dirname } from "path";
 import { existsSync, readFileSync } from "fs";
+import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import { MasterConfig } from "@mcp/schemas";
+import { config } from "dotenv";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -549,19 +548,6 @@ class EnvironmentManager {
   public static encodeSecret(secret: string): string {
     return Buffer.from(secret, "utf-8").toString("base64");
   }
-}
-
-export function loadGatewayConfig(env: Environment): MasterConfig {
-  const root = new EnvironmentManager()["findProjectRoot"](process.cwd());
-  const configFile =
-    env === "development" ? "master.config.dev.json" : "master.config.json";
-  const configPath = join(root, "apps", "gateway", configFile);
-
-  if (!existsSync(configPath)) {
-    throw new Error(`Gateway config not found at: ${configPath}`);
-  }
-
-  return JSON.parse(readFileSync(configPath, "utf-8"));
 }
 
 // Singleton instance

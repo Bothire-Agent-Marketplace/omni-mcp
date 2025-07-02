@@ -4,7 +4,8 @@ This directory contains tools for managing Claude Desktop configuration with the
 
 ## Files
 
-- **`config-watcher.ts`** - Watches for changes to the central Claude Desktop config and MCP servers configuration, automatically copying updates to Claude Desktop
+- **`config-watcher.ts`** - Watches for changes to the central Claude Desktop config and MCP servers
+  configuration, automatically copying updates to Claude Desktop
 - **`copy-config.ts`** - Manual utility to copy the central config to Claude Desktop
 
 ## Usage
@@ -48,7 +49,8 @@ This file serves as the single source of truth and is automatically copied to:
 
 ## Architecture
 
-The current configuration uses the **omni-mcp-gateway** as the single entry point, which routes requests to all registered MCP servers. This provides:
+The current configuration uses the **omni-mcp-gateway** as the single entry point, which routes
+requests to all registered MCP servers. This provides:
 
 - Centralized management of all MCP servers
 - Automatic service discovery
@@ -63,4 +65,5 @@ The watcher monitors both:
 1. The main Claude Desktop config file
 2. The MCP servers JSON configuration
 
-Any changes to either file will trigger an automatic update to Claude Desktop, ensuring your configuration stays in sync during development.
+Any changes to either file will trigger an automatic update to Claude Desktop, ensuring your
+configuration stays in sync during development.

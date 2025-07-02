@@ -1,7 +1,3 @@
-import { MCPServerManager } from "./server-manager.js";
-import { MCPSessionManager } from "./session-manager.js";
-import { MCPProtocolAdapter } from "./protocol-adapter.js";
-import { createMcpLogger, getAllTools } from "@mcp/utils";
 import {
   MasterConfig,
   MCPRequest,
@@ -10,6 +6,10 @@ import {
   HealthStatus,
   IWebSocket,
 } from "@mcp/schemas";
+import { createMcpLogger, getAllTools } from "@mcp/utils";
+import { MCPProtocolAdapter } from "./protocol-adapter.js";
+import { MCPServerManager } from "./server-manager.js";
+import { MCPSessionManager } from "./session-manager.js";
 
 export class MCPGateway {
   private logger = createMcpLogger("mcp-gateway-core");
@@ -73,9 +73,8 @@ export class MCPGateway {
       }
 
       // Convert HTTP request to MCP format
-      const mcpRequest = await this.protocolAdapter.handleHttpToMCP(
-        requestBody
-      );
+      const mcpRequest =
+        await this.protocolAdapter.handleHttpToMCP(requestBody);
 
       // Route and execute request
       const mcpResponse = await this.routeAndExecuteRequest(
@@ -89,9 +88,8 @@ export class MCPGateway {
       }
 
       // Convert MCP response back to HTTP format for tool calls
-      const httpResponse = await this.protocolAdapter.handleMCPToHttp(
-        mcpResponse
-      );
+      const httpResponse =
+        await this.protocolAdapter.handleMCPToHttp(mcpResponse);
 
       // Include session token in response for new sessions
       if (isNewSession) {

@@ -1,8 +1,7 @@
-import { Command } from "commander";
-import prompts from "prompts";
-import fs from "fs-extra";
 import path from "path";
-import yaml from "js-yaml";
+import { Command } from "commander";
+import fs from "fs-extra";
+import prompts from "prompts";
 import { log, logError, logSuccess, logWarning, runCommand } from "../utils.js";
 
 export const remove = new Command("remove")

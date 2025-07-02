@@ -1,5 +1,5 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { LinearClient } from "@linear/sdk";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { envConfig } from "@mcp/utils";
 
 // ============================================================================

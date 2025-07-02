@@ -1,118 +1,124 @@
-# Omni MCP Architecture
+# Omni: System Architecture
 
-Enterprise-grade MCP (Model Context Protocol) platform with gateway routing, microservice orchestration, and developer tooling.
+This document provides a high-level overview of the Omni system architecture, which is designed as a
+scalable, maintainable, and extensible monorepo.
 
-## 🎯 System Overview
+## 🏛️ Core Philosophy
 
-Omni implements a **hub-and-spoke microservices architecture** optimized for scalability, developer productivity, and operational reliability. The system currently manages multiple MCP servers through a centralized gateway with automatic service discovery and routing.
+The architecture is built on two primary concepts:
 
-## 🏗️ Core Components
+1.  **The Gateway Pattern**: A central `mcp-gateway` acts as the single entry point for all clients.
+    It is responsible for routing, authentication, session management, and protocol translation.
+2.  **The MCP Server Pattern**: Independent, single-purpose microservices called "MCP Servers"
+    provide specific capabilities (e.g., interacting with the Linear API, querying a database).
 
-### **1. MCP Gateway Hub**
+This separation of concerns allows for modular development, independent deployments, and clear
+ownership of services.
 
-- **Central Router**: Single entry point (`localhost:37373`) that routes MCP requests to appropriate backend servers
-- **Service Discovery**: Automatic detection and health monitoring of registered MCP servers
-- **Protocol Translation**: Handles MCP 2.0 JSON-RPC protocol routing and response aggregation
-- **Health Monitoring**: Continuous health checks with automatic failover capabilities
+## Diagram
 
-### **2. HTTP-Based MCP Servers**
+```mermaid
+graph TD
+    subgraph Clients
+        C1[User via Claude Desktop]
+        C2[Developer via CLI]
+        C3[Other HTTP/WebSocket Client]
+    end
 
-- **Containerized Microservices**: Each MCP server runs as an independent HTTP service
-- **Auto-Port Management**: Automatic port assignment starting from 3001, with conflict detection
-- **Standardized Interface**: All servers expose `/health` and `/mcp` endpoints for consistent management
-- **Hot Reload Development**: Live code updates during development without container restarts
+    subgraph Gateway Application
+        G[mcp-gateway]
+    end
 
-### **3. Developer Tooling**
+    subgraph MCP Microservices
+        S1[linear-mcp-server]
+        S2[query-quill-mcp-server]
+        S3[future-mcp-server]
+    end
 
-- **CLI Management**: `pnpm omni` command suite for server lifecycle management
-- **Validation System**: Automated compliance checking against enterprise patterns
-- **Scaffolding**: Template-based server generation with best practices built-in
-- **Workspace Integration**: Automatic configuration updates across Docker Compose, gateway configs, and workspace files
+    subgraph External Services
+        E1[Linear API]
+        E2[Pagila Database]
+        E3[Other APIs]
+    end
 
-## 📐 Technical Architecture
+    C1 -->|JSON-RPC over HTTP/S| G
+    C2 -->|JSON-RPC over HTTP/S| G
+    C3 -->|JSON-RPC over WebSocket| G
 
+    G -- Health Checks --> S1
+    G -- Health Checks --> S2
+    G -- Health Checks --> S3
+
+    G -- Capability-Based Routing --> S1
+    G -- Capability-Based Routing --> S2
+    G -- Capability-Based Routing --> S3
+
+    S1 -->|Interacts with| E1
+    S2 -->|Interacts with| E2
+    S3 -->|Interacts with| E3
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Claude/Client │    │   MCP Gateway   │    │  MCP Server A   │
-│                 │◄──►│   (Port 37373)  │◄──►│   (Port 3001)   │
-│                 │    │                 │    │                 │
-└─────────────────┘    │  ┌───────────┐  │    └─────────────────┘
-                       │  │  Router   │  │    ┌─────────────────┐
-                       │  │  Health   │  │◄──►│  MCP Server B   │
-                       │  │  Monitor  │  │    │   (Port 3002)   │
-                       │  └───────────┘  │    │                 │
-                       └─────────────────┘    └─────────────────┘
-```
 
-## 🔧 Implementation Details
+## 🧩 Components
 
-### **Transport Protocol**
+### 1. The Monorepo (`omni`)
 
-- **HTTP/JSON-RPC**: Primary communication protocol for gateway-to-server communication
-- **Server-Sent Events**: Used for streaming responses and real-time updates
-- **Health Checks**: RESTful endpoints for service monitoring and discovery
+The entire system is housed in a `pnpm` and `turborepo` powered monorepo.
 
-### **Service Registration**
+- **`apps/`**: Contains the runnable applications (`gateway`, `linear-mcp-server`, etc.).
+- **`packages/`**: Contains shared code used across applications:
+  - `schemas`: Centralized TypeScript types and Zod schemas for MCP and Gateway objects.
+  - `utils`: Shared utilities for logging, environment management, and more.
+  - `dev-tools`: Houses the project's internal CLI for managing the workspace.
+- **`docs/`**: Project documentation, including this document and the critical
+  `MCP_SERVER_PATTERN.md`.
 
-- **Configuration-Driven**: Services for the development environment are defined directly within the `getMCPServersConfig` function in `@mcp/utils/src/env.ts`. For production, configurations are loaded from environment variables.
-- **Docker Compose Integration**: Automatic service orchestration and networking
-- **Dynamic Discovery**: Gateway polls registered services for availability
+### 2. The Gateway (`apps/gateway`)
 
-### **Development Workflow**
+The `mcp-gateway` is the brain of the system.
 
-1. **Create**: `pnpm omni create` - Scaffold new MCP server with templates
-2. **Validate**: `pnpm omni validate` - Check compliance with enterprise patterns
-3. **Deploy**: `pnpm dev` - Start all services with hot reload
-4. **Monitor**: Built-in health checks and logging
+- **Service Discovery**: It reads a configuration file that lists all available MCP servers.
+- **Health Checking**: The `ServerManager` periodically polls the `/health` endpoint of each MCP
+  server to ensure it's online and ready to accept requests. Unhealthy servers are taken out of the
+  routing pool.
+- **Capability Routing**: The gateway knows which "capabilities" (e.g., `tools/call` for
+  `linear_search`) each MCP server provides. When a request arrives, it looks at the requested
+  method and routes it to the appropriate, healthy server.
+- **Request Proxying**: It forwards the incoming request to the correct MCP server's `/mcp` endpoint
+  and returns the response to the client.
+- **Protocol Abstraction**: It handles both HTTP and WebSocket connections, translating them into a
+  consistent internal MCP format.
+- **Session Management**: It manages client sessions, providing a consistent context for multi-turn
+  interactions.
 
-## 📦 Deployment Architecture
+### 3. MCP Servers (`apps/*-mcp-server`)
 
-### **Development Environment**
+MCP Servers are the workhorses. They are built following the strict `MCP_SERVER_PATTERN.md` guide.
 
-- **Turbo Build System**: Fast, incremental builds with intelligent caching
-- **pnpm Workspace**: Monorepo management with efficient dependency resolution
-- **Development Commands**: `pnpm dev` for local development, `pnpm build` for production builds
+- **Standardized Structure**: Each server has a consistent layout, including a `handlers.ts` for
+  business logic and an `http-server.ts` for the transport layer. This makes them predictable and
+  easy to develop.
+- **Transport Agnostic Logic**: Business logic is decoupled from the Fastify HTTP server, making it
+  easy to test and potentially deploy in different environments (e.g., serverless functions).
+- **Health Endpoint**: Each server exposes a `/health` endpoint, which is crucial for the gateway's
+  service discovery mechanism.
+- **Single Responsibility**: Each server has a clear purpose, such as interacting with a specific
+  third-party API or a database. For example:
+  - `linear-mcp-server`: Provides tools for interacting with the Linear API.
+  - `query-quill-mcp-server`: Provides tools for querying the internal Pagila database.
 
-### **Production Considerations**
+## 🚀 Workflow: A Tool Call Example
 
-- **Container Registry**: Docker images built with multi-stage optimization
-- **Health Monitoring**: Kubernetes-ready health check endpoints
-- **Scaling Strategy**: Horizontal scaling per service with load balancing
-- **Security**: Non-root containers with minimal attack surface
-
-## 🚀 Scalability Features
-
-- **Horizontal Scaling**: Each MCP server scales independently
-- **Automatic Port Management**: CLI prevents port conflicts across services
-- **Service Isolation**: Failures in one server don't affect others
-- **Configuration Management**: Centralized config with per-service overrides
-- **Monitoring Ready**: Structured logging and health check endpoints
-
-## 🛠️ Development Standards
-
-### **Server Compliance**
-
-- Express.js HTTP server with `/health` and `/mcp` endpoints
-- TypeScript with Zod validation for type safety
-- Dockerfile with multi-stage builds for optimization
-- Integration with shared utilities and workspace patterns
-
-### **Quality Assurance**
-
-- **Validation Pipeline**: `pnpm omni validate` checks 9 compliance criteria
-- **Code Standards**: TypeScript strict mode with ESLint configuration
-- **Testing Strategy**: Health check endpoints for service verification
-- **Documentation**: Auto-generated server templates with usage examples
-
----
-
-**Architecture Status**: ✅ **Production Ready** - System successfully manages multiple MCP servers with automatic scaling, health monitoring, developer tooling, and full Claude Desktop integration.
-
-## 🎯 Claude Desktop Integration
-
-The system includes a complete Claude Desktop integration with stdio-to-HTTP bridge:
-
-- **Bridge Component**: `packages/dev-tools/src/claude/mcp-bridge.cjs` handles protocol conversion
-- **Automatic Configuration**: Config watcher syncs changes to Claude Desktop
-- **Tool Access**: All 11 tools (5 Linear + 6 QueryQuill) available in Claude Desktop
-- **Protocol Compliance**: Full MCP 2.0 JSON-RPC support with proper error handling
+1.  A client sends an HTTP POST request to the `mcp-gateway` to execute the `linear_search` tool.
+2.  The `MCPGateway` receives the request. The `ProtocolAdapter` transforms it into a standard
+    `MCPRequest`.
+3.  The gateway inspects the request and determines it's a `tools/call` for the `linear_search`
+    capability.
+4.  It consults its `capabilityMap` and finds that `linear-mcp-server` provides this capability.
+5.  It asks the `ServerManager` for a healthy instance of `linear-mcp-server`. The `ServerManager`
+    confirms it is healthy from its recent health checks.
+6.  The gateway proxies the `MCPRequest` to `linear-mcp-server`'s `/mcp` endpoint.
+7.  The `linear-mcp-server` receives the request. Its `http-server` routes it to the
+    `handleLinearSearch` function in `handlers.ts`.
+8.  The handler executes the business logic (calls the actual Linear API), gets the results, and
+    returns an `MCPResponse`.
+9.  The gateway receives the `MCPResponse` and forwards it back to the original client.

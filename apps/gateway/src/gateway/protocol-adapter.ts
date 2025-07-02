@@ -5,11 +5,7 @@ const logger = createMcpLogger("mcp-protocol-adapter");
 
 export class MCPProtocolAdapter {
   handleHttpToMCP(requestBody: any): MCPRequest {
-    if (
-      !requestBody ||
-      requestBody.jsonrpc !== "2.0" ||
-      !requestBody.method
-    ) {
+    if (!requestBody || requestBody.jsonrpc !== "2.0" || !requestBody.method) {
       throw new Error("Invalid JSON-RPC request");
     }
     return requestBody;

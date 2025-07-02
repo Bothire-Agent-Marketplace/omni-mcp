@@ -1,8 +1,8 @@
+import helmet from "@fastify/helmet";
+import rateLimit from "@fastify/rate-limit";
+import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { createMcpLogger } from "@mcp/utils";
-import rateLimit from "@fastify/rate-limit";
-import helmet from "@fastify/helmet";
-import sensible from "@fastify/sensible";
 
 const logger = createMcpLogger("mcp-gateway-security");
 

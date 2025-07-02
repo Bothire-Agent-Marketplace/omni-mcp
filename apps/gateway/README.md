@@ -1,6 +1,8 @@
 # MCP Gateway
 
-A sophisticated **MCP Protocol Multiplexer** that enables seamless communication between clients and multiple MCP servers through a unified interface. The gateway provides HTTP, WebSocket, and native MCP protocol support with enterprise-grade features.
+A sophisticated **MCP Protocol Multiplexer** that enables seamless communication between clients and
+multiple MCP servers through a unified interface. The gateway provides HTTP, WebSocket, and native
+MCP protocol support with enterprise-grade features.
 
 ## 🏗️ Architecture
 
@@ -67,11 +69,7 @@ Configure your MCP servers in `master.config.json`:
       "command": "node",
       "args": ["../servers/linear-mcp-server/dist/index.js"],
       "cwd": "./gateway",
-      "capabilities": [
-        "linear/issues/list",
-        "linear/issues/create",
-        "linear/issues/update"
-      ],
+      "capabilities": ["linear/issues/list", "linear/issues/create", "linear/issues/update"],
       "description": "Linear MCP Server for issue tracking",
       "maxInstances": 3,
       "healthCheckInterval": 30000
@@ -312,4 +310,5 @@ For production deployments:
 
 ---
 
-The MCP Gateway transforms your MCP servers into a unified, scalable, and production-ready service architecture. 🚀
+The MCP Gateway transforms your MCP servers into a unified, scalable, and production-ready service
+architecture. 🚀

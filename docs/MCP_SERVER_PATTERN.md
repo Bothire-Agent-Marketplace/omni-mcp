@@ -1,6 +1,9 @@
 # Enterprise MCP Server Pattern: HTTP Edition
 
-This document defines the **standardized, serverless-ready pattern** that all new MCP servers in this project must follow. The Linear MCP server serves as the **gold standard** implementation. This pattern decouples business logic from the transport layer, allowing servers to run as standalone HTTP microservices or be deployed as FaaS functions.
+This document defines the **standardized, serverless-ready pattern** that all new MCP servers in
+this project must follow. The Linear MCP server serves as the **gold standard** implementation. This
+pattern decouples business logic from the transport layer, allowing servers to run as standalone
+HTTP microservices or be deployed as FaaS functions.
 
 ## 🏗️ **Required Architecture**
 
@@ -25,7 +28,8 @@ apps/[service]-mcp-server/
 
 ## 🎯 **1. The Handler Pattern (Business Logic)**
 
-The core of the server is a set of transport-agnostic handler functions. Each handler is a self-contained unit that takes validated parameters and returns a result.
+The core of the server is a set of transport-agnostic handler functions. Each handler is a
+self-contained unit that takes validated parameters and returns a result.
 
 ### ✅ **CORRECT - Handler Pattern**
 
@@ -59,9 +63,7 @@ export async function handleServiceSearch(params: unknown) {
     if (error instanceof z.ZodError) {
       throw new McpError(
         ErrorCode.InvalidParams,
-        `Invalid search parameters: ${error.errors
-          .map((e) => e.message)
-          .join(", ")}`
+        `Invalid search parameters: ${error.errors.map((e) => e.message).join(", ")}`
       );
     }
     // Re-throw other errors
@@ -86,7 +88,8 @@ export async function handleGetEntities(params: unknown) {
 
 ## 🔌 **2. The HTTP Server Pattern (Transport Layer)**
 
-The handlers are exposed to the network via a Fastify server. This server is responsible for routing, request/response handling, and health checks.
+The handlers are exposed to the network via a Fastify server. This server is responsible for
+routing, request/response handling, and health checks.
 
 ### ✅ **CORRECT - HTTP Server Pattern**
 
@@ -163,7 +166,8 @@ startHttpServer();
 
 ## 🎨 **4. Environment Configuration Pattern**
 
-This pattern remains unchanged and is crucial for providing secrets and configuration to the handlers.
+This pattern remains unchanged and is crucial for providing secrets and configuration to the
+handlers.
 
 ```typescript
 // config/config.ts - REMAINS GOLD STANDARD
@@ -190,10 +194,15 @@ if (!CONFIG.API_KEY) {
 
 ## �� **5. Anti-Patterns & Legacy Code**
 
-1.  ❌ **Mixing business logic in `http-server.ts`** - Keep the transport layer clean. All logic goes in `handlers.ts`.
-2.  ⚠️ **Legacy Stdio Server**: The primary entry point for a service must be the `http-server.ts`. The presence of a `server.ts` using the MCP SDK's `StdioServerTransport` indicates a legacy or alternative execution mode (e.g., for local debugging). It should not be invoked by `index.ts` for standard deployments.
+1.  ❌ **Mixing business logic in `http-server.ts`** - Keep the transport layer clean. All logic
+    goes in `handlers.ts`.
+2.  ⚠️ **Legacy Stdio Server**: The primary entry point for a service must be the `http-server.ts`.
+    The presence of a `server.ts` using the MCP SDK's `StdioServerTransport` indicates a legacy or
+    alternative execution mode (e.g., for local debugging). It should not be invoked by `index.ts`
+    for standard deployments.
 3.  ❌ **Hardcoding URLs or ports** - Always use environment variables via the `config.ts` pattern.
-4.  ❌ **Creating complex routing logic** - The gateway handles smart routing. The MCP server should have a simple `/mcp` endpoint.
+4.  ❌ **Creating complex routing logic** - The gateway handles smart routing. The MCP server should
+    have a simple `/mcp` endpoint.
 
 ## 🎯 **6. Validation Checklist**
 
@@ -206,8 +215,10 @@ Before submitting any MCP server:
 - ✅ **Follows Standard Directory Structure**: Includes `http-server.ts` and `handlers.ts`.
 - ✅ **Uses Hierarchical Config**: Gets all config from `config/config.ts`.
 - ✅ **Has Dockerfile**: The `Dockerfile` is updated to expose the `PORT` and run the HTTP server.
-- ✅ **Comprehensive README**: The `README.md` explains how to run the server and what environment variables it needs.
-- ✅ **(Optional) Wiring Files**: `tools.ts`, `resources.ts`, `prompts.ts` can still be used to provide metadata to the gateway, but they are no longer the execution layer.
+- ✅ **Comprehensive README**: The `README.md` explains how to run the server and what environment
+  variables it needs.
+- ✅ **(Optional) Wiring Files**: `tools.ts`, `resources.ts`, `prompts.ts` can still be used to
+  provide metadata to the gateway, but they are no longer the execution layer.
 
 ## 🚀 **Benefits of This Pattern**
 

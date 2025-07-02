@@ -4,7 +4,9 @@
 
 ## 📊 **Database Overview**
 
-The Pagila database is a PostgreSQL version of the popular Sakila sample database, representing a DVD rental business. It contains realistic business data with complex relationships perfect for demonstrating advanced SQL queries.
+The Pagila database is a PostgreSQL version of the popular Sakila sample database, representing a
+DVD rental business. It contains realistic business data with complex relationships perfect for
+demonstrating advanced SQL queries.
 
 ### **🎯 Key Business Entities**
 
@@ -247,19 +249,16 @@ SELECT * FROM packages_apt_postgresql_org WHERE aptdata @> '{"name": "postgresql
 Based on this schema, the query-quill MCP server should provide tools for:
 
 1. **📊 Business Analytics**
-
    - Revenue analysis by time, location, customer
    - Film performance metrics
    - Customer behavior patterns
 
 2. **🔍 Content Discovery**
-
    - Film search by title, category, actor
    - Actor filmography
    - Category analysis
 
 3. **💰 Financial Reporting**
-
    - Payment analysis across partitions
    - Rental profitability
    - Store performance comparison
@@ -269,4 +268,5 @@ Based on this schema, the query-quill MCP server should provide tools for:
    - Staff performance
    - Return date analysis
 
-This rich dataset provides excellent opportunities for complex JOIN operations, aggregations, window functions, and PostgreSQL-specific features like full-text search and JSON operations.
+This rich dataset provides excellent opportunities for complex JOIN operations, aggregations, window
+functions, and PostgreSQL-specific features like full-text search and JSON operations.

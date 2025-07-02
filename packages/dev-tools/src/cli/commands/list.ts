@@ -1,6 +1,6 @@
-import { Command } from "commander";
 import fs from "fs";
 import path from "path";
+import { Command } from "commander";
 import { log, logError, logWarning } from "../utils.js";
 
 export const list = new Command("list")

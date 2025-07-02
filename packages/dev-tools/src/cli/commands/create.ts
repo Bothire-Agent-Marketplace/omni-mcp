@@ -1,17 +1,8 @@
-import { Command } from "commander";
-import prompts from "prompts";
-import {
-  getJson,
-  writeJson,
-  runCommand,
-  log,
-  logError,
-  logSuccess,
-  logWarning,
-} from "../utils.js";
 import path from "path";
+import { Command } from "commander";
 import fs from "fs-extra";
-import yaml from "js-yaml";
+import prompts from "prompts";
+import { runCommand, log, logError, logSuccess, logWarning } from "../utils.js";
 
 // Helper function to find the next available port
 async function findNextAvailablePort(): Promise<number> {

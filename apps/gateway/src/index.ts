@@ -1,13 +1,8 @@
 #!/usr/bin/env node
 
-import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import { MCPGateway } from "./gateway/mcp-gateway.js";
-import {
-  registerSecurityMiddleware,
-  generateSecureApiKey,
-} from "./middleware/security.js";
+import fastify, { FastifyInstance } from "fastify";
 import {
   createMcpLogger,
   setupGlobalErrorHandlers,
@@ -15,6 +10,11 @@ import {
   getMCPServersConfig,
   getGatewayConfig,
 } from "@mcp/utils";
+import { MCPGateway } from "./gateway/mcp-gateway.js";
+import {
+  registerSecurityMiddleware,
+  generateSecureApiKey,
+} from "./middleware/security.js";
 
 // Initialize MCP-compliant logger
 const logger = createMcpLogger("mcp-gateway");
@@ -24,7 +24,7 @@ setupGlobalErrorHandlers(logger);
 
 let serverInstance: FastifyInstance | null = null;
 
-export async function createServer(): Promise<FastifyInstance> {
+async function createServer(): Promise<FastifyInstance> {
   if (serverInstance) {
     return serverInstance;
   }

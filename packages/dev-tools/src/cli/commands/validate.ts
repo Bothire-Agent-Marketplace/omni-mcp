@@ -1,6 +1,6 @@
+import path from "path";
 import { Command } from "commander";
 import fs from "fs-extra";
-import path from "path";
 import yaml from "js-yaml";
 import { log, logError, logSuccess, logWarning } from "../utils.js";
 

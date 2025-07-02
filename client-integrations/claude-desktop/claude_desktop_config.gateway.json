@@ -3,14 +3,7 @@
   "mcpServers": {
     "omni-mcp-gateway": {
       "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "alpine/socat",
-        "STDIO",
-        "TCP:localhost:37373"
-      ]
+      "args": ["run", "--rm", "-i", "alpine/socat", "STDIO", "TCP:localhost:37373"]
     }
   }
 }

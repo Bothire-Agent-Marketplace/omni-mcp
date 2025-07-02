@@ -1,12 +1,12 @@
+import cors from "@fastify/cors";
 import fastify, {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
 } from "fastify";
-import cors from "@fastify/cors";
 import { createMcpLogger } from "@mcp/utils";
-import * as handlers from "./handlers.js";
 import { CONFIG } from "../config/config.js";
+import * as handlers from "./handlers.js";
 
 const logger = createMcpLogger(`${CONFIG.SERVICE_NAME}-http`);
 

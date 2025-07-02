@@ -221,4 +221,5 @@ pnpm type-check
 
 ---
 
-**Gold Standard**: This Linear MCP server serves as the reference implementation for the Enterprise MCP Server Pattern.
+**Gold Standard**: This Linear MCP server serves as the reference implementation for the Enterprise
+MCP Server Pattern.

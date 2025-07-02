@@ -4,7 +4,9 @@ A powerful command-line interface for managing and scaffolding MCP (Model Contex
 
 ## 🏗️ Overview
 
-The Omni CLI provides commands to create, list, validate, and remove MCP servers. It enforces the new **HTTP-based, serverless-ready pattern**, ensuring that every new server is consistent, scalable, and easy to maintain.
+The Omni CLI provides commands to create, list, validate, and remove MCP servers. It enforces the
+new **HTTP-based, serverless-ready pattern**, ensuring that every new server is consistent,
+scalable, and easy to maintain.
 
 ## 📥 Installation & Usage
 
@@ -26,7 +28,8 @@ pnpm omni remove <service-name>
 
 ### 🏗️ `omni create`
 
-Scaffolds a new, production-ready MCP server based on the official HTTP pattern. It interactively prompts for server details.
+Scaffolds a new, production-ready MCP server based on the official HTTP pattern. It interactively
+prompts for server details.
 
 ```bash
 pnpm omni create
@@ -37,7 +40,8 @@ pnpm omni create
 - ✅ Generates a complete directory structure (`handlers.ts`, `http-server.ts`, etc.).
 - ✅ Creates `package.json` with necessary dependencies (`express`, `cors`).
 - ✅ Produces a multi-stage `Dockerfile` for efficient, secure containerization.
-- ✅ Automatically adds the new server to `pnpm-workspace.yaml`, `docker-compose.dev.yml`, and the gateway's `master.config.dev.json`.
+- ✅ Automatically adds the new server to `pnpm-workspace.yaml`, `docker-compose.dev.yml`, and the
+  gateway's `master.config.dev.json`.
 - ✅ Installs dependencies automatically.
 
 **Generated Structure:**
@@ -93,7 +97,8 @@ pnpm omni validate linear
 - ✅ **File Structure**: Presence of `http-server.ts` and `handlers.ts`.
 - ✅ **Dependencies**: `express` is listed in `package.json`.
 - ✅ **Dockerfile**: A `PORT` is exposed.
-- ✅ **Workspace Integration**: Server is configured in `docker-compose.dev.yml`, `master.config.dev.json`, and `pnpm-workspace.yaml`.
+- ✅ **Workspace Integration**: Server is configured in `docker-compose.dev.yml`,
+  `master.config.dev.json`, and `pnpm-workspace.yaml`.
 
 ### 🗑️ `omni remove <service-name>`
 
@@ -117,14 +122,17 @@ pnpm omni remove <service-name> --force
 
 ## 🏆 The HTTP Server Pattern
 
-The CLI enforces our new gold standard for MCP servers. For full details, see the [Enterprise MCP Server Pattern: HTTP Edition](MCP_SERVER_PATTERN.md).
+The CLI enforces our new gold standard for MCP servers. For full details, see the
+[Enterprise MCP Server Pattern: HTTP Edition](MCP_SERVER_PATTERN.md).
 
 **Key Principles:**
 
 1.  **Decoupled Logic**: Business logic lives in `handlers.ts` and is transport-agnostic.
-2.  **HTTP Transport**: An `express` server in `http-server.ts` exposes the handlers over the network.
+2.  **HTTP Transport**: An `express` server in `http-server.ts` exposes the handlers over the
+    network.
 3.  **Health Checks**: A `/health` endpoint is required for gateway monitoring.
-4.  **Configuration Driven**: All configuration (ports, API keys) is loaded from environment variables.
+4.  **Configuration Driven**: All configuration (ports, API keys) is loaded from environment
+    variables.
 
 ## workflow
 
@@ -163,7 +171,9 @@ pnpm build --filter dev-tools
 
 ### Validation Errors
 
-Run `pnpm omni validate <service-name>` and check the output. The checks are designed to be clear about what is missing or misconfigured. Common issues are missing files or incorrect entries in workspace configuration files.
+Run `pnpm omni validate <service-name>` and check the output. The checks are designed to be clear
+about what is missing or misconfigured. Common issues are missing files or incorrect entries in
+workspace configuration files.
 
 ## 📈 Migration Guide
 
@@ -184,4 +194,5 @@ make validate-mcp SERVICE=existing-server
 
 ---
 
-🎯 **Goal**: Enable teams to rapidly create, manage, and scale 100+ enterprise-grade MCP servers with consistent patterns and zero technical debt.
+🎯 **Goal**: Enable teams to rapidly create, manage, and scale 100+ enterprise-grade MCP servers
+with consistent patterns and zero technical debt.

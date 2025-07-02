@@ -1,7 +1,7 @@
-import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
-import { createMcpLogger } from "@mcp/utils";
+import { v4 as uuidv4 } from "uuid";
 import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
+import { createMcpLogger } from "@mcp/utils";
 
 export class MCPSessionManager {
   private logger = createMcpLogger("mcp-gateway-session-manager");

@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { setupLinearTools } from "./tools.js";
-import { setupLinearResources } from "./resources.js";
 import { setupLinearPrompts } from "./prompts.js";
+import { setupLinearResources } from "./resources.js";
+import { setupLinearTools } from "./tools.js";
 
 // ============================================================================
 // OFFICIAL MCP SDK PATTERN - Clean & Simple Server Setup

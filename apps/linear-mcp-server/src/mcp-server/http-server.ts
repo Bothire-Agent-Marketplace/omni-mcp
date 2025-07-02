@@ -1,9 +1,9 @@
+import cors from "@fastify/cors";
 import fastify, {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
 } from "fastify";
-import cors from "@fastify/cors";
 import { createMcpLogger } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
@@ -36,12 +36,9 @@ export function createHttpServer(): FastifyInstance {
     }
   );
 
-  server.get(
-    "/health",
-    async () => {
-      return { status: "ok" };
-    }
-  );
+  server.get("/health", async () => {
+    return { status: "ok" };
+  });
 
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
     const { jsonrpc, method, params, id } = request.body as any;

@@ -16,14 +16,32 @@
     "clean:docker": "docker system prune -f",
     "clean:all": "pnpm clean && pnpm clean:docker",
     "type-check": "turbo type-check",
-    "omni": "node --enable-source-maps packages/dev-tools/dist/cli/index.js"
+    "omni": "node --enable-source-maps packages/dev-tools/dist/cli/index.js",
+    "audit:code": "echo '🔍 Checking for unused dependencies...' && pnpm dlx depcheck --ignore-bin-package --ignores='@types/fs-extra,@types/js-yaml,@types/prompts,lint-staged,prettier,ts-node,ts-prune' && echo '\n🧹 Checking for unused exports (variables, types, functions, etc.)...' && pnpm dlx ts-prune --project tsconfig.base.json --error",
+    "lint": "eslint . --ext .ts,.js --fix",
+    "lint:imports": "eslint . --ext .ts,.js --fix --rule 'unused-imports/no-unused-imports: error' --rule 'import/order: error'",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "lint:fix": "pnpm lint:imports && pnpm format",
+    "lint:help": "echo '\n🧹 Available lint and audit commands:\n  pnpm lint:fix     - Clean imports + format code\n  pnpm lint:imports - Remove unused imports + order them\n  pnpm format       - Format code with Prettier\n  pnpm lint         - Run ESLint with auto-fix\n  pnpm audit:code   - Find unused dependencies + dead code\n'"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/prompts": "^2.4.9",
-    "@vercel/node": "^5.3.0",
     "turbo": "^2.5.4",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "depcheck": "^1.4.7",
+    "ts-prune": "^0.10.3",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-unused-imports": "^3.0.0"
+  },
+  "pnpm": {
+    "overrides": {}
   }
 }

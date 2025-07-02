@@ -45,10 +45,6 @@ export function runCommand(
   });
 }
 
-export async function getJson(filePath: string): Promise<any> {
-  return fs.readJson(filePath);
-}
-
 export async function writeJson(filePath: string, data: any): Promise<void> {
   await fs.writeJson(filePath, data, { spaces: 2 });
 }

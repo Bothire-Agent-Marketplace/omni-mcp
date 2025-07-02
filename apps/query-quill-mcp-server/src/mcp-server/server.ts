@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { setupQueryQuillTools } from "./tools.js";
-import { setupQueryQuillResources } from "./resources.js";
 import { setupQueryQuillPrompts } from "./prompts.js";
+import { setupQueryQuillResources } from "./resources.js";
+import { setupQueryQuillTools } from "./tools.js";
 
 // ============================================================================
 // OFFICIAL MCP SDK PATTERN - Clean & Simple Server Setup

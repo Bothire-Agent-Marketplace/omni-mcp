@@ -1,7 +1,7 @@
 import { EventEmitter } from "events";
-import { createMcpLogger } from "@mcp/utils";
-import { ServerConfig, ServerInstance, HealthStatus } from "@mcp/schemas";
 import fetch from "node-fetch";
+import { ServerConfig, ServerInstance, HealthStatus } from "@mcp/schemas";
+import { createMcpLogger } from "@mcp/utils";
 
 export class MCPServerManager extends EventEmitter {
   private logger = createMcpLogger("mcp-gateway-server-manager");
