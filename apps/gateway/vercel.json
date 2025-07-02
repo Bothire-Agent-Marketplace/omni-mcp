@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.com/spec/vercel-json-v1",
   "name": "omni-mcp-gateway",
   "version": 2,
+  "buildCommand": "pnpm build",
   "builds": [
     {
       "src": "dist/index.js",
