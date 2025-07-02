@@ -1,7 +1,7 @@
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
-import { createMcpLogger } from "@mcp/utils";
+import { createMcpLogger, getAllTools } from "@mcp/utils";
 import {
   MasterConfig,
   MCPRequest,
@@ -197,7 +197,12 @@ export class MCPGateway {
     });
 
     try {
-      // Resolve capability to server
+      // Handle core MCP protocol methods directly in the gateway
+      if (this.isProtocolMethod(request.method)) {
+        return await this.handleProtocolMethod(request);
+      }
+
+      // Resolve capability to server for tool calls and other methods
       const serverId = this.protocolAdapter.resolveCapability(
         request,
         this.capabilityMap
@@ -343,5 +348,110 @@ export class MCPGateway {
     }
 
     return [...new Set(allCapabilities)].sort();
+  }
+
+  private isProtocolMethod(method: string): boolean {
+    const protocolMethods = [
+      "initialize",
+      "notifications/initialized",
+      "tools/list",
+      "resources/list",
+      "prompts/list",
+      "ping",
+    ];
+    return protocolMethods.includes(method);
+  }
+
+  private async handleProtocolMethod(
+    request: MCPRequest
+  ): Promise<MCPResponse> {
+    switch (request.method) {
+      case "initialize":
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            protocolVersion: "2024-11-05",
+            capabilities: {
+              tools: {},
+              resources: {},
+              prompts: {},
+            },
+            serverInfo: {
+              name: "omni-mcp-gateway",
+              version: "1.0.0",
+            },
+          },
+        };
+
+      case "notifications/initialized":
+        // This is a notification, no response needed
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {},
+        };
+
+      case "tools/list":
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            tools: this.getAvailableTools(),
+          },
+        };
+
+      case "resources/list":
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            resources: [],
+          },
+        };
+
+      case "prompts/list":
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {
+            prompts: [],
+          },
+        };
+
+      case "ping":
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          result: {},
+        };
+
+      default:
+        return {
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: -32601,
+            message: "Method not found",
+            data: `Protocol method ${request.method} not implemented`,
+          },
+        };
+    }
+  }
+
+  private getAvailableTools(): any[] {
+    // Use centralized tool registry
+    const allTools = getAllTools();
+
+    // Filter tools based on available servers
+    const availableServerIds = Array.from(this.capabilityMap.keys());
+
+    return allTools
+      .filter((tool) => availableServerIds.includes(tool.serverId))
+      .map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      }));
   }
 }

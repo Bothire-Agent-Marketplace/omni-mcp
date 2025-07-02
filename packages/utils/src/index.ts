@@ -17,3 +17,11 @@ export {
   type MCPServersConfig,
   type GatewayConfig,
 } from "./env.js";
+export {
+  TOOL_REGISTRY,
+  getToolsByServerId,
+  getToolDefinition,
+  getAllTools,
+  getServerIds,
+  type ToolDefinition,
+} from "./tool-registry.js";
