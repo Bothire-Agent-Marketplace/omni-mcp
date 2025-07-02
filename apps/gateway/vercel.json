@@ -3,19 +3,10 @@
   "name": "omni-mcp-gateway",
   "version": 2,
   "buildCommand": "pnpm build",
-  "builds": [
+  "rewrites": [
     {
-      "src": "dist/index.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxLambdaSize": "50mb"
-      }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.js"
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
   ],
   "headers": [
