@@ -2,7 +2,14 @@
   "$schema": "https://openapi.vercel.com/spec/vercel-json-v1",
   "name": "omni-mcp-gateway",
   "version": 2,
-  "buildCommand": "pnpm build",
+  "functions": {
+    "api/index.ts": {
+      "runtime": "nodejs20.x"
+    },
+    "api/test.ts": {
+      "runtime": "nodejs20.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/(.*)",
