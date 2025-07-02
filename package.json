@@ -22,7 +22,7 @@
     "lint:imports": "eslint . --ext .ts,.js --fix --rule 'unused-imports/no-unused-imports: error' --rule 'import/order: error'",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "lint:fix": "pnpm lint:imports && pnpm format",
-    "lint:help": "echo '\n🧹 Available lint and audit commands:\n  pnpm lint:fix     - Clean imports + format code\n  pnpm lint:imports - Remove unused imports + order them\n  pnpm format       - Format code with Prettier\n  pnpm lint         - Run ESLint with auto-fix\n  pnpm audit:code   - Find unused dependencies + dead code\n'",
+    "lint:help": "echo '\n🧹 Available lint, test, and audit commands:\n  pnpm lint:fix     - Clean imports + format code\n  pnpm lint:imports - Remove unused imports + order them\n  pnpm format       - Format code with Prettier\n  pnpm lint         - Run ESLint with auto-fix\n  pnpm audit:code   - Find unused dependencies + dead code\n  pnpm test         - Run tests with Vitest\n  pnpm test:ui      - Run tests with Vitest UI\n  pnpm test:run     - Run tests once (no watch)\n\n🪝 Pre-commit hook: Automatically runs lint:imports + format on staged files\n'",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
