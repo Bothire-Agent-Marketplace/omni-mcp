@@ -4,7 +4,10 @@ import fastify, { FastifyInstance } from "fastify";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
-import { registerSecurityMiddleware, generateSecureApiKey } from "./middleware/security.js";
+import {
+  registerSecurityMiddleware,
+  generateSecureApiKey,
+} from "./middleware/security.js";
 import {
   createMcpLogger,
   setupGlobalErrorHandlers,
@@ -197,6 +200,6 @@ async function main() {
 }
 
 // Start the gateway
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === `file://${process.argv[1]}` || process.env.VERCEL) {
   main();
 }
