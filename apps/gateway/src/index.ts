@@ -200,6 +200,6 @@ async function main() {
 }
 
 // Start the gateway
-if (import.meta.url === `file://${process.argv[1]}` || process.env.VERCEL) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
