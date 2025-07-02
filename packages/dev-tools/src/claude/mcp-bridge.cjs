@@ -9,6 +9,8 @@ const GATEWAY_PATH = "/mcp";
 class MCPBridge {
   constructor() {
     this.messageBuffer = "";
+    this.pendingRequests = 0;
+    this.stdinEnded = false;
     this.setupStreams();
   }
 
@@ -20,7 +22,8 @@ class MCPBridge {
     });
 
     process.stdin.on("end", () => {
-      process.exit(0);
+      this.stdinEnded = true;
+      this.checkForExit();
     });
 
     process.on("SIGINT", () => process.exit(0));
@@ -42,8 +45,11 @@ class MCPBridge {
   async handleMessage(messageStr) {
     try {
       const message = JSON.parse(messageStr);
+      this.pendingRequests++;
       const response = await this.forwardToGateway(message);
       process.stdout.write(JSON.stringify(response) + "\n");
+      this.pendingRequests--;
+      this.checkForExit();
     } catch (error) {
       const errorResponse = {
         jsonrpc: "2.0",
@@ -55,6 +61,8 @@ class MCPBridge {
         },
       };
       process.stdout.write(JSON.stringify(errorResponse) + "\n");
+      this.pendingRequests--;
+      this.checkForExit();
     }
   }
 
@@ -84,8 +92,11 @@ class MCPBridge {
           try {
             const httpResponse = JSON.parse(data);
 
-            // Convert HTTP response back to JSON-RPC format
-            if (httpResponse.success) {
+            // Check if it's already a JSON-RPC response (protocol methods)
+            if (httpResponse.jsonrpc === "2.0") {
+              resolve(httpResponse);
+            } else if (httpResponse.success) {
+              // Convert HTTP response back to JSON-RPC format (tool calls)
               resolve({
                 jsonrpc: "2.0",
                 id: message.id,
@@ -131,6 +142,12 @@ class MCPBridge {
       req.write(postData);
       req.end();
     });
+  }
+
+  checkForExit() {
+    if (this.stdinEnded && this.pendingRequests === 0) {
+      process.exit(0);
+    }
   }
 }
 

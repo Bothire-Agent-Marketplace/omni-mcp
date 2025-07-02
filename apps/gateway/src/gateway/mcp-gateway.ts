@@ -83,7 +83,12 @@ export class MCPGateway {
         session
       );
 
-      // Convert MCP response back to HTTP format
+      // For protocol methods, return JSON-RPC response directly
+      if (this.isProtocolMethod(mcpRequest.method)) {
+        return mcpResponse;
+      }
+
+      // Convert MCP response back to HTTP format for tool calls
       const httpResponse = await this.protocolAdapter.handleMCPToHttp(
         mcpResponse
       );
