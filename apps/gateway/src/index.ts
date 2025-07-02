@@ -21,7 +21,7 @@ setupGlobalErrorHandlers(logger);
 
 let serverInstance: FastifyInstance | null = null;
 
-async function createServer(): Promise<FastifyInstance> {
+export async function createServer(): Promise<FastifyInstance> {
   if (serverInstance) {
     return serverInstance;
   }
@@ -200,9 +200,3 @@ async function main() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   main();
 }
-
-export default async (req: any, res: any) => {
-  const server = await createServer();
-  await server.ready();
-  server.server.emit("request", req, res);
-};

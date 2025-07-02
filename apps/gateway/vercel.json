@@ -1,0 +1,38 @@
+{
+  "$schema": "https://openapi.vercel.com/spec/vercel-json-v1",
+  "name": "omni-mcp-gateway",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/gateway"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
+      ]
+    }
+  ],
+  "regions": ["iad1"]
+}
