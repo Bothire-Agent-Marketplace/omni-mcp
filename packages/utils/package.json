@@ -1,10 +1,9 @@
 {
   "name": "@mcp/utils",
   "version": "1.0.0",
-  "type": "module",
   "private": true,
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
@@ -18,5 +17,6 @@
   "devDependencies": {
     "@types/node": "^24.0.8",
     "typescript": "^5.8.3"
-  }
+  },
+  "types": "dist/index.d.ts"
 }

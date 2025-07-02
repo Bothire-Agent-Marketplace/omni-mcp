@@ -395,8 +395,8 @@ export async function handlePaymentInvestigation(
     params;
 
   try {
-    let whereConditions = ["1=1"];
-    let queryParams: any[] = [];
+    const whereConditions = ["1=1"];
+    const queryParams: any[] = [];
     let paramIndex = 1;
 
     if (customer_id) {
@@ -507,7 +507,7 @@ export async function handleBusinessAnalytics(
 
   try {
     let query = "";
-    let queryParams: any[] = [limit];
+    const queryParams: any[] = [limit];
 
     switch (analysis_type) {
       case "top_films_revenue":

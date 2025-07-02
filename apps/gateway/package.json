@@ -1,19 +1,19 @@
 {
   "name": "@mcp/gateway",
-  "version": "1.0.0",
+  "version": "workspace:*",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist",
     "dev": "tsx --watch src/index.ts",
     "start": "node dist/index.js",
-    "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit",
     "test": "vitest",
-    "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:watch": "vitest --watch",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -36,11 +36,11 @@
     "@types/node": "^24.0.8",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
+    "@vitest/coverage-v8": "^1.6.0",
     "supertest": "^7.1.1",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "vitest": "^1.6.0",
-    "@vitest/coverage-v8": "^1.6.0"
+    "vitest": "^1.6.0"
   },
   "vitest": {
     "environment": "node",

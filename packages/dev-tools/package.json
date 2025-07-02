@@ -3,19 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "omni": "dist/cli/index.js"
-  },
   "scripts": {
     "build": "tsc",
-    "dev": "echo 'Dev-tools CLI is ready. Use: pnpm omni --help'",
-    "watch:claude-config": "tsx src/claude/config-watcher.ts",
     "copy:claude-config": "tsx src/claude/copy-config.ts",
-    "mcp-bridge": "tsx src/claude/mcp-stdio-bridge.ts",
+    "dev": "echo 'Dev-tools CLI is ready. Use: pnpm omni --help'",
     "docker:build": "node docker-build.js",
-    "docker:pull": "node external-docker.js",
+    "docker:build:all": "pnpm docker:pull && pnpm docker:build",
     "docker:build:linear": "docker build -f ../servers/linear-mcp-server/Dockerfile -t mcp/linear:latest ..",
-    "docker:build:all": "pnpm docker:pull && pnpm docker:build"
+    "docker:pull": "node external-docker.js",
+    "mcp-bridge": "tsx src/claude/mcp-stdio-bridge.ts",
+    "watch:claude-config": "tsx src/claude/config-watcher.ts"
   },
   "dependencies": {
     "chalk": "^5.4.1",
@@ -29,5 +26,8 @@
     "@types/node": "^24.0.8",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
+  },
+  "bin": {
+    "omni": "dist/cli/index.js"
   }
 }

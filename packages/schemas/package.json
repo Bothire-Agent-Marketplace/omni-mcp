@@ -2,18 +2,18 @@
   "name": "@mcp/schemas",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^3.23.8"
+    "zod": "^3.25.67"
   },
   "devDependencies": {
-    "typescript": "^5.3.3"
-  }
+    "typescript": "^5.8.3"
+  },
+  "types": "dist/index.d.ts"
 }

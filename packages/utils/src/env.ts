@@ -441,6 +441,7 @@ class EnvironmentManager {
       }
     } catch (error) {
       // If decoding fails, treat as plain text
+      console.error(`Error decoding secret`);
     }
 
     return secret;
