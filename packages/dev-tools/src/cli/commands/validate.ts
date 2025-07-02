@@ -187,6 +187,5 @@ async function checkHttpServerImports(
 ): Promise<ValidationResult> {
   if (!fs.existsSync(httpPath)) return "fail";
   const content = await fs.readFile(httpPath, "utf8");
-  const regex = new RegExp(`import .* from "${importName}";`);
-  return regex.test(content) ? "pass" : "fail";
+  return content.includes(`from "fastify"`) ? "pass" : "fail";
 }

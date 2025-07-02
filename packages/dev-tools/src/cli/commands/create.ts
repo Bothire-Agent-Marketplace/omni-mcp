@@ -17,67 +17,24 @@ import yaml from "js-yaml";
 async function findNextAvailablePort(): Promise<number> {
   const usedPorts = new Set<number>();
 
-  // Check master.config.dev.json for used ports
+  // Check packages/utils/src/env.ts for used ports
   try {
-    const masterConfigPath = "apps/gateway/master.config.dev.json";
-    if (fs.existsSync(masterConfigPath)) {
-      const config = await getJson(masterConfigPath);
-      for (const server of Object.values(config.servers || {})) {
-        const serverConfig = server as any;
-        if (serverConfig.url) {
-          const match = serverConfig.url.match(/:(\d+)/);
-          if (match) {
-            usedPorts.add(parseInt(match[1], 10));
-          }
+    const envTsPath = "packages/utils/src/env.ts";
+    if (fs.existsSync(envTsPath)) {
+      const content = await fs.readFile(envTsPath, "utf8");
+      const portRegex = /port:\s*(\d+)|url:\s*".*?:(\d+)"/g;
+      let match;
+      while ((match = portRegex.exec(content)) !== null) {
+        if (match[1]) {
+          usedPorts.add(parseInt(match[1], 10));
         }
-      }
-      // Gateway port
-      if (config.gateway?.port) {
-        usedPorts.add(config.gateway.port);
-      }
-    }
-  } catch (error) {
-    console.warn("Could not read master.config.dev.json:", error);
-  }
-
-  // Check docker-compose.dev.yml for used ports
-  try {
-    const composePath = "deployment/docker-compose.dev.yml";
-    if (fs.existsSync(composePath)) {
-      const composeContent = await fs.readFile(composePath, "utf8");
-      const compose = yaml.load(composeContent) as any;
-
-      for (const service of Object.values(compose.services || {})) {
-        const serviceConfig = service as any;
-
-        // Check environment PORT
-        if (serviceConfig.environment) {
-          for (const env of serviceConfig.environment) {
-            if (typeof env === "string" && env.startsWith("PORT=")) {
-              const port = parseInt(env.split("=")[1], 10);
-              if (!isNaN(port)) {
-                usedPorts.add(port);
-              }
-            }
-          }
-        }
-
-        // Check ports mapping
-        if (serviceConfig.ports) {
-          for (const portMapping of serviceConfig.ports) {
-            if (typeof portMapping === "string") {
-              const [hostPort] = portMapping.split(":");
-              const port = parseInt(hostPort, 10);
-              if (!isNaN(port)) {
-                usedPorts.add(port);
-              }
-            }
-          }
+        if (match[2]) {
+          usedPorts.add(parseInt(match[2], 10));
         }
       }
     }
   } catch (error) {
-    console.warn("Could not read docker-compose.dev.yml:", error);
+    console.warn("Could not read packages/utils/src/env.ts:", error);
   }
 
   // Find next available port starting from 3001
@@ -91,49 +48,63 @@ async function findNextAvailablePort(): Promise<number> {
 
 export const create = new Command("create")
   .description("Create a new MCP server.")
-  .action(async () => {
+  .option("--test", "Run in test mode with predefined answers")
+  .action(async (options) => {
     // Find the next available port
     const nextPort = await findNextAvailablePort();
 
-    const responses = await prompts(
-      [
+    let responses;
+
+    if (options.test) {
+      responses = {
+        serviceName: "test-server",
+        description: "A test server.",
+        author: "Gemini",
+        port: nextPort,
+      };
+      log("🧪 Running in test mode with predefined answers...");
+    } else {
+      responses = await prompts(
+        [
+          {
+            type: "text",
+            name: "serviceName",
+            message:
+              "What is the name of the service? (e.g., 'linear', 'jira')",
+            validate: (value: string) =>
+              /^[a-z0-9-]+$/.test(value)
+                ? true
+                : "Please use lowercase letters, numbers, and hyphens only.",
+          },
+          {
+            type: "text",
+            name: "description",
+            message: "Provide a short description of the server.",
+          },
+          {
+            type: "text",
+            name: "author",
+            message: "Who is the author of this server?",
+          },
+          {
+            type: "number",
+            name: "port",
+            message: `Which network port should this server run on? (suggested: ${nextPort})`,
+            initial: nextPort,
+            validate: (value: number) =>
+              value > 1024 && value < 65535
+                ? true
+                : "Port must be between 1025 and 65534",
+          },
+        ],
         {
-          type: "text",
-          name: "serviceName",
-          message: "What is the name of the service? (e.g., 'linear', 'jira')",
-          validate: (value: string) =>
-            /^[a-z0-9-]+$/.test(value)
-              ? true
-              : "Please use lowercase letters, numbers, and hyphens only.",
-        },
-        {
-          type: "text",
-          name: "description",
-          message: "Provide a short description of the server.",
-        },
-        {
-          type: "text",
-          name: "author",
-          message: "Who is the author of this server?",
-        },
-        {
-          type: "number",
-          name: "port",
-          message: `Which network port should this server run on? (suggested: ${nextPort})`,
-          initial: nextPort,
-          validate: (value: number) =>
-            value > 1024 && value < 65535
-              ? true
-              : "Port must be between 1025 and 65534",
-        },
-      ],
-      {
-        onCancel: () => {
-          logError("Operation cancelled by user.");
-          process.exit(1);
-        },
-      }
-    );
+          onCancel: () => {
+            logError("Operation cancelled by user.");
+            process.exit(1);
+          },
+        }
+      );
+    }
 
     if (!responses.serviceName || !responses.port) {
       logError("Server name and port are required. Aborting.");
@@ -212,19 +183,11 @@ export const create = new Command("create")
       await Promise.all(fileCreationTasks);
       log("✅ Server files created.");
 
-      // 3. Update master config (REMOVED - now managed in @mcp/utils/env.ts)
-      // await updateMasterConfig(serviceName, description, port);
-      // log("✅ Gateway config (master.config.dev.json) updated.");
+      // 3. Update packages/utils/src/env.ts configuration
+      await updateEnvTsConfig(serviceName, description, port);
+      log("✅ Server configuration added to packages/utils/src/env.ts.");
 
-      // 4. Update Docker Compose (REMOVED)
-      // await updateDockerCompose(serviceName, serverId, port);
-      // log("✅ Docker Compose (docker-compose.dev.yml) updated.");
-
-      // 5. Update pnpm-workspace.yaml (No longer needed with wildcard path)
-      // await updatePnpmWorkspace(serverPath);
-      // log("✅ PNPM workspace (pnpm-workspace.yaml) updated.");
-
-      // 6. Install dependencies
+      // 4. Install dependencies
       log("📦 Installing dependencies with pnpm...");
       await runCommand("pnpm", ["install"], {
         stdio: "inherit",
@@ -232,10 +195,9 @@ export const create = new Command("create")
 
       logSuccess(`\n🎉 MCP server '${serverId}' created successfully!`);
       logWarning(`\nNext steps:
-1. Update 'packages/utils/src/env.ts' to include the new server configuration for development and production.
-2. Update 'secrets/.env.development.local' with any required API keys for '${serviceName}'.
-3. Implement your tool logic in '${serverPath}/src/mcp-server/handlers.ts'.
-4. Run 'pnpm dev' to start the new server alongside the gateway.
+1. Update 'secrets/.env.development.local' with any required API keys for '${serviceName}'.
+2. Implement your tool logic in '${serverPath}/src/mcp-server/handlers.ts'.
+3. Run 'pnpm dev' to start the new server alongside the gateway.
 `);
     } catch (error) {
       logError(
@@ -320,9 +282,9 @@ const getReadmeContent = (name: string, description: string) => `
 This server runs as a standalone HTTP microservice and is managed by the main MCP Gateway.
 
 1.  **Environment Variables**: Create a \`.env\` file in this directory or add the required variables to the root \`secrets/.env.development.local\` file. See \`.env.example\` for required variables.
-2.  **Run with Docker**: The recommended way to run this server is via the root \`docker-compose.dev.yml\`.
+2.  **Run with Gateway**: The recommended way to run this server is via the gateway.
     \`\`\`bash
-    make dev
+    pnpm dev
     \`\`\`
 3.  **Run Standalone (for debugging)**:
     \`\`\`bash
@@ -656,120 +618,72 @@ export function setup${
 // CONFIGURATION FILE UPDATERS
 // =============================================================================
 
-/*
-async function updateMasterConfig(
+async function updateEnvTsConfig(
   serviceName: string,
   description: string,
   port: number
 ) {
-  const configPath = "apps/gateway/master.config.dev.json";
-  const config = await getJson(configPath);
+  const envTsPath = path.resolve(process.cwd(), "packages/utils/src/env.ts");
 
-  if (config.servers[serviceName]) {
-    logWarning(
-      \`Server '\${serviceName}' already exists in \${configPath}. Skipping update.\`
-    );
-    return;
+  if (!fs.existsSync(envTsPath)) {
+    throw new Error(`Could not find ${envTsPath}`);
   }
 
-  config.servers[serviceName] = {
-    type: "mcp",
-    description: description,
-    url: \`http://\${serviceName}-mcp-server:\${port}\`,
-    capabilities: [
-      "tools/list",
-      "tools/call",
-      "resources/list",
-      "resources/read",
-      "prompts/list",
-      "prompts/get",
-    ],
-  };
+  let content = await fs.readFile(envTsPath, "utf8");
 
-  await writeJson(configPath, config);
-}
-*/
+  // Create the server configuration object
+  const serverConfig = `    ${serviceName}: {
+      type: "mcp",
+      url: "http://localhost:${port}",
+      capabilities: [
+        "${serviceName}_search",
+      ],
+      description: "${description}",
+      healthCheckInterval: 15000,
+      requiresAuth: false,
+      maxRetries: 1,
+    },`;
 
-// No longer needed with wildcard workspace path
-/*
-async function updatePnpmWorkspace(serverPath: string) {
-  const workspacePath = "pnpm-workspace.yaml";
-  const workspaceConfig = yaml.load(fs.readFileSync(workspacePath, "utf8")) as {
-    packages: string[];
-  };
+  const productionServerConfig = `      ${serviceName}: {
+        type: "mcp",
+        url: process.env.${serviceName.toUpperCase()}_SERVER_URL || "https://${serviceName}-mcp.vercel.app",
+        capabilities: [
+          "${serviceName}_search",
+        ],
+        description: "${description}",
+        healthCheckInterval: 30000,
+        requiresAuth: true,
+        maxRetries: 3,
+      },`;
 
-  if (!workspaceConfig.packages.includes(serverPath)) {
-    workspaceConfig.packages.push(serverPath);
-    fs.writeFileSync(workspacePath, yaml.dump(workspaceConfig));
-  }
-}
-*/
-
-/*
-async function updateDockerCompose(
-  serviceName: string,
-  serverId: string,
-  port: number
-) {
-  const composePath = "deployment/docker-compose.dev.yml";
-  const composeConfig = yaml.load(fs.readFileSync(composePath, "utf8")) as any;
-
-  if (composeConfig.services[serverId]) {
-    logWarning(
-      `Service '${serverId}' already exists in ${composePath}. Skipping update.`
-    );
-    return;
-  }
-
-  composeConfig.services[serverId] = {
-    build: {
-      context: "..",
-      dockerfile: `apps/${serverId}/Dockerfile`,
-      target: "builder",
-    },
-    container_name: `omni-${serviceName}-mcp-server`,
-    env_file: [
-      "../.env",
-      `../apps/${serverId}/.env`,
-      "../secrets/.env.development.local",
-    ],
-    environment: ["NODE_ENV=development", "LOG_LEVEL=debug", `PORT=${port}`],
-    volumes: [
-      `../apps/${serverId}/src:/app/apps/${serverId}/src:ro`,
-      `../apps/${serverId}/package.json:/app/apps/${serverId}/package.json:ro`,
-      "../packages:/app/packages:ro",
-    ],
-    command: ["sh", "-c", `cd apps/${serverId} && pnpm dev`],
-    ports: [
-      `${port}:${port}`,
-      // Add a unique debug port (port + 1000 to avoid conflicts)
-      `${port + 1000}:9229`,
-    ],
-    networks: ["mcp-network"],
-    healthcheck: {
-      test: ["CMD", "curl", "-f", `http://localhost:${port}/health`],
-      interval: "10s",
-      timeout: "3s",
-      retries: 3,
-      start_period: "10s",
-    },
-  };
-
-  // Add dependency to gateway
-  if (
-    composeConfig.services["mcp-gateway"] &&
-    composeConfig.services["mcp-gateway"].depends_on
-  ) {
-    composeConfig.services["mcp-gateway"].depends_on.push(serverId);
-  } else {
-    logWarning(
-      `Could not find mcp-gateway service in ${composePath} to add depends_on.`
-    );
-  }
-
-  fs.writeFileSync(
-    composePath,
-    yaml.dump(composeConfig, { indent: 2, lineWidth: -1 })
+  // Add to development configuration
+  const devReturnMatch = content.match(
+    /(\/\/ Development configuration\s*\n\s*return\s*\{[^}]*)\s*\};/s
   );
+  if (devReturnMatch) {
+    const beforeClosing = devReturnMatch[1];
+    const replacement = beforeClosing + "\n" + serverConfig + "\n  };";
+    content = content.replace(devReturnMatch[0], replacement);
+  } else {
+    throw new Error(
+      "Could not find development configuration return statement in env.ts"
+    );
+  }
+
+  // Add to production configuration
+  const prodReturnMatch = content.match(
+    /(if \(env === "production"\) \{\s*\/\/ Production URLs[^}]*return\s*\{[^}]*)\s*\};/s
+  );
+  if (prodReturnMatch) {
+    const beforeClosing = prodReturnMatch[1];
+    const replacement =
+      beforeClosing + "\n" + productionServerConfig + "\n    };";
+    content = content.replace(prodReturnMatch[0], replacement);
+  } else {
+    throw new Error(
+      "Could not find production configuration return statement in env.ts"
+    );
+  }
+
+  await fs.writeFile(envTsPath, content);
 }
-*/
