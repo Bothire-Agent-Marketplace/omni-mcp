@@ -1,22 +1,11 @@
-import { MCPRequest, MCPResponse, IWebSocket } from "@mcp/schemas";
+import {
+  MCPRequest,
+  MCPResponse,
+  IWebSocket,
+  HTTPRequestBody,
+  HTTPResponse,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
-
-// HTTP request body interface for validation
-interface HTTPRequestBody {
-  jsonrpc: "2.0";
-  id?: string | number;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-// HTTP response interface for consistent response format
-interface HTTPResponse {
-  success: boolean;
-  error?: string;
-  code?: number;
-  data?: unknown;
-  id?: string | number;
-}
 
 export class MCPProtocolAdapter {
   private logger: McpLogger;

@@ -1,15 +1,12 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { GatewayConfig } from "@mcp/schemas";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
-import {
-  buildMCPServersConfig,
-  type MCPServersRuntimeConfig,
-} from "@mcp/utils/mcp-servers.js";
+import { buildMCPServersConfig } from "@mcp/utils/mcp-servers.js";
 import {
   validatePort,
   validateSecret,
   parseOrigins,
-  type Environment,
 } from "@mcp/utils/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,24 +16,7 @@ const SERVICE_PATH = join(__dirname, "..");
 // Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
 
-// Define the shape of the Gateway's specific configuration
-interface GatewayConfig {
-  env: Environment;
-  port: number;
-  host: string;
-  allowedOrigins: string[];
-  jwtSecret: string;
-  mcpApiKey: string;
-  sessionTimeout: number;
-  maxConcurrentSessions: number;
-  rateLimitPerMinute: number;
-  requireApiKey: boolean;
-  enableRateLimit: boolean;
-  maxRequestSizeMb: number;
-  corsCredentials: boolean;
-  securityHeaders: boolean;
-  mcpServers: MCPServersRuntimeConfig;
-}
+// Gateway configuration removed - now using shared type from @mcp/schemas
 
 function createGatewayConfig(): GatewayConfig {
   const env = detectEnvironment();

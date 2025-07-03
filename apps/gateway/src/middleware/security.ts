@@ -2,6 +2,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import { HTTPRequestBody } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
 // Query parameters interface for type safety
@@ -9,6 +10,7 @@ interface MCPQueryParams {
   api_key?: string;
 }
 
+// Security configuration interface
 interface SecurityConfig {
   logger: McpLogger;
   enableRateLimit: boolean;
@@ -66,7 +68,7 @@ export async function registerSecurityMiddleware(
   // 2. Sensible defaults
   await fastify.register(sensible);
 
-  // 3. Rate Limiting
+  // 3. Rate Limiting with proper TypeScript types
   if (config.enableRateLimit) {
     await fastify.register(rateLimit, {
       max: config.rateLimitPerMinute,
@@ -77,21 +79,23 @@ export async function registerSecurityMiddleware(
         const apiKey = extractApiKey(request);
         return apiKey || request.ip;
       },
-      errorResponseBuilder: (
-        request: FastifyRequest,
-        context: Record<string, unknown>
-      ) => {
+      errorResponseBuilder: (request: FastifyRequest, context: unknown) => {
+        const ctx = context as {
+          timeWindow?: unknown;
+          max?: unknown;
+          ttl?: unknown;
+        };
         logger.warn("Rate limit exceeded", {
           ip: request.ip,
           userAgent: request.headers["user-agent"],
-          timeWindow: context.timeWindow,
-          max: context.max,
+          timeWindow: ctx.timeWindow,
+          max: ctx.max,
         });
 
         return {
           error: "Rate limit exceeded",
-          message: `Too many requests. Limit: ${context.max} requests per ${context.timeWindow}`,
-          retryAfter: Math.round(context.ttl / 1000),
+          message: `Too many requests. Limit: ${ctx.max} requests per ${ctx.timeWindow}`,
+          retryAfter: Math.round((ctx.ttl as number) / 1000),
         };
       },
       onExceeding: (request: FastifyRequest) => {
@@ -176,7 +180,7 @@ export async function registerSecurityMiddleware(
     logger.info("API key authentication enabled");
   }
 
-  // 6. Input Validation Middleware
+  // 6. Input Validation Middleware with proper typing
   fastify.addHook(
     "preHandler",
     async (request: FastifyRequest, reply: FastifyReply) => {
@@ -252,27 +256,32 @@ function extractApiKey(request: FastifyRequest): string | null {
 }
 
 /**
- * Validate API key against configured key(s)
+ * Validate API key against configured value
  */
 function isValidApiKey(providedKey: string, configuredKey: string): boolean {
-  // In production, you might want to support multiple keys or use hashing
-  return providedKey === configuredKey;
+  // Use timing-safe comparison to prevent timing attacks
+  if (providedKey.length !== configuredKey.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < providedKey.length; i++) {
+    result |= providedKey.charCodeAt(i) ^ configuredKey.charCodeAt(i);
+  }
+
+  return result === 0;
 }
 
 /**
- * Mask API key for logging (show first 4 and last 4 characters)
+ * Mask API key for logging (show first 8 chars, rest as *)
  */
 function maskApiKey(apiKey: string): string {
-  if (apiKey.length <= 8) {
-    return "*".repeat(apiKey.length);
-  }
-  return `${apiKey.slice(0, 4)}${"*".repeat(apiKey.length - 8)}${apiKey.slice(
-    -4
-  )}`;
+  if (apiKey.length <= 8) return "*".repeat(apiKey.length);
+  return apiKey.slice(0, 8) + "*".repeat(apiKey.length - 8);
 }
 
 /**
- * Validate MCP JSON-RPC request structure
+ * Validate MCP request structure with proper typing
  */
 function validateMCPRequest(body: unknown): {
   valid: boolean;
@@ -280,61 +289,59 @@ function validateMCPRequest(body: unknown): {
 } {
   const errors: string[] = [];
 
+  // Type guard to ensure body is an object
   if (!body || typeof body !== "object") {
-    errors.push("Request body must be a JSON object");
-    return { valid: false, errors };
+    return {
+      valid: false,
+      errors: ["Request body must be a valid JSON object"],
+    };
   }
 
-  // JSON-RPC 2.0 validation
-  if (body.jsonrpc !== "2.0") {
-    errors.push("Invalid or missing jsonrpc version (must be '2.0')");
+  const mcpBody = body as HTTPRequestBody;
+
+  if (mcpBody.jsonrpc !== "2.0") {
+    errors.push("jsonrpc field must be '2.0'");
   }
 
-  if (!body.method || typeof body.method !== "string") {
-    errors.push("Missing or invalid method field");
+  if (!mcpBody.method || typeof mcpBody.method !== "string") {
+    errors.push("method field is required and must be a string");
   }
 
   if (
-    body.id !== undefined &&
-    typeof body.id !== "string" &&
-    typeof body.id !== "number"
+    mcpBody.id !== undefined &&
+    typeof mcpBody.id !== "string" &&
+    typeof mcpBody.id !== "number"
   ) {
-    errors.push("Invalid id field (must be string or number)");
+    errors.push("id field must be a string or number if provided");
   }
 
-  // MCP-specific validation
-  if (body.method === "tools/call") {
-    if (!body.params || typeof body.params !== "object") {
-      errors.push("tools/call requires params object");
+  // Additional validation for specific methods
+  if (mcpBody.method === "tools/call") {
+    if (!mcpBody.params || typeof mcpBody.params !== "object") {
+      errors.push("params field is required for tools/call");
     } else {
-      if (!body.params.name || typeof body.params.name !== "string") {
-        errors.push("tools/call requires params.name string");
+      if (!mcpBody.params.name || typeof mcpBody.params.name !== "string") {
+        errors.push("params.name is required for tools/call");
       }
-      if (body.params.arguments && typeof body.params.arguments !== "object") {
-        errors.push("tools/call params.arguments must be object if provided");
+      if (
+        mcpBody.params.arguments &&
+        typeof mcpBody.params.arguments !== "object"
+      ) {
+        errors.push("params.arguments must be an object if provided");
       }
     }
   }
 
-  // Request size validation (already handled by bodyLimit, but double-check)
-  const bodyString = JSON.stringify(body);
-  if (bodyString.length > 1024 * 1024) {
-    // 1MB max for individual requests
-    errors.push("Request body too large");
-  }
-
-  return { valid: errors.length === 0, errors };
+  return {
+    valid: errors.length === 0,
+    errors,
+  };
 }
 
 /**
- * Generate a secure API key for production use
+ * Generate a cryptographically secure API key
  */
 export function generateSecureApiKey(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "mcp_";
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  const crypto = require("crypto");
+  return `mcp_${crypto.randomBytes(32).toString("hex")}`;
 }

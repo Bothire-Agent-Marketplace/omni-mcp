@@ -1,8 +1,22 @@
 #!/usr/bin/env node
 
+import { IncomingHttpHeaders } from "http";
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
-import fastify, { FastifyInstance } from "fastify";
+import fastify, {
+  FastifyInstance,
+  FastifyRequest,
+  FastifyReply,
+} from "fastify";
+import {
+  MCPRouteGeneric,
+  HealthRouteGeneric,
+  WebSocketRouteGeneric,
+  MCPRequestSchema,
+  HealthCheckResponseSchema,
+  ErrorResponseSchema,
+  HTTPHeaders,
+} from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import { gatewayConfig } from "./config.js";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
@@ -10,6 +24,24 @@ import {
   registerSecurityMiddleware,
   generateSecureApiKey,
 } from "./middleware/security.js";
+
+// Helper function to convert Fastify headers to our HTTPHeaders type
+function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
+  const headers: HTTPHeaders = {};
+
+  for (const [key, value] of Object.entries(fastifyHeaders)) {
+    if (typeof value === "string") {
+      headers[key] = value;
+    } else if (Array.isArray(value)) {
+      // Take the first value for array headers
+      headers[key] = value[0];
+    } else if (value !== undefined) {
+      headers[key] = String(value);
+    }
+  }
+
+  return headers;
+}
 
 // Initialize MCP-compliant logger
 const logger = createMcpLogger({
@@ -40,10 +72,16 @@ async function createServer(): Promise<FastifyInstance> {
     const mcpGateway = new MCPGateway(gatewayConfig, logger);
     await mcpGateway.initialize();
 
-    // Create Fastify server
+    // Create Fastify server with proper TypeScript configuration
     const server: FastifyInstance = fastify({
       logger: false,
       bodyLimit: gatewayConfig.maxRequestSizeMb * 1024 * 1024,
+      ajv: {
+        customOptions: {
+          strict: false,
+          coerceTypes: true,
+        },
+      },
     });
 
     // Register Security Middleware (must be first)
@@ -70,43 +108,117 @@ async function createServer(): Promise<FastifyInstance> {
     // WebSocket Support
     server.register(websocket);
 
-    // Health check endpoint
-    server.get("/health", async (request, reply) => {
-      const status = mcpGateway.getHealthStatus();
-      reply.send({
-        status: "healthy",
-        timestamp: new Date().toISOString(),
-        servers: status,
+    // Health check endpoint with proper typing and schema
+    server.get<HealthRouteGeneric>(
+      "/health",
+      {
+        schema: {
+          response: {
+            200: HealthCheckResponseSchema,
+          },
+        },
+      },
+      async (
+        request: FastifyRequest<HealthRouteGeneric>,
+        reply: FastifyReply
+      ) => {
+        const status = mcpGateway.getHealthStatus();
+        const response = {
+          status: "healthy" as const,
+          timestamp: new Date().toISOString(),
+          servers: status,
+        };
+
+        return reply.send(response);
+      }
+    );
+
+    // MCP HTTP/JSON-RPC endpoint with proper typing and schema validation
+    server.post<MCPRouteGeneric>(
+      "/mcp",
+      {
+        schema: {
+          body: MCPRequestSchema,
+          response: {
+            400: ErrorResponseSchema,
+            401: ErrorResponseSchema,
+            404: ErrorResponseSchema,
+            500: ErrorResponseSchema,
+          },
+        },
+      },
+      async (request: FastifyRequest<MCPRouteGeneric>, reply: FastifyReply) => {
+        try {
+          const response = await mcpGateway.handleHttpRequest(
+            request.body,
+            convertHeaders(request.headers)
+          );
+          return reply.send(response);
+        } catch (error) {
+          logger.error("HTTP request error", error as Error);
+          return reply.status(500).send({
+            error: "Internal server error",
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
+      }
+    );
+
+    // WebSocket support for real-time MCP communication
+    server.get<WebSocketRouteGeneric>(
+      "/mcp/ws",
+      {
+        websocket: true,
+        schema: {
+          querystring: {
+            type: "object",
+            properties: {
+              token: { type: "string" },
+            },
+            additionalProperties: false,
+          },
+        },
+      },
+      (connection, request: FastifyRequest<WebSocketRouteGeneric>) => {
+        logger.info("New WebSocket connection established", {
+          query: request.query,
+          headers: request.headers,
+        });
+        mcpGateway.handleWebSocketConnection(connection);
+      }
+    );
+
+    // Global error handler with proper typing
+    server.setErrorHandler((error, request, reply) => {
+      logger.error("Fastify error handler", error, {
+        url: request.url,
+        method: request.method,
+        statusCode: error.statusCode,
+      });
+
+      // Handle validation errors
+      if (error.validation) {
+        return reply.status(400).send({
+          error: "Validation failed",
+          message: "Request does not match expected schema",
+          details: error.validation,
+        });
+      }
+
+      // Handle other errors
+      const statusCode = error.statusCode || 500;
+      return reply.status(statusCode).send({
+        error: statusCode >= 500 ? "Internal server error" : "Bad request",
+        message: error.message || "An unexpected error occurred",
       });
     });
 
-    // MCP HTTP/JSON-RPC endpoint
-    server.post("/mcp", async (request, reply) => {
-      try {
-        const response = await mcpGateway.handleHttpRequest(
-          request.body,
-          request.headers
-        );
-        reply.send(response);
-      } catch (error) {
-        logger.error("HTTP request error", error as Error);
-        reply.status(500).send({
-          error: "Internal server error",
-          message: error instanceof Error ? error.message : "Unknown error",
-        });
-      }
-    });
-
-    // Add WebSocket support for SSE-like functionality
-    server.get("/mcp/ws", { websocket: true }, (connection, _req) => {
-      logger.info("New WebSocket connection established");
-      mcpGateway.handleWebSocketConnection(connection);
-    });
-
-    // Graceful shutdown
+    // Graceful shutdown with proper cleanup
     const close = async () => {
+      logger.info("Initiating graceful shutdown...");
       await mcpGateway.shutdown();
       await server.close();
+      logger.info("Gateway shutdown complete");
     };
 
     process.on("SIGINT", async () => {
@@ -129,58 +241,29 @@ async function createServer(): Promise<FastifyInstance> {
   }
 }
 
-async function main() {
-  const server = await createServer();
-
+async function start() {
   try {
-    // Start server
-    const port = gatewayConfig.port;
-    await server.listen({ port, host: gatewayConfig.host });
-
-    logger.serverReady({
-      port,
+    const server = await createServer();
+    await server.listen({
+      port: gatewayConfig.port,
       host: gatewayConfig.host,
-      endpoints: ["/health", "/mcp", "/mcp/ws"],
     });
 
-    logger.info(`🚀 MCP Gateway running on port ${port}`);
-    logger.info(`📋 Health check: http://localhost:${port}/health`);
-    logger.info(`🔌 HTTP MCP endpoint: http://localhost:${port}/mcp`);
-    logger.info(`🌐 WebSocket MCP endpoint: ws://localhost:${port}/mcp/ws`);
+    logger.info(
+      `🚀 MCP Gateway listening on ${gatewayConfig.host}:${gatewayConfig.port}`
+    );
+    logger.info(
+      `📋 Health check: http://${gatewayConfig.host}:${gatewayConfig.port}/health`
+    );
+    logger.info(
+      `🔌 MCP endpoint: http://${gatewayConfig.host}:${gatewayConfig.port}/mcp`
+    );
+    logger.info(
+      `🌐 WebSocket: ws://${gatewayConfig.host}:${gatewayConfig.port}/mcp/ws`
+    );
 
-    // Security Information
-    if (gatewayConfig.requireApiKey) {
-      logger.info(`🔐 API Key Authentication: ENABLED`);
-      if (gatewayConfig.env === "development") {
-        logger.info(`🔑 Dev API Key: ${gatewayConfig.mcpApiKey}`);
-        logger.info(
-          `📝 Example request: curl -H "x-api-key: ${gatewayConfig.mcpApiKey}" http://localhost:${port}/health`
-        );
-      }
-    } else {
-      logger.info(`🔐 API Key Authentication: DISABLED (development mode)`);
-    }
-
-    if (gatewayConfig.enableRateLimit) {
-      logger.info(
-        `⏱️  Rate Limiting: ${gatewayConfig.rateLimitPerMinute} requests/minute`
-      );
-    }
-
-    logger.info("\n📡 Active MCP servers:");
-    Object.entries(gatewayConfig.mcpServers).forEach(([name, serverConfig]) => {
-      logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
-    });
-
-    // Generate secure API key for production setup
-    if (
-      gatewayConfig.env === "production" &&
-      gatewayConfig.mcpApiKey.includes("dev-")
-    ) {
-      logger.warn("\n🚨 PRODUCTION SECURITY WARNING:");
-      logger.warn("   Default API key detected in production!");
-      logger.warn(`   Generate a secure key: ${generateSecureApiKey()}`);
-      logger.warn("   Set MCP_API_KEY environment variable");
+    if (gatewayConfig.env === "development") {
+      logger.info(`🔑 Development API key: ${generateSecureApiKey()}`);
     }
   } catch (error) {
     logger.error("Failed to start MCP Gateway", error as Error);
@@ -188,7 +271,9 @@ async function main() {
   }
 }
 
-// Start the gateway
+// Auto-start if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main();
+  start();
 }
+
+export { createServer };

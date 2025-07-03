@@ -6,6 +6,7 @@ import fastify, {
   FastifyRequest,
 } from "fastify";
 import { ZodError } from "zod";
+import { MCPRequest, MCPResponse, MCPErrorResponse } from "@mcp/schemas";
 import { createMcpLogger } from "@mcp/utils";
 import type { LinearServerConfig } from "../config/config.js";
 import {
@@ -15,39 +16,10 @@ import {
 import { createResourceHandlers, getAvailableResources } from "./resources.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
 
-// MCP Request/Response interfaces
-interface MCPRequest {
-  jsonrpc: "2.0";
-  method: string;
-  params?: {
-    name?: string;
-    arguments?: Record<string, unknown>;
-    uri?: string;
-    [key: string]: unknown;
-  };
-  id?: string | number;
-}
+// MCP protocol types now imported from @mcp/schemas
 
-interface MCPResponse<T = unknown> {
-  jsonrpc: "2.0";
-  id?: string | number;
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-    data?: string;
-  };
-}
-
-interface MCPErrorResponse {
-  jsonrpc: "2.0";
-  id?: string | number;
-  error: {
-    code: number;
-    message: string;
-    data?: string;
-  };
-}
+// Default empty parameters object
+const DEFAULT_PARAMS: Record<string, unknown> = {};
 
 function createHttpServer(config: LinearServerConfig): FastifyInstance {
   const logger = createMcpLogger({
@@ -104,7 +76,10 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
       switch (method) {
         case "tools/call": {
           const toolName = params?.name;
-          const handler = toolName ? toolHandlers[toolName] : undefined;
+          const handler =
+            toolName && typeof toolName === "string"
+              ? toolHandlers[toolName]
+              : undefined;
 
           if (!handler || !toolName) {
             const errorResponse: MCPErrorResponse = {
@@ -119,14 +94,17 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
             return;
           }
 
-          const result = await handler(params?.arguments || {});
+          const result = await handler(
+            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
+          );
           const response: MCPResponse = { jsonrpc: "2.0", id, result };
           return response;
         }
 
         case "resources/read": {
           const uri = params?.uri;
-          const handler = uri ? resourceHandlers[uri] : undefined;
+          const handler =
+            uri && typeof uri === "string" ? resourceHandlers[uri] : undefined;
 
           if (!handler || !uri) {
             const errorResponse: MCPErrorResponse = {
@@ -141,14 +119,15 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
             return;
           }
 
-          const result = await handler(uri);
+          const result = await handler(uri as string);
           const response: MCPResponse = { jsonrpc: "2.0", id, result };
           return response;
         }
 
         case "prompts/get": {
           const name = params?.name;
-          const handler = name ? promptHandlers[name] : undefined;
+          const handler =
+            name && typeof name === "string" ? promptHandlers[name] : undefined;
 
           if (!handler || !name) {
             const errorResponse: MCPErrorResponse = {
@@ -163,7 +142,9 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
             return;
           }
 
-          const result = await handler(params?.arguments || {});
+          const result = await handler(
+            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
+          );
           const response: MCPResponse = { jsonrpc: "2.0", id, result };
           return response;
         }

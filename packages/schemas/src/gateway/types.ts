@@ -63,11 +63,21 @@ export interface MCPRequest {
   params?: Record<string, unknown>;
 }
 
-export interface MCPResponse {
+export interface MCPResponse<T = unknown> {
   jsonrpc: "2.0";
   id?: string | number;
-  result?: unknown;
+  result?: T;
   error?: {
+    code: number;
+    message: string;
+    data?: unknown;
+  };
+}
+
+export interface MCPErrorResponse {
+  jsonrpc: "2.0";
+  id?: string | number;
+  error: {
     code: number;
     message: string;
     data?: unknown;
@@ -88,5 +98,89 @@ export interface HealthStatus {
     healthy: number;
     capabilities: string[];
     lastCheck: string;
+  };
+}
+
+// HTTP Types - consolidated from various components
+export interface HTTPHeaders {
+  authorization?: string;
+  Authorization?: string;
+  "content-type"?: string;
+  "user-agent"?: string;
+  [key: string]: string | undefined;
+}
+
+export interface HTTPRequestBody {
+  jsonrpc: "2.0";
+  id?: string | number;
+  method: string;
+  params?: Record<string, unknown>;
+}
+
+export interface HTTPResponse {
+  success: boolean;
+  error?: string;
+  code?: number;
+  data?: unknown;
+  id?: string | number;
+}
+
+export interface GatewayHTTPResponse extends HTTPResponse {
+  sessionToken?: string;
+}
+
+// Fastify JSON Schemas for validation
+export const MCPRequestSchema = {
+  type: "object",
+  properties: {
+    jsonrpc: { type: "string", enum: ["2.0"] },
+    id: { oneOf: [{ type: "string" }, { type: "number" }] },
+    method: { type: "string" },
+    params: { type: "object" },
+  },
+  required: ["jsonrpc", "method"],
+  additionalProperties: false,
+} as const;
+
+export const HealthCheckResponseSchema = {
+  type: "object",
+  properties: {
+    status: { type: "string" },
+    timestamp: { type: "string" },
+    servers: { type: "object" },
+  },
+  required: ["status", "timestamp", "servers"],
+  additionalProperties: false,
+} as const;
+
+export const ErrorResponseSchema = {
+  type: "object",
+  properties: {
+    error: { type: "string" },
+    message: { type: "string" },
+    details: { type: "object" },
+  },
+  required: ["error", "message"],
+  additionalProperties: false,
+} as const;
+
+// Fastify Route Generic Interfaces
+export interface MCPRouteGeneric {
+  Body: HTTPRequestBody;
+  Headers: HTTPHeaders;
+  Reply: GatewayHTTPResponse | MCPResponse;
+}
+
+export interface HealthRouteGeneric {
+  Reply: {
+    status: string;
+    timestamp: string;
+    servers: HealthStatus;
+  };
+}
+
+export interface WebSocketRouteGeneric {
+  Querystring: {
+    token?: string;
   };
 }

@@ -5,30 +5,16 @@ import {
   Session,
   HealthStatus,
   IWebSocket,
+  HTTPHeaders,
+  HTTPRequestBody,
+  GatewayHTTPResponse,
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 
-// HTTP request types
-interface HTTPHeaders {
-  authorization?: string;
-  Authorization?: string;
-  "content-type"?: string;
-  "user-agent"?: string;
-  [key: string]: string | undefined;
-}
-
-// Extended HTTP response for gateway (includes sessionToken)
-interface GatewayHTTPResponse {
-  success: boolean;
-  data?: unknown;
-  error?: string;
-  sessionToken?: string;
-  id?: string | number;
-  code?: number;
-}
+// HTTP types now imported from @mcp/schemas
 
 // MCP Resource and Tool Types (moved to be used)
 interface MCPTool {
@@ -132,8 +118,9 @@ export class MCPGateway {
       }
 
       // Convert HTTP request to MCP format
-      const mcpRequest =
-        await this.protocolAdapter.handleHttpToMCP(requestBody);
+      const mcpRequest = await this.protocolAdapter.handleHttpToMCP(
+        requestBody as HTTPRequestBody
+      );
 
       // Route and execute request
       const mcpResponse = await this.routeAndExecuteRequest(
@@ -147,8 +134,9 @@ export class MCPGateway {
       }
 
       // Convert MCP response back to HTTP format for tool calls
-      const httpResponse =
-        await this.protocolAdapter.handleMCPToHttp(mcpResponse);
+      const httpResponse = (await this.protocolAdapter.handleMCPToHttp(
+        mcpResponse
+      )) as GatewayHTTPResponse;
 
       // Include session token in response for new sessions
       if (isNewSession) {
@@ -389,7 +377,9 @@ export class MCPGateway {
 
   private getSessionFromHeaders(headers: HTTPHeaders): Session | null {
     const authHeader = headers.authorization || headers.Authorization;
-    return this.sessionManager.getSessionFromAuthHeader(authHeader);
+    return authHeader
+      ? this.sessionManager.getSessionFromAuthHeader(authHeader)
+      : null;
   }
 
   private buildCapabilityMap(): void {
@@ -577,10 +567,10 @@ export class MCPGateway {
             }
           }
         } catch (error) {
-          this.logger.warn(
-            `Failed to fetch resources from ${serverId}:`,
-            error instanceof Error ? error : new Error(String(error))
-          );
+          this.logger.warn(`Failed to fetch resources from ${serverId}:`, {
+            error: error instanceof Error ? error.message : String(error),
+            serverId,
+          });
         } finally {
           this.serverManager.releaseServerInstance(serverInstance);
         }
@@ -619,11 +609,8 @@ export class MCPGateway {
               allPrompts.push(...result.result.prompts);
             }
           }
-        } catch (error) {
-          this.logger.warn(
-            `Failed to fetch prompts from ${serverId}:`,
-            error instanceof Error ? error : new Error(String(error))
-          );
+        } catch (_error) {
+          this.logger.warn(`Failed to fetch prompts from ${serverId}:`);
         } finally {
           this.serverManager.releaseServerInstance(serverInstance);
         }
