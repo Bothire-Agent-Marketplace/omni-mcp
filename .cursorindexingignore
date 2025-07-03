@@ -1,7 +1,3 @@
-# Cursor Rules - Prevent reindexing issues when editing rules
-.cursor/rules/*
-.cursor/index.mdc
-
 # Build outputs
 **/dist/
 **/build/

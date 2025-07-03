@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
+import { linearServerConfig } from "./config/config.js";
 import { startHttpServer } from "./mcp-server/http-server.js";
 
 // Initialize MCP-compliant logger
-const logger = createMcpLogger("linear-mcp-server");
+const logger = createMcpLogger({
+  serverName: "linear-mcp-server",
+  logLevel: linearServerConfig.logLevel,
+  environment: linearServerConfig.env,
+});
 
 // Setup global error handlers
 setupGlobalErrorHandlers(logger);
@@ -23,8 +28,8 @@ process.on("SIGINT", () => {
 // Start the server
 if (import.meta.url === `file://${process.argv[1]}`) {
   try {
-    logger.serverStartup();
-    startHttpServer();
+    logger.serverStartup(linearServerConfig.port);
+    startHttpServer(linearServerConfig);
   } catch (error) {
     logger.error("Unhandled error during startup", error as Error);
     process.exit(1);

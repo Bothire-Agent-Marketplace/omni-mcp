@@ -1,29 +1,38 @@
 import {
-  MasterConfig,
+  GatewayConfig,
   MCPRequest,
   MCPResponse,
   Session,
   HealthStatus,
   IWebSocket,
 } from "@mcp/schemas";
-import { createMcpLogger, getAllTools } from "@mcp/utils";
+import { McpLogger } from "@mcp/utils";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 
 export class MCPGateway {
-  private logger = createMcpLogger("mcp-gateway-core");
-  private config: MasterConfig;
+  private logger: McpLogger;
+  private config: GatewayConfig;
   private serverManager: MCPServerManager;
   private sessionManager: MCPSessionManager;
   private protocolAdapter: MCPProtocolAdapter;
   private capabilityMap = new Map<string, string[]>();
 
-  constructor(config: MasterConfig) {
+  constructor(config: GatewayConfig, logger: McpLogger) {
     this.config = config;
-    this.serverManager = new MCPServerManager(config.servers);
-    this.sessionManager = new MCPSessionManager(config.gateway);
-    this.protocolAdapter = new MCPProtocolAdapter();
+    this.logger = logger;
+    this.serverManager = new MCPServerManager(
+      config.mcpServers,
+      this.logger.fork("server-manager")
+    );
+    this.sessionManager = new MCPSessionManager(
+      config,
+      this.logger.fork("session-manager")
+    );
+    this.protocolAdapter = new MCPProtocolAdapter(
+      this.logger.fork("protocol-adapter")
+    );
 
     // Build capability map
     this.buildCapabilityMap();
@@ -333,7 +342,7 @@ export class MCPGateway {
   }
 
   private buildCapabilityMap(): void {
-    for (const [serverId, config] of Object.entries(this.config.servers)) {
+    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
       this.capabilityMap.set(serverId, config.capabilities);
     }
 
@@ -409,7 +418,7 @@ export class MCPGateway {
           jsonrpc: "2.0",
           id: request.id,
           result: {
-            resources: [],
+            resources: await this.getAvailableResources(),
           },
         };
 
@@ -418,7 +427,7 @@ export class MCPGateway {
           jsonrpc: "2.0",
           id: request.id,
           result: {
-            prompts: [],
+            prompts: await this.getAvailablePrompts(),
           },
         };
 
@@ -443,18 +452,112 @@ export class MCPGateway {
   }
 
   private getAvailableTools(): any[] {
-    // Use centralized tool registry
-    const allTools = getAllTools();
+    // Build tools list from server capabilities
+    const tools: any[] = [];
 
-    // Filter tools based on available servers
-    const availableServerIds = Array.from(this.capabilityMap.keys());
+    for (const [serverId, capabilities] of this.capabilityMap.entries()) {
+      for (const capability of capabilities) {
+        // Only include tool capabilities (not resources/prompts for now)
+        if (!capability.includes("://") && !capability.includes("_workflow")) {
+          tools.push({
+            name: capability,
+            description: `${capability} tool from ${serverId} server`,
+            inputSchema: {
+              type: "object",
+              properties: {},
+              description: `Execute ${capability}`,
+            },
+          });
+        }
+      }
+    }
 
-    return allTools
-      .filter((tool) => availableServerIds.includes(tool.serverId))
-      .map((tool) => ({
-        name: tool.name,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-      }));
+    return tools;
+  }
+
+  private async getAvailableResources(): Promise<any[]> {
+    const allResources: any[] = [];
+
+    // Fetch resources from all healthy servers
+    for (const [serverId] of this.capabilityMap.entries()) {
+      const serverInstance =
+        await this.serverManager.getServerInstance(serverId);
+
+      if (serverInstance) {
+        try {
+          const resourcesRequest = {
+            jsonrpc: "2.0",
+            id: `resources_${Date.now()}`,
+            method: "resources/list",
+            params: {},
+          };
+
+          const response = await fetch(`${serverInstance.url}/mcp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(resourcesRequest),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.result?.resources) {
+              allResources.push(...result.result.resources);
+            }
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch resources from ${serverId}:`,
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } finally {
+          this.serverManager.releaseServerInstance(serverInstance);
+        }
+      }
+    }
+
+    return allResources;
+  }
+
+  private async getAvailablePrompts(): Promise<any[]> {
+    const allPrompts: any[] = [];
+
+    // Fetch prompts from all healthy servers
+    for (const [serverId] of this.capabilityMap.entries()) {
+      const serverInstance =
+        await this.serverManager.getServerInstance(serverId);
+
+      if (serverInstance) {
+        try {
+          const promptsRequest = {
+            jsonrpc: "2.0",
+            id: `prompts_${Date.now()}`,
+            method: "prompts/list",
+            params: {},
+          };
+
+          const response = await fetch(`${serverInstance.url}/mcp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(promptsRequest),
+          });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.result?.prompts) {
+              allPrompts.push(...result.result.prompts);
+            }
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to fetch prompts from ${serverId}:`,
+            error instanceof Error ? error : new Error(String(error))
+          );
+        } finally {
+          this.serverManager.releaseServerInstance(serverInstance);
+        }
+      }
+    }
+
+    return allPrompts;
   }
 }

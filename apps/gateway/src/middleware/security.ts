@@ -2,11 +2,10 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { createMcpLogger } from "@mcp/utils";
-
-const logger = createMcpLogger("mcp-gateway-security");
+import { McpLogger } from "@mcp/utils";
 
 export interface SecurityConfig {
+  logger: McpLogger;
   enableRateLimit: boolean;
   rateLimitPerMinute: number;
   requireApiKey: boolean;
@@ -29,6 +28,8 @@ export async function registerSecurityMiddleware(
   fastify: FastifyInstance,
   config: SecurityConfig
 ): Promise<void> {
+  const logger = config.logger.fork("middleware");
+
   logger.info("Registering security middleware", {
     enableRateLimit: config.enableRateLimit,
     requireApiKey: config.requireApiKey,

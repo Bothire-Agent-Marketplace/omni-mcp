@@ -1,16 +1,17 @@
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
-import { createMcpLogger } from "@mcp/utils";
+import { McpLogger } from "@mcp/utils";
 
 export class MCPSessionManager {
-  private logger = createMcpLogger("mcp-gateway-session-manager");
+  private logger: McpLogger;
   private sessions = new Map<string, Session>();
   private config: GatewayConfig;
   private cleanupInterval: NodeJS.Timeout;
 
-  constructor(config: GatewayConfig) {
+  constructor(config: GatewayConfig, logger: McpLogger) {
     this.config = config;
+    this.logger = logger;
 
     // Start session cleanup interval
     this.cleanupInterval = setInterval(() => {

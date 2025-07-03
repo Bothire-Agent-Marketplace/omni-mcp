@@ -1,9 +1,13 @@
 import { MCPRequest, MCPResponse, IWebSocket } from "@mcp/schemas";
-import { createMcpLogger } from "@mcp/utils";
-
-const logger = createMcpLogger("mcp-protocol-adapter");
+import { McpLogger } from "@mcp/utils";
 
 export class MCPProtocolAdapter {
+  private logger: McpLogger;
+
+  constructor(logger: McpLogger) {
+    this.logger = logger;
+  }
+
   handleHttpToMCP(requestBody: any): MCPRequest {
     if (!requestBody || requestBody.jsonrpc !== "2.0" || !requestBody.method) {
       throw new Error("Invalid JSON-RPC request");
@@ -39,7 +43,7 @@ export class MCPProtocolAdapter {
       }
       return parsedMessage as MCPRequest;
     } catch (error) {
-      logger.error(
+      this.logger.error(
         "Error parsing WebSocket message",
         error instanceof Error ? error : new Error(String(error))
       );
@@ -56,7 +60,7 @@ export class MCPProtocolAdapter {
     try {
       ws.send(JSON.stringify(response));
     } catch (error) {
-      logger.error(
+      this.logger.error(
         "Error sending WebSocket response",
         error instanceof Error ? error : new Error(String(error))
       );
@@ -68,7 +72,7 @@ export class MCPProtocolAdapter {
     capabilityMap: Map<string, string[]>
   ): string | null {
     const { method, params } = request;
-    logger.info(`Resolving capability for method: ${method}`, { params });
+    this.logger.info(`Resolving capability for method: ${method}`, { params });
 
     let capabilityToResolve = method;
 
@@ -77,16 +81,28 @@ export class MCPProtocolAdapter {
       capabilityToResolve = params.name as string;
     }
 
+    // For resource reads, route based on the resource URI
+    if (method === "resources/read" && params?.uri) {
+      capabilityToResolve = params.uri as string;
+    }
+
+    // For prompt gets, route based on the prompt name
+    if (method === "prompts/get" && params?.name) {
+      capabilityToResolve = params.name as string;
+    }
+
     for (const [serverId, capabilities] of capabilityMap.entries()) {
       if (capabilities.includes(capabilityToResolve)) {
-        logger.info(
+        this.logger.info(
           `Found server ${serverId} for capability ${capabilityToResolve}`
         );
         return serverId;
       }
     }
 
-    logger.warn(`Could not resolve capability for: ${capabilityToResolve}`);
+    this.logger.warn(
+      `Could not resolve capability for: ${capabilityToResolve}`
+    );
     return null;
   }
 }

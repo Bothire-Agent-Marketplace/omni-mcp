@@ -3,13 +3,8 @@
 import cors from "@fastify/cors";
 import websocket from "@fastify/websocket";
 import fastify, { FastifyInstance } from "fastify";
-import {
-  createMcpLogger,
-  setupGlobalErrorHandlers,
-  envConfig,
-  getMCPServersConfig,
-  getGatewayConfig,
-} from "@mcp/utils";
+import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
+import { gatewayConfig } from "./config.js";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
 import {
   registerSecurityMiddleware,
@@ -17,7 +12,11 @@ import {
 } from "./middleware/security.js";
 
 // Initialize MCP-compliant logger
-const logger = createMcpLogger("mcp-gateway");
+const logger = createMcpLogger({
+  serverName: "mcp-gateway",
+  logLevel: gatewayConfig.env,
+  environment: gatewayConfig.env,
+});
 
 // Setup global error handlers
 setupGlobalErrorHandlers(logger);
@@ -29,45 +28,41 @@ async function createServer(): Promise<FastifyInstance> {
     return serverInstance;
   }
 
-  logger.serverStartup(envConfig.GATEWAY_PORT, {
+  logger.serverStartup(gatewayConfig.port, {
     service: "mcp-gateway",
-    environment: envConfig.NODE_ENV,
+    environment: gatewayConfig.env,
   });
 
   try {
-    // Load configuration from environment
-    const servers = getMCPServersConfig(envConfig.NODE_ENV);
-    const gateway = getGatewayConfig(envConfig.NODE_ENV);
-    const config = { servers, gateway };
-
     logger.info("Starting MCP Gateway...");
 
     // Initialize the MCP Gateway
-    const mcpGateway = new MCPGateway(config);
+    const mcpGateway = new MCPGateway(gatewayConfig, logger);
     await mcpGateway.initialize();
 
     // Create Fastify server
     const server: FastifyInstance = fastify({
       logger: false,
-      bodyLimit: config.gateway.maxRequestSizeMb * 1024 * 1024,
+      bodyLimit: gatewayConfig.maxRequestSizeMb * 1024 * 1024,
     });
 
     // Register Security Middleware (must be first)
     await registerSecurityMiddleware(server, {
-      enableRateLimit: config.gateway.enableRateLimit,
-      rateLimitPerMinute: config.gateway.rateLimitPerMinute,
-      requireApiKey: config.gateway.requireApiKey,
-      apiKey: envConfig.MCP_API_KEY,
-      maxRequestSizeMb: config.gateway.maxRequestSizeMb,
-      allowedOrigins: config.gateway.allowedOrigins,
-      corsCredentials: config.gateway.corsCredentials,
-      securityHeaders: config.gateway.securityHeaders,
+      logger,
+      enableRateLimit: gatewayConfig.enableRateLimit,
+      rateLimitPerMinute: gatewayConfig.rateLimitPerMinute,
+      requireApiKey: gatewayConfig.requireApiKey,
+      apiKey: gatewayConfig.mcpApiKey,
+      maxRequestSizeMb: gatewayConfig.maxRequestSizeMb,
+      allowedOrigins: gatewayConfig.allowedOrigins,
+      corsCredentials: gatewayConfig.corsCredentials,
+      securityHeaders: gatewayConfig.securityHeaders,
     });
 
     // CORS Middleware
     server.register(cors, {
-      origin: config.gateway.allowedOrigins,
-      credentials: config.gateway.corsCredentials,
+      origin: gatewayConfig.allowedOrigins,
+      credentials: gatewayConfig.corsCredentials,
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
     });
@@ -136,19 +131,15 @@ async function createServer(): Promise<FastifyInstance> {
 
 async function main() {
   const server = await createServer();
-  const config = {
-    servers: getMCPServersConfig(envConfig.NODE_ENV),
-    gateway: getGatewayConfig(envConfig.NODE_ENV),
-  };
 
   try {
     // Start server
-    const port = envConfig.GATEWAY_PORT;
-    await server.listen({ port, host: envConfig.GATEWAY_HOST });
+    const port = gatewayConfig.port;
+    await server.listen({ port, host: gatewayConfig.host });
 
     logger.serverReady({
       port,
-      host: envConfig.GATEWAY_HOST,
+      host: gatewayConfig.host,
       endpoints: ["/health", "/mcp", "/mcp/ws"],
     });
 
@@ -158,26 +149,26 @@ async function main() {
     logger.info(`🌐 WebSocket MCP endpoint: ws://localhost:${port}/mcp/ws`);
 
     // Security Information
-    if (config.gateway.requireApiKey) {
+    if (gatewayConfig.requireApiKey) {
       logger.info(`🔐 API Key Authentication: ENABLED`);
-      if (envConfig.NODE_ENV === "development") {
-        logger.info(`🔑 Dev API Key: ${envConfig.MCP_API_KEY}`);
+      if (gatewayConfig.env === "development") {
+        logger.info(`🔑 Dev API Key: ${gatewayConfig.mcpApiKey}`);
         logger.info(
-          `📝 Example request: curl -H "x-api-key: ${envConfig.MCP_API_KEY}" http://localhost:${port}/health`
+          `📝 Example request: curl -H "x-api-key: ${gatewayConfig.mcpApiKey}" http://localhost:${port}/health`
         );
       }
     } else {
       logger.info(`🔐 API Key Authentication: DISABLED (development mode)`);
     }
 
-    if (config.gateway.enableRateLimit) {
+    if (gatewayConfig.enableRateLimit) {
       logger.info(
-        `⏱️  Rate Limiting: ${config.gateway.rateLimitPerMinute} requests/minute`
+        `⏱️  Rate Limiting: ${gatewayConfig.rateLimitPerMinute} requests/minute`
       );
     }
 
     logger.info("\n📡 Active MCP servers:");
-    Object.entries(config.servers).forEach(
+    Object.entries(gatewayConfig.mcpServers).forEach(
       ([name, serverConfig]: [string, any]) => {
         logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
       }
@@ -185,8 +176,8 @@ async function main() {
 
     // Generate secure API key for production setup
     if (
-      envConfig.NODE_ENV === "production" &&
-      envConfig.MCP_API_KEY.includes("dev-")
+      gatewayConfig.env === "production" &&
+      gatewayConfig.mcpApiKey.includes("dev-")
     ) {
       logger.warn("\n🚨 PRODUCTION SECURITY WARNING:");
       logger.warn("   Default API key detected in production!");

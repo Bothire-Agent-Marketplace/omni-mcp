@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "audit": "echo '🔍 Checking for unused dependencies...' && pnpm dlx depcheck --ignore-bin-package --ignores='@types/fs-extra,@types/js-yaml,@types/prompts,lint-staged,prettier,ts-node,ts-prune' && echo '\n🧹 Checking for unused exports...' && pnpm dlx ts-prune --project tsconfig.base.json --error",
-    "build": "turbo build && cp packages/utils/src/mcp-servers.json packages/utils/dist/",
+    "build": "turbo build",
     "clean": "turbo clean && rm -rf node_modules && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "dev": "turbo dev",
     "lint": "eslint \"**/*.{ts,js}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/*.cjs\" --fix && prettier --write \"**/*.{ts,js,json,md}\"",

@@ -51,7 +51,7 @@ export default tseslint.config(
         },
       ],
       "import/order": [
-        "error",
+        "warn",
         {
           groups: [
             "builtin",

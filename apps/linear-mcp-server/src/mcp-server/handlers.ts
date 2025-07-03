@@ -1,25 +1,22 @@
 import { LinearClient } from "@linear/sdk";
-import { envConfig } from "@mcp/utils";
 import type {
   SearchIssuesInput,
   GetTeamsInput,
   GetUsersInput,
   GetProjectsInput,
   GetIssueInput,
+  LinearTeamResource,
+  LinearUserResource,
 } from "../types/linear.js";
-
-// Initialize a single, shared Linear client for all handlers
-const apiKey = envConfig.LINEAR_API_KEY;
-if (!apiKey) {
-  throw new Error("LINEAR_API_KEY environment variable is required");
-}
-const linearClient = new LinearClient({ apiKey });
 
 // ============================================================================
 // HANDLER 1: Search Issues
 // ============================================================================
 
-export async function handleLinearSearchIssues(params: SearchIssuesInput) {
+export async function handleLinearSearchIssues(
+  linearClient: LinearClient,
+  params: SearchIssuesInput
+) {
   const { teamId, status, assigneeId, priority, limit = 10 } = params;
   const filter: any = {};
   if (teamId) filter.team = { id: { eq: teamId } };
@@ -62,7 +59,10 @@ export async function handleLinearSearchIssues(params: SearchIssuesInput) {
 // HANDLER 2: Get Teams
 // ============================================================================
 
-export async function handleLinearGetTeams(params: GetTeamsInput) {
+export async function handleLinearGetTeams(
+  linearClient: LinearClient,
+  params: GetTeamsInput
+) {
   const { includeArchived = false, limit = 20 } = params;
   const teams = await linearClient.teams({
     includeArchived,
@@ -94,7 +94,10 @@ export async function handleLinearGetTeams(params: GetTeamsInput) {
 // HANDLER 3: Get Users
 // ============================================================================
 
-export async function handleLinearGetUsers(params: GetUsersInput) {
+export async function handleLinearGetUsers(
+  linearClient: LinearClient,
+  params: GetUsersInput
+) {
   const { includeDisabled = false, limit = 20 } = params;
   const filter: any = {};
   if (!includeDisabled) {
@@ -132,7 +135,10 @@ export async function handleLinearGetUsers(params: GetUsersInput) {
 // HANDLER 4: Get Projects
 // ============================================================================
 
-export async function handleLinearGetProjects(params: GetProjectsInput) {
+export async function handleLinearGetProjects(
+  linearClient: LinearClient,
+  params: GetProjectsInput
+) {
   const { teamId, includeArchived = false, limit = 20 } = params;
   const filter: any = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
@@ -171,7 +177,10 @@ export async function handleLinearGetProjects(params: GetProjectsInput) {
 // HANDLER 5: Get Issue Details
 // ============================================================================
 
-export async function handleLinearGetIssue(params: GetIssueInput) {
+export async function handleLinearGetIssue(
+  linearClient: LinearClient,
+  params: GetIssueInput
+) {
   const { issueId, identifier } = params;
   let issue;
 
@@ -222,4 +231,79 @@ export async function handleLinearGetIssue(params: GetIssueInput) {
       { type: "text" as const, text: JSON.stringify(formattedIssue, null, 2) },
     ],
   };
+}
+
+// ============================================================================
+// RESOURCE HANDLERS
+// ============================================================================
+
+export async function handleLinearTeamsResource(
+  linearClient: LinearClient,
+  uri: string
+) {
+  try {
+    const teams = await linearClient.teams();
+    const formattedTeams: LinearTeamResource[] = teams.nodes.map((team) => ({
+      id: team.id,
+      name: team.name,
+      key: team.key,
+      description: team.description,
+    }));
+
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: JSON.stringify(formattedTeams, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: `Error fetching teams: ${errorMessage}`,
+        },
+      ],
+    };
+  }
+}
+
+export async function handleLinearUsersResource(
+  linearClient: LinearClient,
+  uri: string
+) {
+  try {
+    const users = await linearClient.users();
+    const formattedUsers: LinearUserResource[] = users.nodes.map((user) => ({
+      id: user.id,
+      name: user.name,
+      displayName: user.displayName,
+      email: user.email,
+      active: user.active,
+    }));
+
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: JSON.stringify(formattedUsers, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: `Error fetching users: ${errorMessage}`,
+        },
+      ],
+    };
+  }
 }

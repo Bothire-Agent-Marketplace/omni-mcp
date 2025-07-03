@@ -3,17 +3,34 @@ export interface ServerConfig {
   url: string; // URL of the standalone MCP server
   capabilities: string[];
   description: string;
-  healthCheckInterval?: number;
+  healthCheckInterval: number;
+  requiresAuth: boolean;
+  maxRetries: number;
+}
+
+export interface MCPServersRuntimeConfig {
+  [key: string]: ServerConfig;
 }
 
 export interface GatewayConfig {
+  env: "development" | "production" | "test";
   port: number;
+  host: string;
   allowedOrigins: string[];
   jwtSecret: string;
+  mcpApiKey: string;
   sessionTimeout: number;
   maxConcurrentSessions: number;
+  rateLimitPerMinute: number;
+  requireApiKey: boolean;
+  enableRateLimit: boolean;
+  maxRequestSizeMb: number;
+  corsCredentials: boolean;
+  securityHeaders: boolean;
+  mcpServers: MCPServersRuntimeConfig;
 }
 
+// DEPRECATED: This is now merged into GatewayConfig
 export interface MasterConfig {
   servers: Record<string, ServerConfig>;
   gateway: GatewayConfig;

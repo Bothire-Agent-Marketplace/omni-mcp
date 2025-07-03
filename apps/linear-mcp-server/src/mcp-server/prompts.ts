@@ -9,7 +9,86 @@ import type {
 } from "../types/linear.js";
 
 // ============================================================================
-// LINEAR PROMPTS - Clean MCP SDK Pattern
+// REUSABLE PROMPT FUNCTIONS - Used by both MCP server and HTTP server
+// ============================================================================
+
+export function createIssueWorkflowPrompt(args: CreateIssueWorkflowArgs = {}) {
+  const { teamId, priority } = args;
+
+  return {
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: `Help me create a well-structured Linear issue${
+            teamId ? ` for team ${teamId}` : ""
+          }${
+            priority !== undefined ? ` with priority ${priority}` : ""
+          }. Please guide me through:
+
+1. Writing a clear, actionable title
+2. Creating a detailed description with acceptance criteria
+3. Setting appropriate priority and labels
+4. Assigning to the right team member
+
+Let's start with the issue title - what problem are we solving?`,
+        },
+      },
+    ],
+  };
+}
+
+export function triageWorkflowPrompt() {
+  return {
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: `Help me triage Linear issues effectively. Let's work through:
+
+1. **Assessment**: Understanding the issue scope and impact
+2. **Prioritization**: Setting appropriate priority levels
+3. **Assignment**: Identifying the right team member
+4. **Labeling**: Adding relevant tags for organization
+5. **Timeline**: Estimating effort and setting expectations
+
+What issues do you need help triaging?`,
+        },
+      },
+    ],
+  };
+}
+
+export function sprintPlanningPrompt(args: SprintPlanningArgs = {}) {
+  const { teamId, sprintDuration } = args;
+
+  return {
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: `Let's plan an effective sprint${
+            teamId ? ` for team ${teamId}` : ""
+          }${sprintDuration ? ` (${sprintDuration} weeks)` : ""}. We'll cover:
+
+1. **Sprint Goal**: Defining clear objectives
+2. **Capacity Planning**: Understanding team availability
+3. **Issue Selection**: Choosing the right mix of work
+4. **Story Estimation**: Sizing issues appropriately
+5. **Dependencies**: Identifying blockers and prerequisites
+
+What's your sprint goal and what issues are you considering?`,
+        },
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// MCP SERVER REGISTRATION - Uses the reusable functions above
 // ============================================================================
 
 export function setupLinearPrompts(server: McpServer) {
@@ -24,28 +103,7 @@ export function setupLinearPrompts(server: McpServer) {
         "Step-by-step workflow for creating well-structured Linear issues",
       argsSchema: CreateIssueWorkflowArgsSchema.shape,
     },
-    ({ teamId, priority }: CreateIssueWorkflowArgs = {}) => ({
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: `Help me create a well-structured Linear issue${
-              teamId ? ` for team ${teamId}` : ""
-            }${
-              priority !== undefined ? ` with priority ${priority}` : ""
-            }. Please guide me through:
-
-1. Writing a clear, actionable title
-2. Creating a detailed description with acceptance criteria
-3. Setting appropriate priority and labels
-4. Assigning to the right team member
-
-Let's start with the issue title - what problem are we solving?`,
-          },
-        },
-      ],
-    })
+    createIssueWorkflowPrompt
   );
 
   // ============================================================================
@@ -59,25 +117,7 @@ Let's start with the issue title - what problem are we solving?`,
         "Comprehensive workflow for triaging and prioritizing Linear issues",
       argsSchema: {}, // No meaningful parameters - empty schema
     },
-    () => ({
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: `Help me triage Linear issues effectively. Let's work through:
-
-1. **Assessment**: Understanding the issue scope and impact
-2. **Prioritization**: Setting appropriate priority levels
-3. **Assignment**: Identifying the right team member
-4. **Labeling**: Adding relevant tags for organization
-5. **Timeline**: Estimating effort and setting expectations
-
-What issues do you need help triaging?`,
-          },
-        },
-      ],
-    })
+    triageWorkflowPrompt
   );
 
   // ============================================================================
@@ -90,26 +130,6 @@ What issues do you need help triaging?`,
       description: "Sprint planning workflow using Linear issues and cycles",
       argsSchema: SprintPlanningArgsSchema.shape,
     },
-    ({ teamId, sprintDuration }: SprintPlanningArgs = {}) => ({
-      messages: [
-        {
-          role: "user",
-          content: {
-            type: "text",
-            text: `Let's plan an effective sprint${
-              teamId ? ` for team ${teamId}` : ""
-            }${sprintDuration ? ` (${sprintDuration} weeks)` : ""}. We'll cover:
-
-1. **Sprint Goal**: Defining clear objectives
-2. **Capacity Planning**: Understanding team availability
-3. **Issue Selection**: Choosing the right mix of work
-4. **Story Estimation**: Sizing issues appropriately
-5. **Dependencies**: Identifying blockers and prerequisites
-
-What's your sprint goal and what issues are you considering?`,
-          },
-        },
-      ],
-    })
+    sprintPlanningPrompt
   );
 }

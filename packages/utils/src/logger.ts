@@ -1,5 +1,5 @@
 import winston from "winston";
-import { envConfig } from "./env.js";
+import type { Environment } from "./validation.js";
 
 // MCP-compliant logger interface
 export interface McpLogContext {
@@ -37,7 +37,7 @@ const mcpFormat = winston.format.combine(
       message,
       serverName:
         serverName || process.env.MCP_SERVER_NAME || "unknown-mcp-server",
-      environment: envConfig.NODE_ENV,
+      environment: info.environment,
       ...meta,
     };
 
@@ -54,13 +54,18 @@ const mcpFormat = winston.format.combine(
 );
 
 // Create the base logger
-const createLogger = (serverName?: string) => {
+const createLogger = (options: {
+  serverName?: string;
+  logLevel: string;
+  environment: Environment;
+}) => {
   return winston.createLogger({
-    level: envConfig.LOG_LEVEL,
+    level: options.logLevel,
     format: mcpFormat,
     defaultMeta: {
-      serverName: serverName || process.env.MCP_SERVER_NAME,
+      serverName: options.serverName || process.env.MCP_SERVER_NAME,
       pid: process.pid,
+      environment: options.environment,
     },
     transports: [
       // CRITICAL: All logs MUST go to stderr for MCP compliance
@@ -86,10 +91,26 @@ const createLogger = (serverName?: string) => {
 export class McpLogger {
   private logger: winston.Logger;
   private serverName: string;
+  private environment: Environment;
+  private logLevel: string;
 
-  constructor(serverName: string) {
-    this.serverName = serverName;
-    this.logger = createLogger(serverName);
+  constructor(options: {
+    serverName: string;
+    logLevel: string;
+    environment: Environment;
+  }) {
+    this.serverName = options.serverName;
+    this.logLevel = options.logLevel;
+    this.environment = options.environment;
+    this.logger = createLogger(options);
+  }
+
+  fork(childName: string): McpLogger {
+    return new McpLogger({
+      serverName: `${this.serverName}:${childName}`,
+      logLevel: this.logLevel,
+      environment: this.environment,
+    });
   }
 
   // Core logging methods with MCP context
@@ -245,12 +266,21 @@ export class McpLogger {
 }
 
 // Factory function for creating MCP loggers
-export const createMcpLogger = (serverName: string): McpLogger => {
-  return new McpLogger(serverName);
+export const createMcpLogger = (options: {
+  serverName: string;
+  logLevel: string;
+  environment: Environment;
+}): McpLogger => {
+  return new McpLogger(options);
 };
 
-// Default logger instance (backward compatibility)
-export const Logger = createLogger();
+// Default logger instance (backward compatibility) - DEPRECATED
+// This will likely fail or use defaults, encouraging new pattern.
+export const Logger = winston.createLogger({
+  level: "info",
+  format: mcpFormat,
+  transports: [new winston.transports.Console()],
+});
 
 // Utility function to generate request IDs
 export const generateRequestId = (): string => {

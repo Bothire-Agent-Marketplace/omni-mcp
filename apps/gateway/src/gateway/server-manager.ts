@@ -1,15 +1,18 @@
 import { EventEmitter } from "events";
 import fetch from "node-fetch";
 import { ServerConfig, ServerInstance, HealthStatus } from "@mcp/schemas";
-import { createMcpLogger } from "@mcp/utils";
+import { McpLogger } from "@mcp/utils";
 
 export class MCPServerManager extends EventEmitter {
-  private logger = createMcpLogger("mcp-gateway-server-manager");
+  private logger: McpLogger;
   private servers = new Map<string, ServerInstance>();
   private healthCheckIntervals = new Map<string, NodeJS.Timeout>();
+  private serverConfigs: Record<string, ServerConfig>;
 
-  constructor(serverConfigs: Record<string, ServerConfig>) {
+  constructor(serverConfigs: Record<string, ServerConfig>, logger: McpLogger) {
     super();
+    this.logger = logger;
+    this.serverConfigs = serverConfigs;
     Object.entries(serverConfigs).forEach(([serverId, config]) => {
       if (config.url) {
         this.servers.set(serverId, {
@@ -141,16 +144,6 @@ export class MCPServerManager extends EventEmitter {
 
   // Helper to get original config, if needed
   private getServerConfig(serverId: string): ServerConfig | undefined {
-    // This is a bit of a hack since we don't store the original configs.
-    // In a more robust system, you might keep the original config objects.
-    const server = this.servers.get(serverId);
-    if (!server) return undefined;
-    return {
-      type: "mcp",
-      url: server.url,
-      capabilities: server.capabilities,
-      description: "", // Not stored
-      healthCheckInterval: 30000, // Default
-    };
+    return this.serverConfigs[serverId];
   }
 }

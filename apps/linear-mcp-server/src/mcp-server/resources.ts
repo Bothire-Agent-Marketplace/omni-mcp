@@ -1,6 +1,5 @@
 import { LinearClient } from "@linear/sdk";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { envConfig } from "@mcp/utils";
 import type {
   LinearTeamResource,
   LinearUserResource,
@@ -10,12 +9,10 @@ import type {
 // LINEAR RESOURCES - Clean MCP SDK Pattern
 // ============================================================================
 
-export function setupLinearResources(server: McpServer) {
-  const apiKey = envConfig.LINEAR_API_KEY;
-  if (!apiKey) return; // Skip if no API key
-
-  const linearClient = new LinearClient({ apiKey });
-
+export function setupLinearResources(
+  server: McpServer,
+  linearClient: LinearClient
+) {
   // ============================================================================
   // RESOURCE 1: Teams
   // ============================================================================
