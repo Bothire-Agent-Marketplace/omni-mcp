@@ -168,11 +168,9 @@ async function main() {
     }
 
     logger.info("\n📡 Active MCP servers:");
-    Object.entries(gatewayConfig.mcpServers).forEach(
-      ([name, serverConfig]: [string, any]) => {
-        logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
-      }
-    );
+    Object.entries(gatewayConfig.mcpServers).forEach(([name, serverConfig]) => {
+      logger.info(`   ${name}: ${serverConfig.capabilities.join(", ")}`);
+    });
 
     // Generate secure API key for production setup
     if (

@@ -4,17 +4,58 @@ import { z } from "zod";
 // CORE MCP TYPES - Must be used by all MCP servers in this project
 // ============================================================================
 
+// JSON Schema types for tool parameters
+export type JSONSchemaType =
+  | "string"
+  | "number"
+  | "integer"
+  | "boolean"
+  | "array"
+  | "object"
+  | "null";
+
+export interface JSONSchemaProperty {
+  type?: JSONSchemaType | JSONSchemaType[];
+  description?: string;
+  enum?: unknown[];
+  const?: unknown;
+  default?: unknown;
+  examples?: unknown[];
+  // String constraints
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  // Number constraints
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  // Array constraints
+  items?: JSONSchemaProperty;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  // Object constraints
+  properties?: Record<string, JSONSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean | JSONSchemaProperty;
+  minProperties?: number;
+  maxProperties?: number;
+}
+
 // Tool Types
 export const ToolArgumentSchema = z.object({
   name: z.string(),
   description: z.string(),
   type: z.string(),
   required: z.boolean().optional(),
-  properties: z.record(z.any()).optional(),
-  items: z.any().optional(),
+  properties: z.record(z.unknown()).optional(),
+  items: z.unknown().optional(),
   minimum: z.number().optional(),
   maximum: z.number().optional(),
-  default: z.any().optional(),
+  default: z.unknown().optional(),
   format: z.string().optional(),
 });
 
@@ -23,7 +64,7 @@ export const ToolSchema = z.object({
   description: z.string(),
   inputSchema: z.object({
     type: z.literal("object"),
-    properties: z.record(z.any()),
+    properties: z.record(z.unknown()),
     required: z.array(z.string()).optional(),
   }),
 });
@@ -37,7 +78,7 @@ export interface ToolDefinition {
   description: string;
   inputSchema: {
     type: "object";
-    properties: Record<string, any>;
+    properties: Record<string, JSONSchemaProperty>;
     required?: readonly string[];
   };
 }
@@ -115,7 +156,7 @@ export interface PromptDefinition {
 // Response Types
 export const McpSuccessResponseSchema = z.object({
   success: z.literal(true),
-  data: z.any(),
+  data: z.unknown(),
   timestamp: z.string().optional(),
   executionTime: z.number().optional(),
 });
@@ -132,7 +173,7 @@ export const McpResponseSchema = z.union([
   McpErrorResponseSchema,
 ]);
 
-export type McpSuccessResponse<T = any> = {
+export type McpSuccessResponse<T = unknown> = {
   success: true;
   data: T;
   timestamp?: string;
@@ -146,7 +187,7 @@ export type McpErrorResponse = {
   executionTime?: number;
 };
 
-export type McpResponse<T = any> = McpSuccessResponse<T> | McpErrorResponse;
+export type McpResponse<T = unknown> = McpSuccessResponse<T> | McpErrorResponse;
 
 // Server Configuration Types
 export const McpServerConfigSchema = z.object({
@@ -164,7 +205,7 @@ export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
 // Tool Implementation Interface
 export interface ToolImplementation {
-  [key: string]: (args: any) => Promise<McpResponse>;
+  [key: string]: (args: Record<string, unknown>) => Promise<McpResponse>;
 }
 
 // Server Interface that all MCP servers must implement

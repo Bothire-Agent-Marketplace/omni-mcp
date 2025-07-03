@@ -130,10 +130,12 @@ export class MCPServerManager extends EventEmitter {
         }
         server.isHealthy = false;
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (server.isHealthy) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         this.logger.warn(
-          `Health check failed for server '${serverId}'. Error: ${error.message}`
+          `Health check failed for server '${serverId}'. Error: ${errorMessage}`
         );
       }
       server.isHealthy = false;

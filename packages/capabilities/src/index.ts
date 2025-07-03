@@ -39,9 +39,9 @@ export const ALL_MCP_SERVERS: Record<string, MCPServerDefinition> = {
 export function getServerByCapability(capability: string): string | null {
   for (const [serverName, server] of Object.entries(ALL_MCP_SERVERS)) {
     if (
-      server.tools.includes(capability as any) ||
-      server.resources.includes(capability as any) ||
-      server.prompts.includes(capability as any)
+      (server.tools as readonly string[]).includes(capability) ||
+      (server.resources as readonly string[]).includes(capability) ||
+      (server.prompts as readonly string[]).includes(capability)
     ) {
       return serverName;
     }

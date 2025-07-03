@@ -53,24 +53,24 @@ export interface Session {
   lastActivity: Date;
   serverConnections: Map<string, ServerInstance>;
   transport: "http" | "websocket";
-  connection?: any;
+  connection?: IWebSocket;
 }
 
 export interface MCPRequest {
   jsonrpc: "2.0";
   id?: string | number;
   method: string;
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 export interface MCPResponse {
   jsonrpc: "2.0";
   id?: string | number;
-  result?: any;
+  result?: unknown;
   error?: {
     code: number;
     message: string;
-    data?: any;
+    data?: unknown;
   };
 }
 

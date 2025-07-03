@@ -12,7 +12,7 @@ export interface McpLogContext {
   promptName?: string;
   errorCode?: string;
   duration?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Custom format for MCP servers
@@ -31,7 +31,7 @@ const mcpFormat = winston.format.combine(
       ...meta
     } = info;
 
-    const logEntry: Record<string, any> = {
+    const logEntry: Record<string, unknown> = {
       timestamp,
       level,
       message,

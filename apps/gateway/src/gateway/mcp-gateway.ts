@@ -11,6 +11,53 @@ import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 
+// HTTP request types
+interface HTTPHeaders {
+  authorization?: string;
+  Authorization?: string;
+  "content-type"?: string;
+  "user-agent"?: string;
+  [key: string]: string | undefined;
+}
+
+// Extended HTTP response for gateway (includes sessionToken)
+interface GatewayHTTPResponse {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+  sessionToken?: string;
+  id?: string | number;
+  code?: number;
+}
+
+// MCP Resource and Tool Types (moved to be used)
+interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: {
+    type: "object";
+    properties: Record<string, unknown>;
+    description?: string;
+  };
+}
+
+interface MCPResource {
+  uri: string;
+  name: string;
+  description: string;
+  mimeType?: string;
+}
+
+interface MCPPrompt {
+  name: string;
+  description: string;
+  arguments?: Array<{
+    name: string;
+    description: string;
+    required?: boolean;
+  }>;
+}
+
 export class MCPGateway {
   private logger: McpLogger;
   private config: GatewayConfig;
@@ -68,7 +115,10 @@ export class MCPGateway {
     }
   }
 
-  async handleHttpRequest(requestBody: any, headers: any): Promise<any> {
+  async handleHttpRequest(
+    requestBody: unknown,
+    headers: HTTPHeaders
+  ): Promise<GatewayHTTPResponse | MCPResponse> {
     try {
       // Get or create session
       let session = this.getSessionFromHeaders(headers);
@@ -337,7 +387,7 @@ export class MCPGateway {
     }
   }
 
-  private getSessionFromHeaders(headers: any): Session | null {
+  private getSessionFromHeaders(headers: HTTPHeaders): Session | null {
     const authHeader = headers.authorization || headers.Authorization;
     return this.sessionManager.getSessionFromAuthHeader(authHeader);
   }
@@ -473,9 +523,9 @@ export class MCPGateway {
     }
   }
 
-  private getAvailableTools(): any[] {
+  private getAvailableTools(): MCPTool[] {
     // Build tools list from server capabilities
-    const tools: any[] = [];
+    const tools: MCPTool[] = [];
 
     for (const [serverId, capabilities] of this.capabilityMap.entries()) {
       for (const capability of capabilities) {
@@ -497,8 +547,8 @@ export class MCPGateway {
     return tools;
   }
 
-  private async getAvailableResources(): Promise<any[]> {
-    const allResources: any[] = [];
+  private async getAvailableResources(): Promise<MCPResource[]> {
+    const allResources: MCPResource[] = [];
 
     // Fetch resources from all healthy servers
     for (const [serverId] of this.capabilityMap.entries()) {
@@ -540,8 +590,8 @@ export class MCPGateway {
     return allResources;
   }
 
-  private async getAvailablePrompts(): Promise<any[]> {
-    const allPrompts: any[] = [];
+  private async getAvailablePrompts(): Promise<MCPPrompt[]> {
+    const allPrompts: MCPPrompt[] = [];
 
     // Fetch prompts from all healthy servers
     for (const [serverId] of this.capabilityMap.entries()) {
