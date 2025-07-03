@@ -133,8 +133,8 @@ export interface GatewayHTTPResponse extends HTTPResponse {
 export const MCPRequestSchema = {
   type: "object",
   properties: {
-    jsonrpc: { type: "string", enum: ["2.0"] },
-    id: { oneOf: [{ type: "string" }, { type: "number" }] },
+    jsonrpc: { type: "string", const: "2.0" },
+    id: { type: ["string", "number"] },
     method: { type: "string" },
     params: { type: "object" },
   },

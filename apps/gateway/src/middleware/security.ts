@@ -1,3 +1,4 @@
+import { randomBytes } from "crypto";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
@@ -210,7 +211,7 @@ export async function registerSecurityMiddleware(
   fastify.addHook(
     "onResponse",
     async (request: AuthenticatedRequest, reply: FastifyReply) => {
-      const responseTime = reply.getResponseTime();
+      const responseTime = reply.elapsedTime;
 
       logger.info("Request completed", {
         method: request.method,
@@ -342,6 +343,5 @@ function validateMCPRequest(body: unknown): {
  * Generate a cryptographically secure API key
  */
 export function generateSecureApiKey(): string {
-  const crypto = require("crypto");
-  return `mcp_${crypto.randomBytes(32).toString("hex")}`;
+  return `mcp_${randomBytes(32).toString("hex")}`;
 }

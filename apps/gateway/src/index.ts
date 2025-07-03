@@ -194,6 +194,10 @@ async function createServer(): Promise<FastifyInstance> {
         url: request.url,
         method: request.method,
         statusCode: error.statusCode,
+        errorCode: error.code,
+        errorName: error.name,
+        validation: error.validation,
+        validationContext: error.validationContext,
       });
 
       // Handle validation errors
