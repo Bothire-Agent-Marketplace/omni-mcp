@@ -45,7 +45,7 @@ export function runCommand(
   });
 }
 
-export async function writeJson(filePath: string, data: any): Promise<void> {
+async function writeJson(filePath: string, data: any): Promise<void> {
   await fs.writeJson(filePath, data, { spaces: 2 });
 }
 

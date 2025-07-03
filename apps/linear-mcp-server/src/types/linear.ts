@@ -2,7 +2,7 @@
 // Linear MCP Server - TypeScript Types
 // ============================================================================
 
-export interface SearchIssuesInput {
+interface SearchIssuesInput {
   query?: string;
   teamId?: string;
   status?: string;
@@ -11,29 +11,29 @@ export interface SearchIssuesInput {
   limit?: number;
 }
 
-export interface GetTeamsInput {
+interface GetTeamsInput {
   includeArchived?: boolean;
   limit?: number;
 }
 
-export interface GetUsersInput {
+interface GetUsersInput {
   includeDisabled?: boolean;
   limit?: number;
 }
 
-export interface GetProjectsInput {
+interface GetProjectsInput {
   teamId?: string;
   includeArchived?: boolean;
   limit?: number;
 }
 
-export interface GetIssueInput {
+interface GetIssueInput {
   issueId?: string;
   identifier?: string;
 }
 
 // Output types for Linear entities
-export interface LinearIssue {
+interface LinearIssue {
   id: string;
   identifier: string;
   title: string;
@@ -43,14 +43,14 @@ export interface LinearIssue {
   url: string;
 }
 
-export interface LinearTeam {
+interface LinearTeam {
   id: string;
   key: string;
   name: string;
   private: boolean;
 }
 
-export interface LinearUser {
+interface LinearUser {
   id: string;
   name: string;
   displayName: string;
@@ -58,7 +58,7 @@ export interface LinearUser {
   active: boolean;
 }
 
-export interface LinearProject {
+interface LinearProject {
   id: string;
   name: string;
   state: string;
@@ -66,7 +66,7 @@ export interface LinearProject {
   teams: string;
 }
 
-export interface LinearIssueDetails {
+interface LinearIssueDetails {
   id: string;
   identifier: string;
   title: string;
@@ -80,33 +80,33 @@ export interface LinearIssueDetails {
 }
 
 // Response wrapper types
-export interface SearchIssuesResponse {
+interface SearchIssuesResponse {
   issues: LinearIssue[];
   count: number;
 }
 
-export interface GetTeamsResponse {
+interface GetTeamsResponse {
   teams: LinearTeam[];
   count: number;
 }
 
-export interface GetUsersResponse {
+interface GetUsersResponse {
   users: LinearUser[];
   count: number;
 }
 
-export interface GetProjectsResponse {
+interface GetProjectsResponse {
   projects: LinearProject[];
   count: number;
 }
 
 // Simple prompt argument types (optional, for documentation)
-export interface CreateIssueWorkflowArgs {
+interface CreateIssueWorkflowArgs {
   teamId?: string;
   priority?: string;
 }
 
-export interface SprintPlanningArgs {
+interface SprintPlanningArgs {
   teamId?: string;
   sprintDuration?: string;
 }

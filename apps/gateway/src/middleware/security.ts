@@ -4,7 +4,7 @@ import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { McpLogger } from "@mcp/utils";
 
-export interface SecurityConfig {
+interface SecurityConfig {
   logger: McpLogger;
   enableRateLimit: boolean;
   rateLimitPerMinute: number;
@@ -16,7 +16,7 @@ export interface SecurityConfig {
   securityHeaders: boolean;
 }
 
-export interface AuthenticatedRequest extends FastifyRequest {
+interface AuthenticatedRequest extends FastifyRequest {
   isAuthenticated?: boolean;
   apiKeyUsed?: string;
 }

@@ -1,10 +1,12 @@
 import { LinearClient } from "@linear/sdk";
+import {
+  SearchIssuesInputSchema,
+  GetTeamsInputSchema,
+  GetUsersInputSchema,
+  GetProjectsInputSchema,
+  GetIssueInputSchema,
+} from "../schemas/linear.js";
 import type {
-  SearchIssuesInput,
-  GetTeamsInput,
-  GetUsersInput,
-  GetProjectsInput,
-  GetIssueInput,
   LinearTeamResource,
   LinearUserResource,
 } from "../types/linear.js";
@@ -15,9 +17,12 @@ import type {
 
 export async function handleLinearSearchIssues(
   linearClient: LinearClient,
-  params: SearchIssuesInput
+  params: unknown
 ) {
-  const { teamId, status, assigneeId, priority, limit = 10 } = params;
+  // Validate and parse input with Zod
+  const validatedParams = SearchIssuesInputSchema.parse(params);
+  const { teamId, status, assigneeId, priority, limit } = validatedParams;
+
   const filter: any = {};
   if (teamId) filter.team = { id: { eq: teamId } };
   if (status) filter.state = { name: { eq: status } };
@@ -61,9 +66,12 @@ export async function handleLinearSearchIssues(
 
 export async function handleLinearGetTeams(
   linearClient: LinearClient,
-  params: GetTeamsInput
+  params: unknown
 ) {
-  const { includeArchived = false, limit = 20 } = params;
+  // Validate and parse input with Zod
+  const validatedParams = GetTeamsInputSchema.parse(params);
+  const { includeArchived, limit } = validatedParams;
+
   const teams = await linearClient.teams({
     includeArchived,
     first: Math.min(limit, 100),
@@ -96,9 +104,12 @@ export async function handleLinearGetTeams(
 
 export async function handleLinearGetUsers(
   linearClient: LinearClient,
-  params: GetUsersInput
+  params: unknown
 ) {
-  const { includeDisabled = false, limit = 20 } = params;
+  // Validate and parse input with Zod
+  const validatedParams = GetUsersInputSchema.parse(params);
+  const { includeDisabled, limit } = validatedParams;
+
   const filter: any = {};
   if (!includeDisabled) {
     filter.active = { eq: true };
@@ -137,9 +148,12 @@ export async function handleLinearGetUsers(
 
 export async function handleLinearGetProjects(
   linearClient: LinearClient,
-  params: GetProjectsInput
+  params: unknown
 ) {
-  const { teamId, includeArchived = false, limit = 20 } = params;
+  // Validate and parse input with Zod
+  const validatedParams = GetProjectsInputSchema.parse(params);
+  const { teamId, includeArchived, limit } = validatedParams;
+
   const filter: any = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
   if (!includeArchived) filter.archivedAt = { null: true };
@@ -179,9 +193,12 @@ export async function handleLinearGetProjects(
 
 export async function handleLinearGetIssue(
   linearClient: LinearClient,
-  params: GetIssueInput
+  params: unknown
 ) {
-  const { issueId, identifier } = params;
+  // Validate and parse input with Zod
+  const validatedParams = GetIssueInputSchema.parse(params);
+  const { issueId, identifier } = validatedParams;
+
   let issue;
 
   if (issueId) {

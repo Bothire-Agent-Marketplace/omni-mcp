@@ -228,12 +228,14 @@ export class MCPGateway {
       });
 
       if (!serverId) {
+        const capabilityToResolve = this.getCapabilityToResolve(request);
         this.logger.error(
-          `No server found for capability: ${request.method}`,
+          `No server found for capability: ${capabilityToResolve}`,
           undefined,
           {
             requestId,
             method: request.method,
+            capability: capabilityToResolve,
             phase: "routing_failed",
           }
         );
@@ -243,7 +245,7 @@ export class MCPGateway {
           error: {
             code: -32601,
             message: "Method not found",
-            data: `No server found for capability: ${request.method}`,
+            data: `No server found for capability: ${capabilityToResolve}`,
           },
         };
       }
@@ -292,13 +294,12 @@ export class MCPGateway {
           body: JSON.stringify(request),
         });
 
-        if (!response.ok) {
-          throw new Error(
-            `Request to ${serverInstance.serverId} failed with status ${response.status}`
-          );
-        }
-
         const mcpResponse = (await response.json()) as MCPResponse;
+
+        // If the server returned an error, forward it directly (including validation errors)
+        if (!response.ok || mcpResponse.error) {
+          return mcpResponse;
+        }
 
         const duration = Date.now() - startTime;
         this.logger.mcpResponse(request.method, requestId, true, duration, {
@@ -372,6 +373,27 @@ export class MCPGateway {
       "ping",
     ];
     return protocolMethods.includes(method);
+  }
+
+  private getCapabilityToResolve(request: MCPRequest): string {
+    const { method, params } = request;
+
+    // For tool calls, route based on the specific tool name
+    if (method === "tools/call" && params?.name) {
+      return params.name as string;
+    }
+
+    // For resource reads, route based on the resource URI
+    if (method === "resources/read" && params?.uri) {
+      return params.uri as string;
+    }
+
+    // For prompt gets, route based on the prompt name
+    if (method === "prompts/get" && params?.name) {
+      return params.name as string;
+    }
+
+    return method;
   }
 
   private async handleProtocolMethod(

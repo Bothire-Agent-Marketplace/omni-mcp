@@ -20,7 +20,7 @@ const SERVICE_PATH = join(__dirname, "..");
 loadEnvironment(SERVICE_PATH);
 
 // Define the shape of the Gateway's specific configuration
-export interface GatewayConfig {
+interface GatewayConfig {
   env: Environment;
   port: number;
   host: string;

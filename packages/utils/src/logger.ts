@@ -274,14 +274,6 @@ export const createMcpLogger = (options: {
   return new McpLogger(options);
 };
 
-// Default logger instance (backward compatibility) - DEPRECATED
-// This will likely fail or use defaults, encouraging new pattern.
-export const Logger = winston.createLogger({
-  level: "info",
-  format: mcpFormat,
-  transports: [new winston.transports.Console()],
-});
-
 // Utility function to generate request IDs
 export const generateRequestId = (): string => {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -315,5 +307,3 @@ export const setupGlobalErrorHandlers = (logger: McpLogger) => {
     process.exit(0);
   });
 };
-
-export default Logger;

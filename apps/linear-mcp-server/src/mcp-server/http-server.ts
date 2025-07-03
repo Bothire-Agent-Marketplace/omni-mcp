@@ -5,6 +5,7 @@ import fastify, {
   FastifyReply,
   FastifyRequest,
 } from "fastify";
+import { ZodError } from "zod";
 import { createMcpLogger } from "@mcp/utils";
 import type { LinearServerConfig } from "../config/config.js";
 import * as handlers from "./handlers.js";
@@ -14,7 +15,7 @@ import {
   sprintPlanningPrompt,
 } from "./prompts.js";
 
-export function createHttpServer(config: LinearServerConfig): FastifyInstance {
+function createHttpServer(config: LinearServerConfig): FastifyInstance {
   const logger = createMcpLogger({
     serverName: "linear-http-server",
     logLevel: config.logLevel,
@@ -192,6 +193,24 @@ export function createHttpServer(config: LinearServerConfig): FastifyInstance {
           return;
       }
     } catch (error: any) {
+      // Handle Zod validation errors specifically
+      if (error instanceof ZodError) {
+        const validationErrors = error.errors
+          .map((err) => `${err.path.join(".")}: ${err.message}`)
+          .join(", ");
+
+        reply.status(400).send({
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: `Validation failed: ${validationErrors}`,
+          },
+        });
+        return;
+      }
+
       reply.status(500).send({
         jsonrpc: "2.0",
         id,

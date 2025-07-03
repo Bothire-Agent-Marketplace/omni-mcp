@@ -3,17 +3,15 @@ import {
   CreateIssueWorkflowArgsSchema,
   SprintPlanningArgsSchema,
 } from "../schemas/linear.js";
-import type {
-  CreateIssueWorkflowArgs,
-  SprintPlanningArgs,
-} from "../types/linear.js";
 
 // ============================================================================
 // REUSABLE PROMPT FUNCTIONS - Used by both MCP server and HTTP server
 // ============================================================================
 
-export function createIssueWorkflowPrompt(args: CreateIssueWorkflowArgs = {}) {
-  const { teamId, priority } = args;
+export function createIssueWorkflowPrompt(args: unknown = {}) {
+  // Validate and parse input with Zod
+  const validatedArgs = CreateIssueWorkflowArgsSchema.parse(args);
+  const { teamId, priority } = validatedArgs;
 
   return {
     messages: [
@@ -61,8 +59,10 @@ What issues do you need help triaging?`,
   };
 }
 
-export function sprintPlanningPrompt(args: SprintPlanningArgs = {}) {
-  const { teamId, sprintDuration } = args;
+export function sprintPlanningPrompt(args: unknown = {}) {
+  // Validate and parse input with Zod
+  const validatedArgs = SprintPlanningArgsSchema.parse(args);
+  const { teamId, sprintDuration } = validatedArgs;
 
   return {
     messages: [
@@ -91,7 +91,7 @@ What's your sprint goal and what issues are you considering?`,
 // MCP SERVER REGISTRATION - Uses the reusable functions above
 // ============================================================================
 
-export function setupLinearPrompts(server: McpServer) {
+function setupLinearPrompts(server: McpServer) {
   // ============================================================================
   // PROMPT 1: Create Issue Workflow
   // ============================================================================

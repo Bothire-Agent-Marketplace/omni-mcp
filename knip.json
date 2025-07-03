@@ -1,0 +1,9 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    ".": {},
+    "packages/*": {},
+    "apps/*": {}
+  },
+  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
+}
