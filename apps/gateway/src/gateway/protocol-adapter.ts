@@ -1,6 +1,23 @@
 import { MCPRequest, MCPResponse, IWebSocket } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
+// HTTP request body interface for validation
+interface HTTPRequestBody {
+  jsonrpc: "2.0";
+  id?: string | number;
+  method: string;
+  params?: Record<string, unknown>;
+}
+
+// HTTP response interface for consistent response format
+interface HTTPResponse {
+  success: boolean;
+  error?: string;
+  code?: number;
+  data?: unknown;
+  id?: string | number;
+}
+
 export class MCPProtocolAdapter {
   private logger: McpLogger;
 
@@ -8,14 +25,14 @@ export class MCPProtocolAdapter {
     this.logger = logger;
   }
 
-  handleHttpToMCP(requestBody: any): MCPRequest {
+  handleHttpToMCP(requestBody: HTTPRequestBody): MCPRequest {
     if (!requestBody || requestBody.jsonrpc !== "2.0" || !requestBody.method) {
       throw new Error("Invalid JSON-RPC request");
     }
     return requestBody;
   }
 
-  handleMCPToHttp(mcpResponse: MCPResponse): any {
+  handleMCPToHttp(mcpResponse: MCPResponse): HTTPResponse {
     if (mcpResponse.error) {
       return {
         success: false,

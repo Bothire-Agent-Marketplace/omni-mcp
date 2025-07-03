@@ -8,12 +8,46 @@ import fastify, {
 import { ZodError } from "zod";
 import { createMcpLogger } from "@mcp/utils";
 import type { LinearServerConfig } from "../config/config.js";
-import * as handlers from "./handlers.js";
 import {
-  createIssueWorkflowPrompt,
-  triageWorkflowPrompt,
-  sprintPlanningPrompt,
-} from "./prompts.js";
+  createPromptHandlers,
+  getAvailablePrompts,
+} from "./prompts-registry.js";
+import { createResourceHandlers, getAvailableResources } from "./resources.js";
+import { createToolHandlers, getAvailableTools } from "./tools.js";
+
+// MCP Request/Response interfaces
+interface MCPRequest {
+  jsonrpc: "2.0";
+  method: string;
+  params?: {
+    name?: string;
+    arguments?: Record<string, unknown>;
+    uri?: string;
+    [key: string]: unknown;
+  };
+  id?: string | number;
+}
+
+interface MCPResponse<T = unknown> {
+  jsonrpc: "2.0";
+  id?: string | number;
+  result?: T;
+  error?: {
+    code: number;
+    message: string;
+    data?: string;
+  };
+}
+
+interface MCPErrorResponse {
+  jsonrpc: "2.0";
+  id?: string | number;
+  error: {
+    code: number;
+    message: string;
+    data?: string;
+  };
+}
 
 function createHttpServer(config: LinearServerConfig): FastifyInstance {
   const logger = createMcpLogger({
@@ -24,39 +58,10 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
 
   const linearClient = new LinearClient({ apiKey: config.linearApiKey });
 
-  // Tool handlers map
-  const toolHandlerMap: Record<string, (params: any) => Promise<any>> = {
-    linear_search_issues: handlers.handleLinearSearchIssues.bind(
-      null,
-      linearClient
-    ),
-    linear_get_teams: handlers.handleLinearGetTeams.bind(null, linearClient),
-    linear_get_users: handlers.handleLinearGetUsers.bind(null, linearClient),
-    linear_get_projects: handlers.handleLinearGetProjects.bind(
-      null,
-      linearClient
-    ),
-    linear_get_issue: handlers.handleLinearGetIssue.bind(null, linearClient),
-  };
-
-  // Resource handlers map
-  const resourceHandlerMap: Record<string, (uri: string) => Promise<any>> = {
-    "linear://teams": handlers.handleLinearTeamsResource.bind(
-      null,
-      linearClient
-    ),
-    "linear://users": handlers.handleLinearUsersResource.bind(
-      null,
-      linearClient
-    ),
-  };
-
-  // Prompt handlers map
-  const promptHandlerMap: Record<string, (args: any) => Promise<any>> = {
-    create_issue_workflow: async (args: any) => createIssueWorkflowPrompt(args),
-    triage_workflow: async () => triageWorkflowPrompt(),
-    sprint_planning: async (args: any) => sprintPlanningPrompt(args),
-  };
+  // Create handler registries
+  const toolHandlers = createToolHandlers(linearClient);
+  const resourceHandlers = createResourceHandlers(linearClient);
+  const promptHandlers = createPromptHandlers();
 
   const server = fastify({ logger: false }); // Disable default logger to use our own
 
@@ -82,14 +87,15 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
 
   // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { jsonrpc, method, params, id } = request.body as any;
+    const { jsonrpc, method, params, id } = request.body as MCPRequest;
 
     if (jsonrpc !== "2.0") {
-      reply.status(400).send({
+      const errorResponse: MCPErrorResponse = {
         jsonrpc: "2.0",
         id,
         error: { code: -32600, message: "Invalid Request" },
-      });
+      };
+      reply.status(400).send(errorResponse);
       return;
     }
 
@@ -98,108 +104,121 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
       switch (method) {
         case "tools/call": {
           const toolName = params?.name;
-          const handler = toolHandlerMap[toolName];
+          const handler = toolName ? toolHandlers[toolName] : undefined;
 
-          if (!handler) {
-            reply.status(404).send({
+          if (!handler || !toolName) {
+            const errorResponse: MCPErrorResponse = {
               jsonrpc: "2.0",
               id,
               error: {
                 code: -32601,
                 message: `Tool not found: ${toolName}`,
               },
-            });
+            };
+            reply.status(404).send(errorResponse);
             return;
           }
 
           const result = await handler(params?.arguments || {});
-          return { jsonrpc: "2.0", id, result };
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
         }
 
         case "resources/read": {
           const uri = params?.uri;
-          const handler = resourceHandlerMap[uri];
+          const handler = uri ? resourceHandlers[uri] : undefined;
 
-          if (!handler) {
-            reply.status(404).send({
+          if (!handler || !uri) {
+            const errorResponse: MCPErrorResponse = {
               jsonrpc: "2.0",
               id,
               error: {
                 code: -32601,
                 message: `Resource not found: ${uri}`,
               },
-            });
+            };
+            reply.status(404).send(errorResponse);
             return;
           }
 
           const result = await handler(uri);
-          return { jsonrpc: "2.0", id, result };
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
         }
 
         case "prompts/get": {
           const name = params?.name;
-          const handler = promptHandlerMap[name];
+          const handler = name ? promptHandlers[name] : undefined;
 
-          if (!handler) {
-            reply.status(404).send({
+          if (!handler || !name) {
+            const errorResponse: MCPErrorResponse = {
               jsonrpc: "2.0",
               id,
               error: {
                 code: -32601,
                 message: `Prompt not found: ${name}`,
               },
-            });
+            };
+            reply.status(404).send(errorResponse);
             return;
           }
 
           const result = await handler(params?.arguments || {});
-          return { jsonrpc: "2.0", id, result };
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
         }
 
         case "tools/list": {
-          const tools = Object.keys(toolHandlerMap).map((name) => ({
-            name,
-            description: getToolDescription(name),
-          }));
-          return { jsonrpc: "2.0", id, result: { tools } };
+          const tools = getAvailableTools();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { tools },
+          };
+          return response;
         }
 
         case "resources/list": {
-          const resources = Object.keys(resourceHandlerMap).map((uri) => ({
-            uri,
-            name: getResourceName(uri),
-            description: getResourceDescription(uri),
-          }));
-          return { jsonrpc: "2.0", id, result: { resources } };
+          const resources = getAvailableResources();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { resources },
+          };
+          return response;
         }
 
         case "prompts/list": {
-          const prompts = Object.keys(promptHandlerMap).map((name) => ({
-            name,
-            description: getPromptDescription(name),
-          }));
-          return { jsonrpc: "2.0", id, result: { prompts } };
+          const prompts = getAvailablePrompts();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { prompts },
+          };
+          return response;
         }
 
-        default:
-          reply.status(404).send({
+        default: {
+          const errorResponse: MCPErrorResponse = {
             jsonrpc: "2.0",
             id,
             error: {
               code: -32601,
               message: `Method not found: ${method}`,
             },
-          });
+          };
+          reply.status(404).send(errorResponse);
           return;
+        }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle Zod validation errors specifically
       if (error instanceof ZodError) {
         const validationErrors = error.errors
           .map((err) => `${err.path.join(".")}: ${err.message}`)
           .join(", ");
 
-        reply.status(400).send({
+        const errorResponse: MCPErrorResponse = {
           jsonrpc: "2.0",
           id,
           error: {
@@ -207,62 +226,27 @@ function createHttpServer(config: LinearServerConfig): FastifyInstance {
             message: "Invalid params",
             data: `Validation failed: ${validationErrors}`,
           },
-        });
+        };
+        reply.status(400).send(errorResponse);
         return;
       }
 
-      reply.status(500).send({
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      const errorResponse: MCPErrorResponse = {
         jsonrpc: "2.0",
         id,
         error: {
           code: -32603,
           message: "Internal server error",
-          data: error.message,
+          data: errorMessage,
         },
-      });
+      };
+      reply.status(500).send(errorResponse);
     }
   });
 
   return server;
-}
-
-// Helper functions for metadata
-function getToolDescription(name: string): string {
-  const descriptions: Record<string, string> = {
-    linear_search_issues: "Search for Linear issues with optional filters",
-    linear_get_teams: "Retrieve all teams in the Linear workspace",
-    linear_get_users: "Retrieve users in the Linear workspace",
-    linear_get_projects: "Retrieve projects in the Linear workspace",
-    linear_get_issue: "Get detailed information about a specific Linear issue",
-  };
-  return descriptions[name] || "Linear tool";
-}
-
-function getResourceName(uri: string): string {
-  const names: Record<string, string> = {
-    "linear://teams": "linear-teams",
-    "linear://users": "linear-users",
-  };
-  return names[uri] || uri;
-}
-
-function getResourceDescription(uri: string): string {
-  const descriptions: Record<string, string> = {
-    "linear://teams": "List of all Linear teams",
-    "linear://users": "List of Linear users for assignment and collaboration",
-  };
-  return descriptions[uri] || "Linear resource";
-}
-
-function getPromptDescription(name: string): string {
-  const descriptions: Record<string, string> = {
-    create_issue_workflow:
-      "Step-by-step workflow for creating well-structured Linear issues",
-    triage_workflow:
-      "Comprehensive workflow for triaging and prioritizing Linear issues",
-    sprint_planning: "Sprint planning workflow using Linear issues and cycles",
-  };
-  return descriptions[name] || "Linear prompt";
 }
 
 export async function startHttpServer(config: LinearServerConfig) {
@@ -280,8 +264,10 @@ export async function startHttpServer(config: LinearServerConfig) {
     logger.info(`🚀 Linear MCP HTTP server listening on port ${port}`);
     logger.info(`📋 Health check: http://localhost:${port}/health`);
     logger.info(`🔌 MCP endpoint: http://localhost:${port}/mcp`);
-  } catch (err: any) {
-    logger.error("Error starting server", err);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error starting server";
+    logger.error("Error starting server", new Error(errorMessage));
     process.exit(1);
   }
 }

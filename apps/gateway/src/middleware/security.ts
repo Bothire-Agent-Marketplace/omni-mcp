@@ -4,6 +4,11 @@ import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { McpLogger } from "@mcp/utils";
 
+// Query parameters interface for type safety
+interface MCPQueryParams {
+  api_key?: string;
+}
+
 interface SecurityConfig {
   logger: McpLogger;
   enableRateLimit: boolean;
@@ -72,7 +77,10 @@ export async function registerSecurityMiddleware(
         const apiKey = extractApiKey(request);
         return apiKey || request.ip;
       },
-      errorResponseBuilder: (request: FastifyRequest, context: any) => {
+      errorResponseBuilder: (
+        request: FastifyRequest,
+        context: Record<string, unknown>
+      ) => {
         logger.warn("Rate limit exceeded", {
           ip: request.ip,
           userAgent: request.headers["user-agent"],
@@ -234,7 +242,7 @@ function extractApiKey(request: FastifyRequest): string | null {
 
   // Check query parameter (less secure, for dev only)
   if (process.env.NODE_ENV === "development") {
-    const apiKeyQuery = (request.query as any)?.api_key;
+    const apiKeyQuery = (request.query as MCPQueryParams)?.api_key;
     if (apiKeyQuery && typeof apiKeyQuery === "string") {
       return apiKeyQuery;
     }
@@ -266,7 +274,10 @@ function maskApiKey(apiKey: string): string {
 /**
  * Validate MCP JSON-RPC request structure
  */
-function validateMCPRequest(body: any): { valid: boolean; errors: string[] } {
+function validateMCPRequest(body: unknown): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!body || typeof body !== "object") {

@@ -1,7 +1,12 @@
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
+
+interface SessionJwtPayload extends JwtPayload {
+  sessionId: string;
+  timestamp: number;
+}
 
 export class MCPSessionManager {
   private logger: McpLogger;
@@ -83,7 +88,10 @@ export class MCPSessionManager {
 
   validateToken(token: string): string | null {
     try {
-      const decoded = jwt.verify(token, this.config.jwtSecret) as any;
+      const decoded = jwt.verify(
+        token,
+        this.config.jwtSecret
+      ) as SessionJwtPayload;
       return decoded.sessionId;
     } catch (error) {
       this.logger.warn("Invalid token", { error: String(error) });

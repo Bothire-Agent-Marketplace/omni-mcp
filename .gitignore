@@ -298,3 +298,12 @@ temp/
 .turbo
 .vercel
 apps/linear-mcp-server/src/schemas/linear.ts
+
+# Claude Integration Certificates
+*.crt
+*.key
+*.pem
+
+# Legacy empty directories (should not be recreated)
+shared/
+servers/

@@ -11,6 +11,20 @@ import type {
   LinearUserResource,
 } from "../types/linear.js";
 
+// Linear SDK Filter Types based on GraphQL API patterns
+interface LinearIssueFilter {
+  team?: { id: { eq: string } };
+  state?: { name: { eq: string } };
+  assignee?: { id: { eq: string } };
+  priority?: { eq: number };
+}
+
+interface LinearUserFilter {
+  active?: { eq: boolean };
+}
+
+// LinearProjectFilter removed - using Record<string, unknown> for complex filtering
+
 // ============================================================================
 // HANDLER 1: Search Issues
 // ============================================================================
@@ -23,7 +37,7 @@ export async function handleLinearSearchIssues(
   const validatedParams = SearchIssuesInputSchema.parse(params);
   const { teamId, status, assigneeId, priority, limit } = validatedParams;
 
-  const filter: any = {};
+  const filter: LinearIssueFilter = {};
   if (teamId) filter.team = { id: { eq: teamId } };
   if (status) filter.state = { name: { eq: status } };
   if (assigneeId) filter.assignee = { id: { eq: assigneeId } };
@@ -110,7 +124,7 @@ export async function handleLinearGetUsers(
   const validatedParams = GetUsersInputSchema.parse(params);
   const { includeDisabled, limit } = validatedParams;
 
-  const filter: any = {};
+  const filter: LinearUserFilter = {};
   if (!includeDisabled) {
     filter.active = { eq: true };
   }
@@ -154,7 +168,7 @@ export async function handleLinearGetProjects(
   const validatedParams = GetProjectsInputSchema.parse(params);
   const { teamId, includeArchived, limit } = validatedParams;
 
-  const filter: any = {};
+  const filter: Record<string, unknown> = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
   if (!includeArchived) filter.archivedAt = { null: true };
 
