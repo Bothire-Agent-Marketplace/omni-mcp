@@ -297,3 +297,4 @@ temp/
 # Package manager files
 .turbo
 .vercel
+apps/linear-mcp-server/src/schemas/linear.ts

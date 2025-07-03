@@ -1,5 +1,12 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
+import {
+  CreateIssueWorkflowArgsSchema,
+  SprintPlanningArgsSchema,
+} from "../schemas/linear.js";
+import type {
+  CreateIssueWorkflowArgs,
+  SprintPlanningArgs,
+} from "../types/linear.js";
 
 // ============================================================================
 // LINEAR PROMPTS - Clean MCP SDK Pattern
@@ -15,18 +22,9 @@ export function setupLinearPrompts(server: McpServer) {
       title: "Create Linear Issue Workflow",
       description:
         "Step-by-step workflow for creating well-structured Linear issues",
-      argsSchema: {
-        teamId: z
-          .string()
-          .optional()
-          .describe("ID of the team to create the issue for"),
-        priority: z
-          .string()
-          .optional()
-          .describe("Default priority level (0-4)"),
-      },
+      argsSchema: CreateIssueWorkflowArgsSchema.shape,
     },
-    ({ teamId, priority }) => ({
+    ({ teamId, priority }: CreateIssueWorkflowArgs = {}) => ({
       messages: [
         {
           role: "user",
@@ -59,7 +57,7 @@ Let's start with the issue title - what problem are we solving?`,
       title: "Linear Issue Triage Workflow",
       description:
         "Comprehensive workflow for triaging and prioritizing Linear issues",
-      argsSchema: {},
+      argsSchema: {}, // No meaningful parameters - empty schema
     },
     () => ({
       messages: [
@@ -90,18 +88,9 @@ What issues do you need help triaging?`,
     {
       title: "Linear Sprint Planning Workflow",
       description: "Sprint planning workflow using Linear issues and cycles",
-      argsSchema: {
-        teamId: z
-          .string()
-          .optional()
-          .describe("ID of the team for sprint planning"),
-        sprintDuration: z
-          .string()
-          .optional()
-          .describe("Duration of the sprint in weeks"),
-      },
+      argsSchema: SprintPlanningArgsSchema.shape,
     },
-    ({ teamId, sprintDuration }) => ({
+    ({ teamId, sprintDuration }: SprintPlanningArgs = {}) => ({
       messages: [
         {
           role: "user",

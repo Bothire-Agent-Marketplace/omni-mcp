@@ -1,6 +1,10 @@
 import { LinearClient } from "@linear/sdk";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { envConfig } from "@mcp/utils";
+import type {
+  LinearTeamResource,
+  LinearUserResource,
+} from "../types/linear.js";
 
 // ============================================================================
 // LINEAR RESOURCES - Clean MCP SDK Pattern
@@ -23,32 +27,34 @@ export function setupLinearResources(server: McpServer) {
       description: "List of all Linear teams",
       mimeType: "application/json",
     },
-    async (uri: any) => {
+    async (uri: URL) => {
       try {
         const teams = await linearClient.teams();
+        const formattedTeams: LinearTeamResource[] = teams.nodes.map(
+          (team) => ({
+            id: team.id,
+            name: team.name,
+            key: team.key,
+            description: team.description,
+          })
+        );
+
         return {
           contents: [
             {
               uri: uri.href,
-              text: JSON.stringify(
-                teams.nodes.map((team) => ({
-                  id: team.id,
-                  name: team.name,
-                  key: team.key,
-                  description: team.description,
-                })),
-                null,
-                2
-              ),
+              text: JSON.stringify(formattedTeams, null, 2),
             },
           ],
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         return {
           contents: [
             {
               uri: uri.href,
-              text: `Error fetching teams: ${error.message}`,
+              text: `Error fetching teams: ${errorMessage}`,
             },
           ],
         };
@@ -67,33 +73,35 @@ export function setupLinearResources(server: McpServer) {
       description: "List of Linear users for assignment and collaboration",
       mimeType: "application/json",
     },
-    async (uri: any) => {
+    async (uri: URL) => {
       try {
         const users = await linearClient.users();
+        const formattedUsers: LinearUserResource[] = users.nodes.map(
+          (user) => ({
+            id: user.id,
+            name: user.name,
+            displayName: user.displayName,
+            email: user.email,
+            active: user.active,
+          })
+        );
+
         return {
           contents: [
             {
               uri: uri.href,
-              text: JSON.stringify(
-                users.nodes.map((user) => ({
-                  id: user.id,
-                  name: user.name,
-                  displayName: user.displayName,
-                  email: user.email,
-                  active: user.active,
-                })),
-                null,
-                2
-              ),
+              text: JSON.stringify(formattedUsers, null, 2),
             },
           ],
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         return {
           contents: [
             {
               uri: uri.href,
-              text: `Error fetching users: ${error.message}`,
+              text: `Error fetching users: ${errorMessage}`,
             },
           ],
         };

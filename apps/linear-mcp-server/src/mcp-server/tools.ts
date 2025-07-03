@@ -1,18 +1,19 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
+  // Zod Schemas for validation
+  SearchIssuesInputSchema,
+  GetTeamsInputSchema,
+  GetUsersInputSchema,
+  GetProjectsInputSchema,
+  GetIssueInputSchema,
+} from "../schemas/linear.js";
+import {
   // Handlers
   handleLinearSearchIssues,
   handleLinearGetTeams,
   handleLinearGetUsers,
   handleLinearGetProjects,
   handleLinearGetIssue,
-
-  // Schemas
-  SearchIssuesInputSchema,
-  GetTeamsInputSchema,
-  GetUsersInputSchema,
-  GetProjectsInputSchema,
-  GetIssueInputSchema,
 } from "./handlers.js";
 
 // This object centralizes the metadata for all tools.

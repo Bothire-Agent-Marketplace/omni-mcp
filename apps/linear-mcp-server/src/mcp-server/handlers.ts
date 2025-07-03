@@ -1,6 +1,12 @@
 import { LinearClient } from "@linear/sdk";
-import { z } from "zod";
 import { envConfig } from "@mcp/utils";
+import type {
+  SearchIssuesInput,
+  GetTeamsInput,
+  GetUsersInput,
+  GetProjectsInput,
+  GetIssueInput,
+} from "../types/linear.js";
 
 // Initialize a single, shared Linear client for all handlers
 const apiKey = envConfig.LINEAR_API_KEY;
@@ -13,33 +19,8 @@ const linearClient = new LinearClient({ apiKey });
 // HANDLER 1: Search Issues
 // ============================================================================
 
-export const SearchIssuesInputSchema = z.object({
-  query: z
-    .string()
-    .optional()
-    .describe("Text to search in issue titles and descriptions"),
-  teamId: z.string().optional().describe("Filter by team ID"),
-  status: z.string().optional().describe("Filter by issue status/state name"),
-  assigneeId: z.string().optional().describe("Filter by assignee user ID"),
-  priority: z
-    .number()
-    .min(0)
-    .max(4)
-    .optional()
-    .describe(
-      "Filter by priority (0=No priority, 1=Urgent, 2=High, 3=Normal, 4=Low)"
-    ),
-  limit: z
-    .number()
-    .min(1)
-    .max(50)
-    .default(10)
-    .describe("Maximum number of issues to return"),
-});
-type SearchIssuesInput = z.infer<typeof SearchIssuesInputSchema>;
-
 export async function handleLinearSearchIssues(params: SearchIssuesInput) {
-  const { query, teamId, status, assigneeId, priority, limit = 10 } = params;
+  const { teamId, status, assigneeId, priority, limit = 10 } = params;
   const filter: any = {};
   if (teamId) filter.team = { id: { eq: teamId } };
   if (status) filter.state = { name: { eq: status } };
@@ -81,21 +62,6 @@ export async function handleLinearSearchIssues(params: SearchIssuesInput) {
 // HANDLER 2: Get Teams
 // ============================================================================
 
-export const GetTeamsInputSchema = z.object({
-  includeArchived: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe("Include archived teams in results"),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .default(20)
-    .describe("Maximum number of teams to return"),
-});
-type GetTeamsInput = z.infer<typeof GetTeamsInputSchema>;
-
 export async function handleLinearGetTeams(params: GetTeamsInput) {
   const { includeArchived = false, limit = 20 } = params;
   const teams = await linearClient.teams({
@@ -127,21 +93,6 @@ export async function handleLinearGetTeams(params: GetTeamsInput) {
 // ============================================================================
 // HANDLER 3: Get Users
 // ============================================================================
-
-export const GetUsersInputSchema = z.object({
-  includeDisabled: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe("Include disabled users in results"),
-  limit: z
-    .number()
-    .min(1)
-    .max(100)
-    .default(20)
-    .describe("Maximum number of users to return"),
-});
-type GetUsersInput = z.infer<typeof GetUsersInputSchema>;
 
 export async function handleLinearGetUsers(params: GetUsersInput) {
   const { includeDisabled = false, limit = 20 } = params;
@@ -181,22 +132,6 @@ export async function handleLinearGetUsers(params: GetUsersInput) {
 // HANDLER 4: Get Projects
 // ============================================================================
 
-export const GetProjectsInputSchema = z.object({
-  teamId: z.string().optional().describe("Filter projects by team"),
-  includeArchived: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe("Include archived projects"),
-  limit: z
-    .number()
-    .min(1)
-    .max(50)
-    .default(20)
-    .describe("Maximum number of projects to return"),
-});
-type GetProjectsInput = z.infer<typeof GetProjectsInputSchema>;
-
 export async function handleLinearGetProjects(params: GetProjectsInput) {
   const { teamId, includeArchived = false, limit = 20 } = params;
   const filter: any = {};
@@ -235,20 +170,6 @@ export async function handleLinearGetProjects(params: GetProjectsInput) {
 // ============================================================================
 // HANDLER 5: Get Issue Details
 // ============================================================================
-
-export const GetIssueInputSchema = z.object({
-  issueId: z
-    .string()
-    .optional()
-    .describe("Issue ID (either issueId or identifier required)"),
-  identifier: z
-    .string()
-    .optional()
-    .describe(
-      "Issue identifier like 'TEAM-123' (either issueId or identifier required)"
-    ),
-});
-type GetIssueInput = z.infer<typeof GetIssueInputSchema>;
 
 export async function handleLinearGetIssue(params: GetIssueInput) {
   const { issueId, identifier } = params;
