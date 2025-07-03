@@ -83,8 +83,8 @@ function getServiceName(servicePath: string): string | null {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
       return packageJson.name.split("/").pop() || null;
     }
-  } catch (error) {
-    // ignore
+  } catch (_error) {
+    // If .env file doesn't exist, that's fine - we'll use defaults
   }
   return null;
 }

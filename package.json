@@ -1,6 +1,7 @@
 {
   "name": "mcp-servers",
   "private": true,
+  "type": "module",
   "scripts": {
     "audit": "echo '🔍 Scanning for dead code and unused dependencies...' && knip",
     "audit:fix": "echo '🧹 Cleaning up dead code and unused dependencies...' && knip --fix",
@@ -9,7 +10,6 @@
     "clean": "turbo clean && rm -rf node_modules && find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
     "dev": "turbo dev",
     "lint": "eslint \"**/*.{ts,js}\" --ignore-pattern \"**/dist/**\" --ignore-pattern \"**/*.cjs\" --fix && prettier --write \"**/*.{ts,js,json,md}\"",
-    "omni": "node --enable-source-maps packages/dev-tools/dist/cli/index.js",
     "prepare": "husky",
     "sync": "syncpack fix-mismatches && syncpack format",
     "test": "vitest"

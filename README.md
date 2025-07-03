@@ -32,27 +32,20 @@ This project is a `pnpm` workspace monorepo, managed with `turborepo`.
 
 These commands should be run from the root of the project.
 
-| Command            | Description                                                         |
-| ------------------ | ------------------------------------------------------------------- |
-| `pnpm dev`         | Start all services in development mode with hot-reloading.          |
-| `pnpm build`       | Build all packages and applications for production.                 |
-| `pnpm test`        | Run all tests using Vitest.                                         |
-| `pnpm lint`        | Automatically fix linting issues and format all code.               |
-| `pnpm audit`       | Find unused dependencies and dead code (unused exports).            |
-| `pnpm clean`       | Remove all build artifacts (`dist` folders) and `node_modules`.     |
-| `pnpm sync`        | Ensure `package.json` files are consistent and formatted correctly. |
-| `pnpm omni --help` | Display all available commands for the internal CLI tool.           |
+| Command      | Description                                                         |
+| ------------ | ------------------------------------------------------------------- |
+| `pnpm dev`   | Start all services in development mode with hot-reloading.          |
+| `pnpm build` | Build all packages and applications for production.                 |
+| `pnpm test`  | Run all tests using Vitest.                                         |
+| `pnpm lint`  | Automatically fix linting issues and format all code.               |
+| `pnpm audit` | Find unused dependencies and dead code (unused exports).            |
+| `pnpm clean` | Remove all build artifacts (`dist` folders) and `node_modules`.     |
+| `pnpm sync`  | Ensure `package.json` files are consistent and formatted correctly. |
 
 ## ✨ Developer Experience
 
 This repository is built with the developer experience in mind and includes several features to
 improve productivity and code quality.
-
-### `omni` CLI
-
-A powerful internal CLI for managing MCP servers. Use `pnpm omni create` to scaffold a new,
-fully-configured MCP server that is automatically integrated into the workspace. See
-`packages/dev-tools/src/cli/CLI_GUIDE.md` for more details.
 
 ### Pre-commit Hooks
 
@@ -144,7 +137,6 @@ The central MCP gateway that routes requests to appropriate servers based on cap
 - **@mcp/capabilities**: Central registry of server capabilities
 - **@mcp/schemas**: Shared TypeScript types and schemas
 - **@mcp/utils**: Common utilities, logging, and validation
-- **dev-tools**: CLI tools for development and management
 
 ## Development
 
@@ -161,3 +153,9 @@ Each MCP server follows a consistent pattern:
 2. Follow existing patterns for new servers
 3. Add comprehensive Zod validation for all inputs
 4. Use the shared utilities from `@mcp/utils`
+
+### Management
+
+For detailed CLI usage, see the workspace documentation.
+
+### Available Servers

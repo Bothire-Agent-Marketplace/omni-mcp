@@ -48,7 +48,7 @@ export class MCPServerManager extends EventEmitter {
 
   async getServerInstance(
     serverId: string,
-    capability?: string
+    _capability?: string
   ): Promise<ServerInstance | null> {
     const server = this.servers.get(serverId);
 

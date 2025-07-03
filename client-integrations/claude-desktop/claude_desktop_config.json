@@ -1,9 +1,9 @@
 {
-  "_comment": "Central Claude Desktop config - managed by Omni MCP platform",
+  "_comment": "Claude Desktop config for Omni MCP platform - connects via bridge to gateway",
   "mcpServers": {
     "omni-mcp-gateway": {
       "command": "node",
-      "args": ["/Users/vince/Projects/omni/packages/dev-tools/src/claude/mcp-bridge.cjs"]
+      "args": ["/Users/vince/Projects/omni/client-integrations/claude-desktop/mcp-bridge.cjs"]
     }
   }
 }

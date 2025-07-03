@@ -1,4 +1,3 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import {
   CreateIssueWorkflowArgsSchema,
   SprintPlanningArgsSchema,
@@ -87,49 +86,5 @@ What's your sprint goal and what issues are you considering?`,
   };
 }
 
-// ============================================================================
-// MCP SERVER REGISTRATION - Uses the reusable functions above
-// ============================================================================
-
-function setupLinearPrompts(server: McpServer) {
-  // ============================================================================
-  // PROMPT 1: Create Issue Workflow
-  // ============================================================================
-  server.registerPrompt(
-    "create_issue_workflow",
-    {
-      title: "Create Linear Issue Workflow",
-      description:
-        "Step-by-step workflow for creating well-structured Linear issues",
-      argsSchema: CreateIssueWorkflowArgsSchema.shape,
-    },
-    createIssueWorkflowPrompt
-  );
-
-  // ============================================================================
-  // PROMPT 2: Triage Workflow
-  // ============================================================================
-  server.registerPrompt(
-    "triage_workflow",
-    {
-      title: "Linear Issue Triage Workflow",
-      description:
-        "Comprehensive workflow for triaging and prioritizing Linear issues",
-      argsSchema: {}, // No meaningful parameters - empty schema
-    },
-    triageWorkflowPrompt
-  );
-
-  // ============================================================================
-  // PROMPT 3: Sprint Planning
-  // ============================================================================
-  server.registerPrompt(
-    "sprint_planning",
-    {
-      title: "Linear Sprint Planning Workflow",
-      description: "Sprint planning workflow using Linear issues and cycles",
-      argsSchema: SprintPlanningArgsSchema.shape,
-    },
-    sprintPlanningPrompt
-  );
-}
+// Note: setupLinearPrompts function removed as it was unused.
+// The reusable prompt functions above can be imported and used directly.

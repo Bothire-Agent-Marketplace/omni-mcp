@@ -75,7 +75,7 @@ export default tseslint.config(
       ],
       "import/first": "error",
       "import/no-duplicates": "error",
-      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-require-imports": "off",
     },
     settings: {

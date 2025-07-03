@@ -66,9 +66,9 @@ The entire system is housed in a `pnpm` and `turborepo` powered monorepo.
 
 - **`apps/`**: Contains the runnable applications (`gateway`, `linear-mcp-server`, etc.).
 - **`packages/`**: Contains shared code used across applications:
-  - `schemas`: Centralized TypeScript types and Zod schemas for MCP and Gateway objects.
-  - `utils`: Shared utilities for logging, environment management, and more.
-  - `dev-tools`: Houses the project's internal CLI for managing the workspace.
+  - `utils`: Common utilities and helpers.
+  - `schemas`: Shared TypeScript interfaces and validation schemas.
+  - `capabilities`: Capability definitions for the MCP ecosystem.
 - **`docs/`**: Project documentation, including this document and the critical
   `MCP_SERVER_PATTERN.md`.
 

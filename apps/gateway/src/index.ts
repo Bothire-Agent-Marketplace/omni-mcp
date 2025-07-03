@@ -98,7 +98,7 @@ async function createServer(): Promise<FastifyInstance> {
     });
 
     // Add WebSocket support for SSE-like functionality
-    server.get("/mcp/ws", { websocket: true }, (connection, req) => {
+    server.get("/mcp/ws", { websocket: true }, (connection, _req) => {
       logger.info("New WebSocket connection established");
       mcpGateway.handleWebSocketConnection(connection);
     });

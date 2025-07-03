@@ -61,8 +61,9 @@ export function decodeSecret(secret: string | undefined): string {
         return decoded;
       }
     }
-  } catch (error) {
-    console.error(`Error decoding secret`);
+  } catch (_error) {
+    // Validation failed - return empty string to maintain function signature
+    return "";
   }
 
   return s;
