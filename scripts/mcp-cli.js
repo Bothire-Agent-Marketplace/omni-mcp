@@ -11,7 +11,7 @@ import {
   rmSync,
   readFileSync,
   writeFileSync,
-  cpSync,
+  mkdirSync,
   readdirSync,
 } from "fs";
 import { join, dirname } from "path";
@@ -71,21 +71,13 @@ function addServer(domain) {
 
   console.log(`🚀 Creating new MCP server: ${domain}`);
 
-  // Step 1: Copy template from linear-mcp-server
-  console.log("📁 Copying template files...");
-  const templateDir = join(rootDir, "apps", "linear-mcp-server");
-  cpSync(templateDir, serverDir, {
-    recursive: true,
-    filter: (src) => !src.includes("node_modules") && !src.includes("dist"),
-  });
+  // Step 1: Create server directory structure
+  console.log("📁 Creating server directory structure...");
+  createServerStructure(serverDir, domain);
 
-  // Step 2: Update package.json
-  console.log("📦 Updating package.json...");
-  updatePackageJson(serverDir, domain);
-
-  // Step 3: Replace file contents
-  console.log("🔄 Updating source files...");
-  replaceFileContents(serverDir, domain);
+  // Step 2: Generate template files
+  console.log("📝 Generating template files...");
+  generateTemplateFiles(serverDir, domain);
 
   // Step 4: Create input schemas
   console.log("📋 Creating input schemas...");
@@ -122,66 +114,83 @@ function addServer(domain) {
   );
 }
 
-function updatePackageJson(serverDir, domain) {
-  const packagePath = join(serverDir, "package.json");
-  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
-
-  // Update package details
-  packageJson.name = `@mcp/${domain}-server`;
-  packageJson.description = `${capitalize(domain)} MCP Server with TypeScript and Zod validation`;
-  packageJson.keywords = packageJson.keywords.map((k) =>
-    k === "linear" ? domain : k
-  );
-
-  // Update domain-specific dependencies (placeholder for now)
-  // Real implementation would prompt for or detect required SDKs
-  // packageJson.dependencies[`@${domain}/sdk`] = "^1.0.0";
-
-  writeFileSync(packagePath, JSON.stringify(packageJson, null, 2));
+function createServerStructure(serverDir, _domain) {
+  // Create directory structure
+  mkdirSync(serverDir, { recursive: true });
+  mkdirSync(join(serverDir, "src"), { recursive: true });
+  mkdirSync(join(serverDir, "src", "config"), { recursive: true });
+  mkdirSync(join(serverDir, "src", "types"), { recursive: true });
+  mkdirSync(join(serverDir, "src", "schemas"), { recursive: true });
+  mkdirSync(join(serverDir, "src", "mcp-server"), { recursive: true });
 }
 
-function replaceFileContents(serverDir, domain) {
-  const filesToUpdate = [
-    "src/types/domain-types.ts",
-    "src/schemas/domain-schemas.ts",
-    "src/mcp-server/handlers.ts",
-    "src/config/config.ts",
-    "src/index.ts",
-    "src/mcp-server/http-server.ts",
-    "src/mcp-server/tools.ts",
-    "src/mcp-server/resources.ts",
-    "src/mcp-server/prompts.ts",
-    "src/mcp-server/prompts-registry.ts",
-    ".env.example",
-  ];
+function generateTemplateFiles(serverDir, domain) {
+  // Generate package.json
+  const packageJson = {
+    name: `@mcp/${domain}-server`,
+    version: "workspace:*",
+    description: `${capitalize(domain)} MCP Server with TypeScript and Zod validation`,
+    author: "Your Name",
+    main: "dist/index.js",
+    type: "module",
+    exports: {
+      ".": "./dist/index.js",
+    },
+    scripts: {
+      build: "tsc",
+      clean: "rm -rf dist",
+      dev: "tsx --watch src/index.ts",
+      start: "node dist/index.js",
+      test: 'echo "Error: no test specified" && exit 1',
+      "type-check": "tsc --noEmit",
+      lint: "eslint src --ext .ts",
+      "lint:fix": "eslint src --ext .ts --fix",
+    },
+    dependencies: {
+      "@fastify/cors": "^9.0.1",
+      "@mcp/schemas": "workspace:*",
+      "@mcp/utils": "workspace:*",
+      fastify: "^4.28.1",
+      zod: "^3.25.67",
+    },
+    devDependencies: {
+      "@types/node": "^24.0.8",
+      tsx: "^4.20.3",
+      typescript: "^5.8.3",
+    },
+    engines: {
+      node: ">=18.0.0",
+    },
+    keywords: [
+      "claude",
+      domain,
+      "mcp",
+      "model-context-protocol",
+      "typescript",
+      "zod",
+    ],
+    license: "MIT",
+  };
 
-  filesToUpdate.forEach((relativeFile) => {
-    const filePath = join(serverDir, relativeFile);
-    if (existsSync(filePath)) {
-      let content = readFileSync(filePath, "utf8");
+  // Create template files
+  const templates = {
+    "package.json": JSON.stringify(packageJson, null, 2),
+    "tsconfig.json": generateTsConfig(),
+    ".env.example": generateEnvExample(domain),
+    "src/index.ts": generateIndexTemplate(domain),
+    "src/config/config.ts": generateConfigTemplate(domain),
+    "src/types/domain-types.ts": generateTypesTemplate(domain),
+    "src/schemas/domain-schemas.ts": generateSchemasTemplate(domain),
+    "src/mcp-server/handlers.ts": generateHandlersTemplate(domain),
+    "src/mcp-server/http-server.ts": generateHttpServerTemplate(domain),
+    "src/mcp-server/tools.ts": generateToolsTemplate(domain),
+    "src/mcp-server/resources.ts": generateResourcesTemplate(domain),
+    "src/mcp-server/prompts.ts": generatePromptsTemplate(domain),
+  };
 
-      // Replace Linear-specific content with domain placeholders
-      content = content
-        .replace(/Linear/g, capitalize(domain))
-        .replace(/linear/g, domain.toLowerCase())
-        .replace(/LINEAR/g, domain.toUpperCase())
-        // Add more specific replacements as needed
-        .replace(/@linear\/sdk/g, `@${domain}/sdk`) // Placeholder
-        .replace(/Linear API/g, `${capitalize(domain)} API`)
-        // Environment variable replacements
-        .replace(/LINEAR_API_KEY/g, `${domain.toUpperCase()}_API_KEY`)
-        .replace(/LINEAR_SERVER_PORT/g, `${domain.toUpperCase()}_SERVER_PORT`)
-        .replace(/LINEAR_SERVER_URL/g, `${domain.toUpperCase()}_SERVER_URL`)
-        // Config interface replacements
-        .replace(/LinearServerConfig/g, `${capitalize(domain)}ServerConfig`)
-        .replace(/linearServerConfig/g, `${domain.toLowerCase()}ServerConfig`)
-        .replace(/linearApiKey/g, `${domain.toLowerCase()}ApiKey`)
-        // Logger naming
-        .replace(/linear-mcp-server/g, `${domain}-mcp-server`)
-        .replace(/linear-http-server/g, `${domain}-http-server`);
-
-      writeFileSync(filePath, content);
-    }
+  // Write all template files
+  Object.entries(templates).forEach(([filePath, content]) => {
+    writeFileSync(join(serverDir, filePath), content);
   });
 }
 
@@ -285,20 +294,46 @@ import { CommonInputSchemas } from "./common.js";
 // ============================================================================
 
 export const ${capitalize(domain)}InputSchemas = {
-  // TODO: Add your ${domain}-specific input schemas here
-  // Example:
-  // searchItems: {
-  //   type: "object",
-  //   properties: {
-  //     query: {
-  //       type: "string",
-  //       description: "Search query for ${domain} items",
-  //     },
-  //     limit: CommonInputSchemas.optionalLimit,
-  //   },
-  //   required: ["query"],
-  //   additionalProperties: false,
-  // } as ToolInputSchema,
+  searchItems: {
+    type: "object",
+    properties: {
+      query: {
+        type: "string",
+        description: "Search query for ${domain} items",
+      },
+      limit: CommonInputSchemas.optionalLimit,
+    },
+    required: ["query"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+  
+  getItem: {
+    type: "object",
+    properties: {
+      id: {
+        type: "string",
+        description: "ID of the ${domain} item to retrieve",
+      },
+    },
+    required: ["id"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+  
+  createItem: {
+    type: "object",
+    properties: {
+      title: {
+        type: "string",
+        description: "Title for the new ${domain} item",
+      },
+      description: {
+        type: "string",
+        description: "Description for the new ${domain} item",
+      },
+    },
+    required: ["title"],
+    additionalProperties: false,
+  } as ToolInputSchema,
 } as const;
 `;
 
@@ -406,10 +441,10 @@ export const ${domain.toUpperCase()}_SERVER: MCPServerDefinition = MCPServerSche
       );
     }
 
-    // Add registration
+    // Add registration before the export comment
     mainIndexContent = mainIndexContent.replace(
-      "// TODO: Add future server registrations",
-      `serverRegistry.register(${domain.toUpperCase()}_SERVER);\n// TODO: Add future server registrations`
+      "// Export registry as default for gateway usage",
+      `serverRegistry.register(${domain.toUpperCase()}_SERVER);\n\n// Export registry as default for gateway usage`
     );
 
     writeFileSync(mainIndexFile, mainIndexContent);
@@ -628,6 +663,941 @@ function removeFromCapabilities(domain) {
 
     writeFileSync(mainIndexFile, mainIndexContent);
   }
+}
+
+// Template generation functions
+function generateTsConfig() {
+  return `{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../../packages/schemas" },
+    { "path": "../../packages/utils" }
+  ],
+  "exclude": ["dist", "node_modules", "**/*.test.ts"]
+}`;
+}
+
+function generateEnvExample(domain) {
+  return `# ${capitalize(domain)} MCP Server Environment Variables
+${domain.toUpperCase()}_API_KEY=your-${domain}-api-key
+${domain.toUpperCase()}_SERVER_PORT=3002
+${domain.toUpperCase()}_SERVER_URL=http://localhost:3002
+LOG_LEVEL=debug
+`;
+}
+
+function generateIndexTemplate(domain) {
+  return `#!/usr/bin/env node
+
+import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
+import { ${domain.toLowerCase()}ServerConfig } from "./config/config.js";
+import { start${capitalize(domain)}Server } from "./mcp-server/http-server.js";
+
+// Initialize MCP-compliant logger
+export const logger = createMcpLogger({
+  serverName: "${domain}-mcp-server",
+  logLevel: ${domain.toLowerCase()}ServerConfig.logLevel,
+  environment: ${domain.toLowerCase()}ServerConfig.env,
+});
+
+// Setup global error handlers
+setupGlobalErrorHandlers(logger);
+
+// Graceful shutdown handlers
+process.on("SIGTERM", () => {
+  logger.serverShutdown({ signal: "SIGTERM" });
+  process.exit(0);
+});
+
+process.on("SIGINT", () => {
+  logger.serverShutdown({ signal: "SIGINT" });
+  process.exit(0);
+});
+
+// Start the server
+async function main() {
+    logger.serverStartup(${domain.toLowerCase()}ServerConfig.port);
+    start${capitalize(domain)}Server(${domain.toLowerCase()}ServerConfig);
+  } catch (error) {
+    logger.error("Unhandled error during startup", error as Error);
+    process.exit(1);
+  }
+}
+
+// Start the server if this file is run directly
+if (import.meta.url === \`file://\${process.argv[1]}\`) {
+  main();
+}
+`;
+}
+
+function generateConfigTemplate(domain) {
+  return `import { dirname, join } from "path";
+import { fileURLToPath } from "url";
+import type { Environment } from "@mcp/utils";
+import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
+import { validatePort, validateSecret } from "@mcp/utils/validation.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const SERVICE_PATH = join(__dirname, "..");
+
+// Load environment variables from .env files
+loadEnvironment(SERVICE_PATH);
+
+export interface ${capitalize(domain)}ServerConfig {
+  env: Environment;
+  port: number;
+  host: string;
+  ${domain.toLowerCase()}ApiKey: string;
+  logLevel: string;
+}
+
+function create${capitalize(domain)}ServerConfig(): ${capitalize(domain)}ServerConfig {
+  const env = detectEnvironment();
+  const isProduction = env === "production";
+
+  const config: ${capitalize(domain)}ServerConfig = {
+    env,
+    port: validatePort(process.env.${domain.toUpperCase()}_SERVER_PORT, ${getNextAvailablePort()}),
+    host: process.env.HOST || "0.0.0.0",
+    ${domain.toLowerCase()}ApiKey: validateSecret(
+      process.env.${domain.toUpperCase()}_API_KEY,
+      env,
+      "${domain.toUpperCase()}_API_KEY"
+    ),
+    logLevel: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
+  };
+
+  return config;
+}
+
+export const ${domain.toLowerCase()}ServerConfig = create${capitalize(domain)}ServerConfig();
+`;
+}
+
+function generateTypesTemplate(domain) {
+  return `// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Domain Types
+// ============================================================================
+
+// TODO: Add your ${domain}-specific types here
+export interface ${capitalize(domain)}Item {
+  id: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ${capitalize(domain)}Project {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+}
+
+// Resource types for MCP protocol
+export interface ${capitalize(domain)}ItemResource {
+  id: string;
+  name: string;
+  description: string;
+  uri: string;
+  mimeType: string;
+}
+
+export interface ${capitalize(domain)}ProjectResource {
+  id: string;
+  name: string;
+  description: string;
+  uri: string;
+  mimeType: string;
+}
+`;
+}
+
+function generateSchemasTemplate(domain) {
+  return `import { z } from "zod";
+
+// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Zod Schemas
+// ============================================================================
+
+// TODO: Add your ${domain}-specific validation schemas here
+export const ${capitalize(domain)}ItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+export const ${capitalize(domain)}ProjectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  createdAt: z.string(),
+});
+
+// Request/Response schemas
+export const Search${capitalize(domain)}ItemsRequestSchema = z.object({
+  query: z.string(),
+  limit: z.number().optional().default(10),
+});
+
+export const Get${capitalize(domain)}ItemRequestSchema = z.object({
+  id: z.string(),
+});
+
+export const Create${capitalize(domain)}ItemRequestSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+});
+`;
+}
+
+function generateHandlersTemplate(domain) {
+  return `// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Request Handlers
+// ============================================================================
+
+import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
+import type { ${capitalize(domain)}Item, ${capitalize(domain)}Project } from "../types/domain-types.js";
+import { logger } from "../index.js";
+
+// TODO: Replace with your actual ${domain} SDK/API client
+// import { ${capitalize(domain)}Client } from "@${domain}/sdk";
+
+export class ${capitalize(domain)}Handlers {
+  private config: ${capitalize(domain)}ServerConfig;
+  // private client: ${capitalize(domain)}Client;
+
+  constructor(config: ${capitalize(domain)}ServerConfig) {
+    this.config = config;
+    // TODO: Initialize your ${domain} client
+    // this.client = new ${capitalize(domain)}Client({ apiKey: config.${domain.toLowerCase()}ApiKey });
+  }
+
+  // Tool handlers
+  async searchItems(query: string, limit: number = 10): Promise<${capitalize(domain)}Item[]> {
+    logger.debug(\`Searching \${query} with limit \${limit}\`);
+    
+    // TODO: Implement your ${domain} search logic
+    // const results = await this.client.searchItems({ query, limit });
+    // return results;
+    
+    // Placeholder implementation
+    return [
+      {
+        id: "1",
+        title: \`Sample \${query} item\`,
+        description: "This is a placeholder item",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+  }
+
+  async getItem(id: string): Promise<${capitalize(domain)}Item | null> {
+    logger.debug(\`Getting item \${id}\`);
+    
+    // TODO: Implement your ${domain} get item logic
+    // const item = await this.client.getItem(id);
+    // return item;
+    
+    // Placeholder implementation
+    return {
+      id,
+      title: \`Sample item \${id}\`,
+      description: "This is a placeholder item",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  async createItem(title: string, description?: string): Promise<${capitalize(domain)}Item> {
+    logger.debug(\`Creating item with title: \${title}\`);
+    
+    // TODO: Implement your ${domain} create item logic
+    // const item = await this.client.createItem({ title, description });
+    // return item;
+    
+    // Placeholder implementation
+    return {
+      id: Math.random().toString(36).substring(7),
+      title,
+      description,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  // Resource handlers
+  async getProjects(): Promise<${capitalize(domain)}Project[]> {
+    logger.debug("Getting projects");
+    
+    // TODO: Implement your ${domain} get projects logic
+    // const projects = await this.client.getProjects();
+    // return projects;
+    
+    // Placeholder implementation
+    return [
+      {
+        id: "1",
+        name: "Sample Project",
+        description: "This is a placeholder project",
+        createdAt: new Date().toISOString(),
+      }
+    ];
+  }
+}
+
+// ============================================================================
+// TOOL HANDLERS - Following Linear server pattern
+// ============================================================================
+
+export async function handle${capitalize(domain)}SearchItems(
+  /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
+  params: unknown
+) {
+  // TODO: Add Zod validation for params
+  const { query, limit } = params as { query?: string; limit?: number };
+  
+  logger.debug(\`Searching \${query || ""} with limit \${limit || 10}\`);
+  
+  // TODO: Implement your ${domain} search logic
+  // const results = await ${domain.toLowerCase()}Client.searchItems({ query, limit });
+  
+  // Placeholder implementation
+  const items = [
+    {
+      id: "1",
+      title: \`Sample \${query || "item"}\`,
+      description: "This is a placeholder item",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }
+  ];
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(items, null, 2),
+      },
+    ],
+  };
+}
+
+export async function handle${capitalize(domain)}GetItem(
+  /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
+  params: unknown
+) {
+  // TODO: Add Zod validation for params
+  const { id } = params as { id: string };
+  
+  logger.debug(\`Getting item \${id}\`);
+  
+  // TODO: Implement your ${domain} get item logic
+  // const item = await ${domain.toLowerCase()}Client.getItem(id);
+  
+  // Placeholder implementation
+  const item = {
+    id,
+    title: \`Sample item \${id}\`,
+    description: "This is a placeholder item",
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(item, null, 2),
+      },
+    ],
+  };
+}
+
+export async function handle${capitalize(domain)}CreateItem(
+  /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
+  params: unknown
+) {
+  // TODO: Add Zod validation for params
+  const { title, description } = params as { title: string; description?: string };
+  
+  logger.debug(\`Creating item with title: \${title}\`);
+  
+  // TODO: Implement your ${domain} create item logic
+  // const item = await ${domain.toLowerCase()}Client.createItem({ title, description });
+  
+  // Placeholder implementation
+  const item = {
+    id: Math.random().toString(36).substring(7),
+    title,
+    description,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(item, null, 2),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// RESOURCE HANDLERS - Following Linear server pattern
+// ============================================================================
+
+export async function handle${capitalize(domain)}ItemsResource(
+  /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
+  uri: string
+) {
+  try {
+    logger.debug("Getting items resource");
+    
+    // TODO: Implement your ${domain} get items logic
+    // const items = await ${domain.toLowerCase()}Client.getItems();
+    
+    // Placeholder implementation
+    const items = [
+      {
+        id: "1",
+        title: "Sample Item",
+        description: "This is a placeholder item",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+    ];
+
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: JSON.stringify(items, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: \`Error fetching items: \${errorMessage}\`,
+        },
+      ],
+    };
+  }
+}
+
+export async function handle${capitalize(domain)}ProjectsResource(
+  /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
+  uri: string
+) {
+  try {
+    logger.debug("Getting projects resource");
+    
+    // TODO: Implement your ${domain} get projects logic
+    // const projects = await ${domain.toLowerCase()}Client.getProjects();
+    
+    // Placeholder implementation
+    const projects = [
+      {
+        id: "1",
+        name: "Sample Project",
+        description: "This is a placeholder project",
+        createdAt: new Date().toISOString(),
+      }
+    ];
+
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: JSON.stringify(projects, null, 2),
+        },
+      ],
+    };
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    return {
+      contents: [
+        {
+          uri: uri,
+          text: \`Error fetching projects: \${errorMessage}\`,
+        },
+      ],
+    };
+  }
+}
+`;
+}
+
+function generateHttpServerTemplate(domain) {
+  return `import cors from "@fastify/cors";
+import fastify, {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+} from "fastify";
+import { ZodError } from "zod";
+import { MCPRequest, MCPResponse, MCPErrorResponse } from "@mcp/schemas";
+import { createMcpLogger } from "@mcp/utils";
+import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
+import {
+  createPromptHandlers,
+  getAvailablePrompts,
+} from "./prompts.js";
+import { createResourceHandlers, getAvailableResources } from "./resources.js";
+import { createToolHandlers, getAvailableTools } from "./tools.js";
+
+// TODO: Replace with your actual ${domain} SDK/API client
+// import { ${capitalize(domain)}Client } from "@${domain}/sdk";
+
+// Default empty parameters object
+const DEFAULT_PARAMS: Record<string, unknown> = {};
+
+function createHttpServer(config: ${capitalize(domain)}ServerConfig): FastifyInstance {
+  const logger = createMcpLogger({
+    serverName: "${domain}-http-server",
+    logLevel: config.logLevel,
+    environment: config.env,
+  });
+
+  // TODO: Initialize your ${domain} client
+  // const ${domain.toLowerCase()}Client = new ${capitalize(domain)}Client({ apiKey: config.${domain.toLowerCase()}ApiKey });
+
+  // Create handler registries
+  const toolHandlers = createToolHandlers(/* ${domain.toLowerCase()}Client */);
+  const resourceHandlers = createResourceHandlers(/* ${domain.toLowerCase()}Client */);
+  const promptHandlers = createPromptHandlers();
+
+  const server = fastify({ logger: false }); // Disable default logger to use our own
+
+  server.register(cors);
+
+  server.setErrorHandler(
+    (error: Error, request: FastifyRequest, reply: FastifyReply) => {
+      logger.error("Unhandled error:", error);
+      reply.status(500).send({
+        jsonrpc: "2.0",
+        error: {
+          code: -32603,
+          message: "Internal server error",
+          data: error.message,
+        },
+      });
+    }
+  );
+
+  server.get("/health", async () => {
+    return { status: "ok" };
+  });
+
+  // Main MCP endpoint - handles tools, resources, and prompts
+  server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
+    const { jsonrpc, method, params, id } = request.body as MCPRequest;
+
+    if (jsonrpc !== "2.0") {
+      const errorResponse: MCPErrorResponse = {
+        jsonrpc: "2.0",
+        id,
+        error: { code: -32600, message: "Invalid Request" },
+      };
+      reply.status(400).send(errorResponse);
+      return;
+    }
+
+    try {
+      // Handle different MCP methods
+      switch (method) {
+        case "tools/call": {
+          const toolName = params?.name;
+          const handler =
+            toolName && typeof toolName === "string"
+              ? toolHandlers[toolName]
+              : undefined;
+
+          if (!handler || !toolName) {
+            const errorResponse: MCPErrorResponse = {
+              jsonrpc: "2.0",
+              id,
+              error: {
+                code: -32601,
+                message: \`Tool not found: \${toolName}\`,
+              },
+            };
+            reply.status(404).send(errorResponse);
+            return;
+          }
+
+          const result = await handler(
+            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
+          );
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
+        }
+
+        case "resources/read": {
+          const uri = params?.uri;
+          const handler =
+            uri && typeof uri === "string" ? resourceHandlers[uri] : undefined;
+
+          if (!handler || !uri) {
+            const errorResponse: MCPErrorResponse = {
+              jsonrpc: "2.0",
+              id,
+              error: {
+                code: -32601,
+                message: \`Resource not found: \${uri}\`,
+              },
+            };
+            reply.status(404).send(errorResponse);
+            return;
+          }
+
+          const result = await handler(uri as string);
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
+        }
+
+        case "prompts/get": {
+          const name = params?.name;
+          const handler =
+            name && typeof name === "string" ? promptHandlers[name] : undefined;
+
+          if (!handler || !name) {
+            const errorResponse: MCPErrorResponse = {
+              jsonrpc: "2.0",
+              id,
+              error: {
+                code: -32601,
+                message: \`Prompt not found: \${name}\`,
+              },
+            };
+            reply.status(404).send(errorResponse);
+            return;
+          }
+
+          const result = await handler(
+            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
+          );
+          const response: MCPResponse = { jsonrpc: "2.0", id, result };
+          return response;
+        }
+
+        case "tools/list": {
+          const tools = getAvailableTools();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { tools },
+          };
+          return response;
+        }
+
+        case "resources/list": {
+          const resources = getAvailableResources();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { resources },
+          };
+          return response;
+        }
+
+        case "prompts/list": {
+          const prompts = getAvailablePrompts();
+          const response: MCPResponse = {
+            jsonrpc: "2.0",
+            id,
+            result: { prompts },
+          };
+          return response;
+        }
+
+        default: {
+          const errorResponse: MCPErrorResponse = {
+            jsonrpc: "2.0",
+            id,
+            error: {
+              code: -32601,
+              message: \`Method not found: \${method}\`,
+            },
+          };
+          reply.status(404).send(errorResponse);
+          return;
+        }
+      }
+    } catch (error: unknown) {
+      // Handle Zod validation errors specifically
+      if (error instanceof ZodError) {
+        const validationErrors = error.errors
+          .map((err) => \`\${err.path.join(".")}: \${err.message}\`)
+          .join(", ");
+
+        const errorResponse: MCPErrorResponse = {
+          jsonrpc: "2.0",
+          id,
+          error: {
+            code: -32602,
+            message: "Invalid params",
+            data: \`Validation failed: \${validationErrors}\`,
+          },
+        };
+        reply.status(400).send(errorResponse);
+        return;
+      }
+
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      const errorResponse: MCPErrorResponse = {
+        jsonrpc: "2.0",
+        id,
+        error: {
+          code: -32603,
+          message: "Internal server error",
+          data: errorMessage,
+        },
+      };
+      reply.status(500).send(errorResponse);
+    }
+  });
+
+  return server;
+}
+
+export async function start${capitalize(domain)}Server(config: ${capitalize(domain)}ServerConfig) {
+  const server = createHttpServer(config);
+  const { port, host } = config;
+
+  const logger = createMcpLogger({
+    serverName: "${domain}-http-server",
+    logLevel: config.logLevel,
+    environment: config.env,
+  });
+
+  try {
+    await server.listen({ port, host });
+    logger.info(\`🚀 ${capitalize(domain)} MCP HTTP server listening on port \${port}\`);
+    logger.info(\`📋 Health check: http://localhost:\${port}/health\`);
+    logger.info(\`🔌 MCP endpoint: http://localhost:\${port}/mcp\`);
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error starting server";
+    logger.error("Error starting server", new Error(errorMessage));
+    process.exit(1);
+  }
+}
+`;
+}
+
+function generateToolsTemplate(domain) {
+  return `// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Tools
+// ============================================================================
+
+import { ${capitalize(domain)}InputSchemas, ToolInputSchema } from "@mcp/schemas";
+import * as handlers from "./handlers.js";
+
+// TODO: Replace with your actual ${domain} SDK/API client
+// import { ${capitalize(domain)}Client } from "@${domain}/sdk";
+
+// Create tool handlers with bound client
+export function createToolHandlers(/* ${domain.toLowerCase()}Client?: ${capitalize(domain)}Client */): Record<
+  string,
+  (params: Record<string, unknown>) => Promise<{
+    content: Array<{
+      type: "text";
+      text: string;
+    }>;
+  }>
+> {
+  return {
+    ${domain}_search_items: (params) =>
+      handlers.handle${capitalize(domain)}SearchItems(/* ${domain.toLowerCase()}Client, */ params),
+    ${domain}_get_item: (params) =>
+      handlers.handle${capitalize(domain)}GetItem(/* ${domain.toLowerCase()}Client, */ params),
+    ${domain}_create_item: (params) =>
+      handlers.handle${capitalize(domain)}CreateItem(/* ${domain.toLowerCase()}Client, */ params),
+  };
+}
+
+// Get all available tools with metadata INCLUDING inputSchema
+export function getAvailableTools(): Array<{
+  name: string;
+  description: string;
+  inputSchema: ToolInputSchema;
+}> {
+  const toolDefinitions = {
+    ${domain}_search_items: {
+      name: "${domain}_search_items",
+      description: "Search for ${domain} items",
+      inputSchema: ${capitalize(domain)}InputSchemas.searchItems,
+    },
+    ${domain}_get_item: {
+      name: "${domain}_get_item",
+      description: "Get a specific ${domain} item by ID",
+      inputSchema: ${capitalize(domain)}InputSchemas.getItem,
+    },
+    ${domain}_create_item: {
+      name: "${domain}_create_item",
+      description: "Create a new ${domain} item",
+      inputSchema: ${capitalize(domain)}InputSchemas.createItem,
+    },
+  };
+
+  return Object.values(toolDefinitions);
+}
+`;
+}
+
+function generateResourcesTemplate(domain) {
+  return `// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Resources
+// ============================================================================
+
+import * as handlers from "./handlers.js";
+
+// TODO: Replace with your actual ${domain} SDK/API client
+// import { ${capitalize(domain)}Client } from "@${domain}/sdk";
+
+// Create resource handlers with bound client
+export function createResourceHandlers(/* ${domain.toLowerCase()}Client?: ${capitalize(domain)}Client */): Record<
+  string,
+  (uri: string) => Promise<{
+    contents: Array<{
+      uri: string;
+      text: string;
+    }>;
+  }>
+> {
+  return {
+    "${domain}://items": (uri) =>
+      handlers.handle${capitalize(domain)}ItemsResource(/* ${domain.toLowerCase()}Client, */ uri),
+    "${domain}://projects": (uri) =>
+      handlers.handle${capitalize(domain)}ProjectsResource(/* ${domain.toLowerCase()}Client, */ uri),
+  };
+}
+
+// Get all available resources with metadata
+export function getAvailableResources(): Array<{
+  uri: string;
+  name: string;
+  description: string;
+  mimeType?: string;
+}> {
+  const resourceDefinitions = {
+    "${domain}://items": {
+      uri: "${domain}://items",
+      name: "${domain}-items",
+      description: "Access to ${domain} items",
+      mimeType: "application/json",
+    },
+    "${domain}://projects": {
+      uri: "${domain}://projects",
+      name: "${domain}-projects",
+      description: "Access to ${domain} projects",
+      mimeType: "application/json",
+    },
+  };
+
+  return Object.values(resourceDefinitions);
+}
+`;
+}
+
+function generatePromptsTemplate(domain) {
+  return `// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Prompts
+// ============================================================================
+
+// Prompt implementation functions
+function ${domain.toLowerCase()}WorkflowPrompt(args: unknown = {}) {
+  // TODO: Add Zod validation for args if needed
+  const { task } = args as { task?: string };
+  
+  return {
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: \`Please help me with this ${domain} task: \${task || "general workflow"}\`,
+        },
+      },
+    ],
+  };
+}
+
+function ${domain.toLowerCase()}AutomationPrompt(args: unknown = {}) {
+  // TODO: Add Zod validation for args if needed
+  const { action } = args as { action?: string };
+  
+  return {
+    messages: [
+      {
+        role: "user" as const,
+        content: {
+          type: "text" as const,
+          text: \`Please automate this ${domain} action: \${action || "general automation"}\`,
+        },
+      },
+    ],
+  };
+}
+
+// Registry functions - Following the same pattern as tools.ts and resources.ts
+export function createPromptHandlers(): Record<
+  string,
+  (args: Record<string, unknown>) => Promise<{
+    messages: Array<{
+      role: "user" | "assistant";
+      content: {
+        type: "text";
+        text: string;
+      };
+    }>;
+  }>
+> {
+  return {
+    "${domain}_workflow": async (args) => ${domain.toLowerCase()}WorkflowPrompt(args),
+    "${domain}_automation": async (args) => ${domain.toLowerCase()}AutomationPrompt(args),
+  };
+}
+
+export function getAvailablePrompts(): Array<{
+  name: string;
+  description: string;
+}> {
+  const promptDefinitions = {
+    "${domain}_workflow": {
+      name: "${domain}_workflow",
+      description: "Standard ${domain} workflow prompt",
+    },
+    "${domain}_automation": {
+      name: "${domain}_automation",
+      description: "Automation prompt for ${domain}",
+    },
+  };
+
+  return Object.values(promptDefinitions);
+}
+`;
 }
 
 function cleanConfigurationFiles(domain) {

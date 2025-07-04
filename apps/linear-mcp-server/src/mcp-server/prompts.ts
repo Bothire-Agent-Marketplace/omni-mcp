@@ -4,10 +4,11 @@ import {
 } from "../schemas/domain-schemas.js";
 
 // ============================================================================
-// REUSABLE PROMPT FUNCTIONS - Used by both MCP server and HTTP server
+// LINEAR MCP SERVER - Prompts
 // ============================================================================
 
-export function createIssueWorkflowPrompt(args: unknown = {}) {
+// Prompt implementation functions
+function createIssueWorkflowPrompt(args: unknown = {}) {
   // Validate and parse input with Zod
   const validatedArgs = CreateIssueWorkflowArgsSchema.parse(args);
   const { teamId, priority } = validatedArgs;
@@ -36,7 +37,7 @@ Let's start with the issue title - what problem are we solving?`,
   };
 }
 
-export function triageWorkflowPrompt() {
+function triageWorkflowPrompt() {
   return {
     messages: [
       {
@@ -58,7 +59,7 @@ What issues do you need help triaging?`,
   };
 }
 
-export function sprintPlanningPrompt(args: unknown = {}) {
+function sprintPlanningPrompt(args: unknown = {}) {
   // Validate and parse input with Zod
   const validatedArgs = SprintPlanningArgsSchema.parse(args);
   const { teamId, sprintDuration } = validatedArgs;
@@ -86,5 +87,46 @@ What's your sprint goal and what issues are you considering?`,
   };
 }
 
-// Note: setupLinearPrompts function removed as it was unused.
-// The reusable prompt functions above can be imported and used directly.
+// Registry functions - Following the same pattern as tools.ts and resources.ts
+export function createPromptHandlers(): Record<
+  string,
+  (args: Record<string, unknown>) => Promise<{
+    messages: Array<{
+      role: "user" | "assistant";
+      content: {
+        type: "text";
+        text: string;
+      };
+    }>;
+  }>
+> {
+  return {
+    create_issue_workflow: async (args) => createIssueWorkflowPrompt(args),
+    triage_workflow: async () => triageWorkflowPrompt(),
+    sprint_planning: async (args) => sprintPlanningPrompt(args),
+  };
+}
+
+export function getAvailablePrompts(): Array<{
+  name: string;
+  description: string;
+}> {
+  const promptDefinitions = {
+    create_issue_workflow: {
+      name: "create_issue_workflow",
+      description:
+        "Step-by-step workflow for creating well-structured Linear issues",
+    },
+    triage_workflow: {
+      name: "triage_workflow",
+      description:
+        "Comprehensive workflow for triaging and prioritizing Linear issues",
+    },
+    sprint_planning: {
+      name: "sprint_planning",
+      description: "Sprint planning workflow using Linear issues and cycles",
+    },
+  };
+
+  return Object.values(promptDefinitions);
+}

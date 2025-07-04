@@ -9,10 +9,7 @@ import { ZodError } from "zod";
 import { MCPRequest, MCPResponse, MCPErrorResponse } from "@mcp/schemas";
 import { createMcpLogger } from "@mcp/utils";
 import type { LinearServerConfig } from "../config/config.js";
-import {
-  createPromptHandlers,
-  getAvailablePrompts,
-} from "./prompts-registry.js";
+import { createPromptHandlers, getAvailablePrompts } from "./prompts.js";
 import { createResourceHandlers, getAvailableResources } from "./resources.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
 
