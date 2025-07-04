@@ -1,0 +1,10 @@
+#!/bin/sh
+echo "🔍 Running comprehensive knip audit before push..."
+npx knip
+if [ $? -ne 0 ]; then
+  echo "❌ Knip found issues. Please fix unused imports/exports before pushing."
+  echo "💡 Run 'pnpm run audit:fix' to auto-fix issues."
+  exit 1
+fi
+
+echo "✅ Knip audit passed. Push proceeding..." 

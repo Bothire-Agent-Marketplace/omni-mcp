@@ -48,18 +48,3 @@ export const ALL_MCP_SERVERS = new Proxy(
     },
   }
 );
-
-// Helper function to get server by capability
-export function getServerByCapability(
-  capability: string
-): MCPServerDefinition | null {
-  const servers = serverRegistry.getServersByCapability(capability);
-  return servers.length > 0 ? servers[0] : null;
-}
-
-// Helper function to get all servers with a specific capability
-export function getServersByCapability(
-  capability: string
-): MCPServerDefinition[] {
-  return serverRegistry.getServersByCapability(capability);
-}

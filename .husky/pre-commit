@@ -1,1 +1,10 @@
+#!/bin/sh
+echo "🔍 Checking for unused imports and exports with knip..."
+npx knip
+if [ $? -ne 0 ]; then
+  echo "❌ Knip found unused imports/exports. Run 'pnpm run audit:fix' to auto-fix or clean up manually."
+  exit 1
+fi
+
+echo "✅ Knip check passed. Running lint-staged..."
 npx lint-staged 
