@@ -260,6 +260,9 @@ pnpm-debug.log*
 dist/
 build/
 coverage/
+
+# TypeScript build cache files
+*.tsbuildinfo
 tsconfig.tsbuildinfo
 
 # OS generated files
@@ -304,6 +307,3 @@ apps/linear-mcp-server/src/schemas/linear.ts
 *.crt
 *.key
 *.pem
-
-
-apps/linear-mcp-server/tsconfig.tsbuildinfo
