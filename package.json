@@ -20,6 +20,7 @@
     "dev:full": "turbo dev --filter=@mcp/gateway --filter=@mcp/linear-server",
     "health-check": "node scripts/health-check.js",
     "mcp": "node scripts/mcp-cli.js",
+    "omni-mcp": "pnpm --filter @mcp/dev-tools build && node packages/dev-tools/dist/src/cli/index.js",
     "prepare": "husky",
     "sync": "syncpack fix-mismatches && syncpack format"
   },

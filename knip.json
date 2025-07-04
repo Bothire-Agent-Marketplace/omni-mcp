@@ -3,7 +3,10 @@
   "workspaces": {
     ".": {},
     "packages/*": {},
-    "apps/*": {}
+    "apps/*": {},
+    "packages/dev-tools": {
+      "entry": ["src/index.ts", "src/cli/index.ts"]
+    }
   },
   "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
 }
