@@ -3,18 +3,12 @@ import { serverRegistry, type MCPServerDefinition } from "@mcp/capabilities";
 // All server definitions are now centralized in @mcp/capabilities
 // No need to import individual definition files - they auto-register
 
-// Central registry of all MCP servers
-export function getAllMCPServers(): Record<string, MCPServerDefinition> {
-  const servers = serverRegistry.getAllServers();
-  return servers;
-}
-
 // Lazy getter for server registry to ensure proper initialization
 let _cachedServers: Record<string, MCPServerDefinition> | null = null;
 
 function getServers(): Record<string, MCPServerDefinition> {
   if (_cachedServers === null) {
-    _cachedServers = getAllMCPServers();
+    _cachedServers = serverRegistry.getAllServers();
   }
   return _cachedServers;
 }

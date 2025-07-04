@@ -305,8 +305,5 @@ apps/linear-mcp-server/src/schemas/linear.ts
 *.key
 *.pem
 
-# Legacy empty directories (should not be recreated)
-shared/
-servers/
 
 apps/linear-mcp-server/tsconfig.tsbuildinfo
