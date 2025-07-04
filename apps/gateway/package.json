@@ -13,7 +13,9 @@
     "test:coverage": "vitest --coverage",
     "test:ui": "vitest --ui",
     "test:watch": "vitest --watch",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
@@ -21,6 +23,7 @@
     "@fastify/rate-limit": "^9.1.0",
     "@fastify/sensible": "^5.6.0",
     "@fastify/websocket": "^10.0.1",
+    "@mcp/capabilities": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",
     "fastify": "^4.28.1",

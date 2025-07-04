@@ -81,6 +81,9 @@ importers:
       '@fastify/websocket':
         specifier: ^10.0.1
         version: 10.0.1
+      '@mcp/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -127,6 +130,9 @@ importers:
       '@linear/sdk':
         specifier: ^44.1.0
         version: 44.1.0
+      '@mcp/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -151,6 +157,10 @@ importers:
         version: 5.8.3
 
   packages/capabilities:
+    dependencies:
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.67
     devDependencies:
       typescript:
         specifier: ^5.8.3
@@ -171,6 +181,9 @@ importers:
       '@mcp/capabilities':
         specifier: workspace:*
         version: link:../capabilities
+      '@mcp/schemas':
+        specifier: workspace:*
+        version: link:../schemas
       dotenv:
         specifier: ^16.4.5
         version: 16.6.1

@@ -1,7 +1,7 @@
 // Centralized MCP Server Configuration in TypeScript
 // This replaces mcp-servers.json with auto-imported capabilities
 
-import { ALL_MCP_SERVERS } from "@mcp/capabilities";
+import type { MCPServerDefinition } from "@mcp/capabilities";
 import type { Environment } from "./validation.js";
 
 // Type definitions for the Gateway's runtime view of an MCP server
@@ -19,23 +19,17 @@ export interface MCPServersRuntimeConfig {
   [key: string]: MCPServerRuntimeConfig;
 }
 
-// Re-export from capabilities for convenience
-export {
-  ALL_MCP_SERVERS as MCP_SERVERS,
-  getServerByCapability,
-  type MCPServerDefinition,
-} from "@mcp/capabilities";
-
 /**
  * Builds the complete runtime configuration for all MCP servers,
  * which is primarily used by the Gateway to manage its connections.
  */
 export function buildMCPServersConfig(
+  allMcpServers: Record<string, MCPServerDefinition>,
   env: Environment
 ): MCPServersRuntimeConfig {
   const result: MCPServersRuntimeConfig = {};
 
-  for (const [key, serverDef] of Object.entries(ALL_MCP_SERVERS)) {
+  for (const [key, serverDef] of Object.entries(allMcpServers)) {
     const isProduction = env === "production";
 
     // In production, the URL is read from an environment variable for flexibility.
@@ -69,4 +63,21 @@ export function buildMCPServersConfig(
   }
 
   return result;
+}
+
+// Helper function to find which server provides a specific capability
+export function getServerByCapability(
+  allMcpServers: Record<string, MCPServerDefinition>,
+  capability: string
+): string | null {
+  for (const [serverName, server] of Object.entries(allMcpServers)) {
+    if (
+      (server.tools as readonly string[]).includes(capability) ||
+      (server.resources as readonly string[]).includes(capability) ||
+      (server.prompts as readonly string[]).includes(capability)
+    ) {
+      return serverName;
+    }
+  }
+  return null;
 }

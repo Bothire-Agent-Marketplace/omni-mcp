@@ -96,7 +96,7 @@ const DecodedSecretSchema = z
           return decoded;
         }
       }
-    } catch (_error) {
+    } catch {
       // Maintain function signature, but add issue to context
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

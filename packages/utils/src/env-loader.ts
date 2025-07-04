@@ -3,6 +3,9 @@ import { join, dirname } from "path";
 import { config } from "dotenv";
 import type { Environment } from "./validation.js";
 
+// Re-export Environment type for convenience
+export type { Environment };
+
 /**
  * Detects the current runtime environment.
  * Defaults to 'development' if NODE_ENV is not set.
@@ -83,7 +86,7 @@ function getServiceName(servicePath: string): string | null {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
       return packageJson.name.split("/").pop() || null;
     }
-  } catch (_error) {
+  } catch {
     // If .env file doesn't exist, that's fine - we'll use defaults
   }
   return null;

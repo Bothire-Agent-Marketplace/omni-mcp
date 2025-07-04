@@ -1,11 +1,8 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import type { Environment } from "@mcp/utils";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
-import {
-  validatePort,
-  validateSecret,
-  type Environment,
-} from "@mcp/utils/validation.js";
+import { validatePort, validateSecret } from "@mcp/utils/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

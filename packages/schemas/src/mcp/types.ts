@@ -200,7 +200,7 @@ export const McpErrorResponseSchema = z.object({
   executionTime: z.number().optional(),
 });
 
-export type McpResponse<T = unknown> = z.infer<
+export type McpResponse<_T = unknown> = z.infer<
   typeof McpSuccessResponseSchema | typeof McpErrorResponseSchema
 >;
 

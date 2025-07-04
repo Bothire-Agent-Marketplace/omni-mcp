@@ -1,13 +1,18 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { GatewayConfig } from "@mcp/schemas";
-import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
+import {
+  detectEnvironment,
+  loadEnvironment,
+  type Environment,
+} from "@mcp/utils/env-loader.js";
 import { buildMCPServersConfig } from "@mcp/utils/mcp-servers.js";
 import {
   validatePort,
   validateSecret,
   parseOrigins,
 } from "@mcp/utils/validation.js";
+import { ALL_MCP_SERVERS } from "./config/server-registry.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -19,7 +24,7 @@ loadEnvironment(SERVICE_PATH);
 // Gateway configuration removed - now using shared type from @mcp/schemas
 
 function createGatewayConfig(): GatewayConfig {
-  const env = detectEnvironment();
+  const env: Environment = detectEnvironment();
   const isProduction = env === "production";
 
   const config: GatewayConfig = {
@@ -44,7 +49,10 @@ function createGatewayConfig(): GatewayConfig {
     maxRequestSizeMb: parseInt(process.env.MAX_REQUEST_SIZE || "1"),
     corsCredentials: process.env.CORS_CREDENTIALS !== "false",
     securityHeaders: isProduction,
-    mcpServers: buildMCPServersConfig(env),
+    mcpServers: buildMCPServersConfig(
+      ALL_MCP_SERVERS,
+      env
+    ) as import("@mcp/schemas").MCPServersRuntimeConfig,
   };
 
   // Final validation for production

@@ -260,6 +260,7 @@ pnpm-debug.log*
 dist/
 build/
 coverage/
+tsconfig.tsbuildinfo
 
 # OS generated files
 .DS_Store
@@ -307,3 +308,4 @@ apps/linear-mcp-server/src/schemas/linear.ts
 # Legacy empty directories (should not be recreated)
 shared/
 servers/
+

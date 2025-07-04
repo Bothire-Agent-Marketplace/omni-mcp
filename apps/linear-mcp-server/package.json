@@ -5,17 +5,24 @@
   "author": "Vince",
   "main": "dist/index.js",
   "type": "module",
+  "exports": {
+    ".": "./dist/index.js",
+    "./mcp-definition.js": "./dist/mcp-definition.js"
+  },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
     "dev": "tsx --watch src/index.ts",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
     "@linear/sdk": "^44.1.0",
+    "@mcp/capabilities": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",
     "fastify": "^4.28.1",

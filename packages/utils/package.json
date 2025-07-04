@@ -8,15 +8,19 @@
     ".": "./dist/index.js",
     "./env-loader.js": "./dist/env-loader.js",
     "./validation.js": "./dist/validation.js",
-    "./mcp-servers.js": "./dist/mcp-servers.js"
+    "./mcp-servers.js": "./dist/mcp-servers.js",
+    "./test-helpers.js": "./dist/test-helpers.js"
   },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
     "@mcp/capabilities": "workspace:*",
+    "@mcp/schemas": "workspace:*",
     "dotenv": "^16.4.5",
     "winston": "^3.15.0"
   },

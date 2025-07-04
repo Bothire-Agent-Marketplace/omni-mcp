@@ -4,5 +4,11 @@
     "outDir": "./dist"
   },
   "include": ["src/**/*"],
+  "references": [
+    { "path": "../linear-mcp-server" },
+    { "path": "../../packages/capabilities" },
+    { "path": "../../packages/schemas" },
+    { "path": "../../packages/utils" }
+  ],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]
 }

@@ -16,6 +16,35 @@ export const MCPServerSchema = z.object({
 
 export type MCPServerDefinition = z.infer<typeof MCPServerSchema>;
 
+// Server Registry System
+export class MCPServerRegistry {
+  private servers = new Map<string, MCPServerDefinition>();
+
+  register(server: MCPServerDefinition): void {
+    this.servers.set(server.name, server);
+  }
+
+  getServer(name: string): MCPServerDefinition | undefined {
+    return this.servers.get(name);
+  }
+
+  getAllServers(): Record<string, MCPServerDefinition> {
+    return Object.fromEntries(this.servers.entries());
+  }
+
+  getServersByCapability(capability: string): MCPServerDefinition[] {
+    return Array.from(this.servers.values()).filter(
+      (server) =>
+        server.tools.includes(capability) ||
+        server.resources.includes(capability) ||
+        server.prompts.includes(capability)
+    );
+  }
+}
+
+// Global registry instance
+export const serverRegistry = new MCPServerRegistry();
+
 // Linear MCP Server Configuration
 export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "linear",
@@ -34,21 +63,5 @@ export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   prompts: ["create_issue_workflow", "triage_workflow", "sprint_planning"],
 });
 
-// Central registry of all MCP servers
-export const ALL_MCP_SERVERS: Record<string, MCPServerDefinition> = {
-  linear: LINEAR_SERVER,
-} as const;
-
-// Helper function to find which server provides a specific capability
-export function getServerByCapability(capability: string): string | null {
-  for (const [serverName, server] of Object.entries(ALL_MCP_SERVERS)) {
-    if (
-      (server.tools as readonly string[]).includes(capability) ||
-      (server.resources as readonly string[]).includes(capability) ||
-      (server.prompts as readonly string[]).includes(capability)
-    ) {
-      return serverName;
-    }
-  }
-  return null;
-}
+// Auto-register the Linear server
+serverRegistry.register(LINEAR_SERVER);

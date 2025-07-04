@@ -108,7 +108,7 @@ export class MCPGateway {
     try {
       // Get or create session
       let session = this.getSessionFromHeaders(headers);
-      const isNewSession = !session;
+      const _isNewSession = !session;
 
       if (!session) {
         if (!this.sessionManager.canCreateNewSession()) {
@@ -167,38 +167,42 @@ export class MCPGateway {
 
     ws.send(JSON.stringify(welcomeMessage));
 
-    ws.on("message", async (data: Buffer) => {
-      try {
-        const message = data.toString();
-        this.logger.debug("Received WebSocket message", { message });
+    // Handle incoming WebSocket messages
+    ws.on("message", async (data) => {
+      const message = Buffer.isBuffer(data)
+        ? data.toString()
+        : Array.isArray(data)
+          ? Buffer.concat(data).toString()
+          : data;
 
-        const mcpRequest = this.protocolAdapter.handleWebSocketMessage(
-          ws,
-          message
-        );
-        if (!mcpRequest) return; // Error already sent by protocol adapter
+      const mcpRequest = this.protocolAdapter.handleWebSocketMessage(
+        ws,
+        message as string
+      );
+      if (mcpRequest) {
+        try {
+          const mcpResponse = await this.routeAndExecuteRequest(
+            mcpRequest,
+            session
+          );
+          this.protocolAdapter.sendWebSocketResponse(ws, mcpResponse);
+        } catch (error) {
+          this.logger.error(
+            "WebSocket message handling error",
+            error instanceof Error ? error : new Error(String(error))
+          );
 
-        const mcpResponse = await this.routeAndExecuteRequest(
-          mcpRequest,
-          session
-        );
-        this.protocolAdapter.sendWebSocketResponse(ws, mcpResponse);
-      } catch (error) {
-        this.logger.error(
-          "WebSocket message handling error",
-          error instanceof Error ? error : new Error(String(error))
-        );
+          const errorResponse: MCPResponse = {
+            jsonrpc: "2.0",
+            error: {
+              code: -32603,
+              message: "Internal error",
+              data: error instanceof Error ? error.message : "Unknown error",
+            },
+          };
 
-        const errorResponse: MCPResponse = {
-          jsonrpc: "2.0",
-          error: {
-            code: -32603,
-            message: "Internal error",
-            data: error instanceof Error ? error.message : "Unknown error",
-          },
-        };
-
-        this.protocolAdapter.sendWebSocketResponse(ws, errorResponse);
+          this.protocolAdapter.sendWebSocketResponse(ws, errorResponse);
+        }
       }
     });
 
@@ -618,7 +622,7 @@ export class MCPGateway {
               allPrompts.push(...result.result.prompts);
             }
           }
-        } catch (_error) {
+        } catch {
           this.logger.warn(`Failed to fetch prompts from ${serverId}:`);
         } finally {
           this.serverManager.releaseServerInstance(serverInstance);
