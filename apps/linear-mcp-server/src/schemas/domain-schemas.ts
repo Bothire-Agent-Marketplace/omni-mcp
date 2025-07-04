@@ -1,11 +1,17 @@
 import { z } from "zod";
 
 // ============================================================================
-// Linear MCP Server - Zod Validation Schemas
+// MCP Server - Domain-Specific Zod Validation Schemas
 // ============================================================================
-// These are Zod schemas used for runtime validation in tool execution and prompt parameters
+// This file contains Zod schemas for runtime validation of tool parameters and prompt arguments.
+// These schemas are specific to the domain this MCP server serves.
+// For Linear: Issues, Teams, Users, Projects, etc.
+// For future servers: Replace with relevant domain schemas (GitHub: Repos, Issues, PRs, etc.)
+//
+// NOTE: These are separate from the inputSchemas in @mcp/schemas which are for MCP protocol.
+// These schemas are for internal validation within the server's business logic.
 
-// Tool validation schemas
+// Tool validation schemas - Update these for your specific domain tools
 export const SearchIssuesInputSchema = z.object({
   query: z
     .string()
@@ -86,7 +92,7 @@ export const GetIssueInputSchema = z.object({
     ),
 });
 
-// Prompt validation schemas (for client UI generation and parameter validation)
+// Prompt validation schemas - Update these for your specific domain prompts
 export const CreateIssueWorkflowArgsSchema = z.object({
   teamId: z
     .string()

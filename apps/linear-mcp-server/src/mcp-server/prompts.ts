@@ -1,7 +1,7 @@
 import {
   CreateIssueWorkflowArgsSchema,
   SprintPlanningArgsSchema,
-} from "../schemas/linear.js";
+} from "../schemas/domain-schemas.js";
 
 // ============================================================================
 // REUSABLE PROMPT FUNCTIONS - Used by both MCP server and HTTP server

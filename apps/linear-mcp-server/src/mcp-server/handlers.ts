@@ -5,11 +5,11 @@ import {
   GetUsersInputSchema,
   GetProjectsInputSchema,
   GetIssueInputSchema,
-} from "../schemas/linear.js";
+} from "../schemas/domain-schemas.js";
 import type {
   LinearTeamResource,
   LinearUserResource,
-} from "../types/linear.js";
+} from "../types/domain-types.js";
 
 // Linear SDK Filter Types based on GraphQL API patterns
 interface LinearIssueFilter {

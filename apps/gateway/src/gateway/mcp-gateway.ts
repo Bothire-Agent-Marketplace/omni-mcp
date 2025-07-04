@@ -8,23 +8,18 @@ import {
   HTTPHeaders,
   HTTPRequestBody,
   GatewayHTTPResponse,
+  ToolInputSchema,
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
 import { MCPSessionManager } from "./session-manager.js";
 
-// HTTP types now imported from @mcp/schemas
-
-// MCP Resource and Tool Types (moved to be used)
+// MCP Resource and Tool Types (now using centralized schemas)
 interface MCPTool {
   name: string;
   description: string;
-  inputSchema: {
-    type: "object";
-    properties: Record<string, unknown>;
-    description?: string;
-  };
+  inputSchema: ToolInputSchema;
 }
 
 interface MCPResource {

@@ -1,8 +1,11 @@
 // ============================================================================
-// Linear MCP Server - TypeScript Types
+// MCP Server - Domain-Specific TypeScript Types
 // ============================================================================
+// This file contains TypeScript types specific to the domain this MCP server serves.
+// For Linear: Teams, Users, Issues, Projects, etc.
+// For future servers: Replace with relevant domain types (GitHub: Repos, Issues, PRs, etc.)
 
-// Resource types
+// Resource types - Update these for your specific domain
 export interface LinearTeamResource {
   id: string;
   name: string;
