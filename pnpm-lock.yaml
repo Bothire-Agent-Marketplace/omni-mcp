@@ -130,9 +130,6 @@ importers:
       '@linear/sdk':
         specifier: ^44.1.0
         version: 44.1.0
-      '@mcp/capabilities':
-        specifier: workspace:*
-        version: link:../../packages/capabilities
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas

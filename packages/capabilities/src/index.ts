@@ -17,9 +17,6 @@ export * from "./servers/index.js";
 
 // Auto-register all defined servers
 serverRegistry.register(LINEAR_SERVER);
-// TODO: Add future server registrations
-// serverRegistry.register(GITHUB_SERVER);
-// serverRegistry.register(SLACK_SERVER);
 
 // Export registry as default for gateway usage
 export { serverRegistry as default };

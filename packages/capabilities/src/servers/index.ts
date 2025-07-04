@@ -6,6 +6,5 @@
 export * from "./linear.js";
 
 // TODO: Add exports for future servers
-// export * from "./github.js";
 // export * from "./slack.js";
 // export * from "./notion.js";

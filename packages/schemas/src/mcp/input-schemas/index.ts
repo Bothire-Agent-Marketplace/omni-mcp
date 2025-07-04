@@ -12,6 +12,5 @@ export * from "./common.js";
 export * from "./linear.js";
 
 // TODO: Add exports for future server schemas
-// export * from "./github.js";
-// export * from "./slack.js";
+// // export * from "./slack.js";
 // export * from "./notion.js";

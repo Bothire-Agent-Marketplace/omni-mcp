@@ -343,16 +343,17 @@ export const ${domain.toUpperCase()}_SERVER: MCPServerDefinition = MCPServerSche
   productionUrl: "https://${domain}-mcp.vercel.app",
   envVar: "${domain.toUpperCase()}_SERVER_URL",
   tools: [
-    // TODO: Add your ${domain} tools here
-    // "${domain}_search_items",
+    "${domain}_search_items",
+    "${domain}_get_item",
+    "${domain}_create_item",
   ],
   resources: [
-    // TODO: Add your ${domain} resources here  
-    // "${domain}://items",
+    "${domain}://items",
+    "${domain}://projects",
   ],
   prompts: [
-    // TODO: Add your ${domain} prompts here
-    // "${domain}_workflow",
+    "${domain}_workflow",
+    "${domain}_automation",
   ],
 });
 `;
@@ -391,10 +392,19 @@ export const ${domain.toUpperCase()}_SERVER: MCPServerDefinition = MCPServerSche
 
   // Add import and registration
   if (!mainIndexContent.includes(`${domain.toUpperCase()}_SERVER`)) {
-    mainIndexContent = mainIndexContent.replace(
-      'import { LINEAR_SERVER } from "./servers/index.js";',
-      `import { LINEAR_SERVER, ${domain.toUpperCase()}_SERVER } from "./servers/index.js";`
-    );
+    // Update import line to include new server
+    const importRegex =
+      /import\s*\{\s*([^}]+)\s*\}\s*from\s*"\.\/servers\/index\.js";/;
+    const importMatch = mainIndexContent.match(importRegex);
+
+    if (importMatch) {
+      const currentImports = importMatch[1].trim();
+      const newImports = `${currentImports}, ${domain.toUpperCase()}_SERVER`;
+      mainIndexContent = mainIndexContent.replace(
+        importRegex,
+        `import { ${newImports} } from "./servers/index.js";`
+      );
+    }
 
     // Add registration
     mainIndexContent = mainIndexContent.replace(
@@ -492,16 +502,17 @@ function removeServer(domain) {
   }
 
   const serverDir = join(rootDir, "apps", `${domain}-mcp-server`);
-
-  if (!existsSync(serverDir)) {
-    throw new Error(`Server "${domain}" does not exist at ${serverDir}`);
-  }
+  const serverExists = existsSync(serverDir);
 
   console.log(`🗑️  Removing MCP server: ${domain}`);
 
-  // Step 1: Remove server directory
-  console.log("📁 Removing server directory...");
-  rmSync(serverDir, { recursive: true, force: true });
+  // Step 1: Remove server directory (if it exists)
+  if (serverExists) {
+    console.log("📁 Removing server directory...");
+    rmSync(serverDir, { recursive: true, force: true });
+  } else {
+    console.log("📁 Server directory not found, skipping...");
+  }
 
   // Step 2: Remove input schemas
   console.log("📋 Removing input schemas...");
@@ -511,7 +522,11 @@ function removeServer(domain) {
   console.log("🔗 Removing from capabilities...");
   removeFromCapabilities(domain);
 
-  // Step 4: Clean dependencies
+  // Step 4: Clean configuration files
+  console.log("⚙️  Cleaning configuration files...");
+  cleanConfigurationFiles(domain);
+
+  // Step 5: Clean dependencies
   console.log("🧹 Cleaning dependencies...");
   execSync("pnpm install", { cwd: rootDir, stdio: "inherit" });
 
@@ -613,6 +628,78 @@ function removeFromCapabilities(domain) {
 
     writeFileSync(mainIndexFile, mainIndexContent);
   }
+}
+
+function cleanConfigurationFiles(domain) {
+  // Clean turbo.json environment variables
+  const turboJsonPath = join(rootDir, "turbo.json");
+  if (existsSync(turboJsonPath)) {
+    let turboContent = readFileSync(turboJsonPath, "utf8");
+    const turbo = JSON.parse(turboContent);
+
+    if (turbo.globalEnv && Array.isArray(turbo.globalEnv)) {
+      // Remove domain-specific environment variables
+      const envVarsToRemove = [
+        `${domain.toUpperCase()}_API_KEY`,
+        `${domain.toUpperCase()}_SERVER_URL`,
+      ];
+
+      turbo.globalEnv = turbo.globalEnv.filter(
+        (envVar) => !envVarsToRemove.includes(envVar)
+      );
+
+      writeFileSync(turboJsonPath, JSON.stringify(turbo, null, 2));
+    }
+  }
+
+  // Clean gateway tsconfig.json references
+  const gatewayTsconfigPath = join(rootDir, "apps", "gateway", "tsconfig.json");
+  if (existsSync(gatewayTsconfigPath)) {
+    let gatewayTsconfig = readFileSync(gatewayTsconfigPath, "utf8");
+    const tsconfig = JSON.parse(gatewayTsconfig);
+
+    if (tsconfig.references && Array.isArray(tsconfig.references)) {
+      tsconfig.references = tsconfig.references.filter(
+        (ref) => ref.path !== `../${domain}-mcp-server`
+      );
+      writeFileSync(gatewayTsconfigPath, JSON.stringify(tsconfig, null, 2));
+    }
+  }
+
+  // Clean secrets/.env.development.local.example
+  const secretsExamplePath = join(
+    rootDir,
+    "secrets",
+    ".env.development.local.example"
+  );
+  if (existsSync(secretsExamplePath)) {
+    let secretsContent = readFileSync(secretsExamplePath, "utf8");
+    const apiKeyLine = `${domain.toUpperCase()}_API_KEY=your-${domain}-api-key`;
+
+    // Remove the API key line and any trailing newline
+    secretsContent = secretsContent.replace(`\n${apiKeyLine}`, "");
+    secretsContent = secretsContent.replace(apiKeyLine, "");
+
+    writeFileSync(secretsExamplePath, secretsContent);
+  }
+
+  // Clean .gitignore patterns
+  const gitignorePath = join(rootDir, ".gitignore");
+  if (existsSync(gitignorePath)) {
+    let gitignoreContent = readFileSync(gitignorePath, "utf8");
+    const pattern = `.env.${domain}.local`;
+
+    // Remove the pattern line and any trailing newline
+    gitignoreContent = gitignoreContent.replace(`\n${pattern}`, "");
+    gitignoreContent = gitignoreContent.replace(pattern, "");
+
+    writeFileSync(gitignorePath, gitignoreContent);
+  }
+
+  console.log(`   ✅ Cleaned turbo.json environment variables`);
+  console.log(`   ✅ Cleaned gateway tsconfig.json references`);
+  console.log(`   ✅ Cleaned secrets example file`);
+  console.log(`   ✅ Cleaned .gitignore patterns`);
 }
 
 // ============================================================================
