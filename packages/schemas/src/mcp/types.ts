@@ -5,45 +5,109 @@ import { z } from "zod";
 // ============================================================================
 
 // JSON Schema types for tool parameters
-export type JSONSchemaType =
-  | "string"
-  | "number"
-  | "integer"
-  | "boolean"
-  | "array"
-  | "object"
-  | "null";
+export const JSONSchemaPropertySchema: z.ZodType<JSONSchemaProperty> = z.lazy(
+  () =>
+    z.object({
+      type: z
+        .union([
+          z.enum([
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "array",
+            "object",
+            "null",
+          ]),
+          z.array(
+            z.enum([
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "array",
+              "object",
+              "null",
+            ])
+          ),
+        ])
+        .optional(),
+      description: z.string().optional(),
+      enum: z.array(z.unknown()).optional(),
+      const: z.unknown().optional(),
+      default: z.unknown().optional(),
+      examples: z.array(z.unknown()).optional(),
+      // String constraints
+      minLength: z.number().optional(),
+      maxLength: z.number().optional(),
+      pattern: z.string().optional(),
+      format: z.string().optional(),
+      // Number constraints
+      minimum: z.number().optional(),
+      maximum: z.number().optional(),
+      exclusiveMinimum: z.number().optional(),
+      exclusiveMaximum: z.number().optional(),
+      multipleOf: z.number().optional(),
+      // Array constraints
+      items: JSONSchemaPropertySchema.optional(),
+      minItems: z.number().optional(),
+      maxItems: z.number().optional(),
+      uniqueItems: z.boolean().optional(),
+      // Object constraints
+      properties: z.record(JSONSchemaPropertySchema).optional(),
+      required: z.array(z.string()).optional(),
+      additionalProperties: z
+        .union([z.boolean(), JSONSchemaPropertySchema])
+        .optional(),
+      minProperties: z.number().optional(),
+      maxProperties: z.number().optional(),
+    })
+);
 
-export interface JSONSchemaProperty {
-  type?: JSONSchemaType | JSONSchemaType[];
+export type JSONSchemaProperty = {
+  type?:
+    | (
+        | "string"
+        | "number"
+        | "integer"
+        | "boolean"
+        | "array"
+        | "object"
+        | "null"
+      )
+    | (
+        | "string"
+        | "number"
+        | "integer"
+        | "boolean"
+        | "array"
+        | "object"
+        | "null"
+      )[];
   description?: string;
   enum?: unknown[];
   const?: unknown;
   default?: unknown;
   examples?: unknown[];
-  // String constraints
   minLength?: number;
   maxLength?: number;
   pattern?: string;
   format?: string;
-  // Number constraints
   minimum?: number;
   maximum?: number;
   exclusiveMinimum?: number;
   exclusiveMaximum?: number;
   multipleOf?: number;
-  // Array constraints
   items?: JSONSchemaProperty;
   minItems?: number;
   maxItems?: number;
   uniqueItems?: boolean;
-  // Object constraints
   properties?: Record<string, JSONSchemaProperty>;
   required?: string[];
   additionalProperties?: boolean | JSONSchemaProperty;
   minProperties?: number;
   maxProperties?: number;
-}
+};
 
 // Tool Types
 export const ToolArgumentSchema = z.object({
@@ -51,8 +115,8 @@ export const ToolArgumentSchema = z.object({
   description: z.string(),
   type: z.string(),
   required: z.boolean().optional(),
-  properties: z.record(z.unknown()).optional(),
-  items: z.unknown().optional(),
+  properties: z.record(JSONSchemaPropertySchema).optional(),
+  items: JSONSchemaPropertySchema.optional(),
   minimum: z.number().optional(),
   maximum: z.number().optional(),
   default: z.unknown().optional(),
@@ -64,24 +128,13 @@ export const ToolSchema = z.object({
   description: z.string(),
   inputSchema: z.object({
     type: z.literal("object"),
-    properties: z.record(z.unknown()),
+    properties: z.record(JSONSchemaPropertySchema),
     required: z.array(z.string()).optional(),
   }),
 });
 
 export type ToolArgument = z.infer<typeof ToolArgumentSchema>;
 export type Tool = z.infer<typeof ToolSchema>;
-
-// Extended types that accept readonly arrays for const definitions
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: "object";
-    properties: Record<string, JSONSchemaProperty>;
-    required?: readonly string[];
-  };
-}
 
 // Resource Types
 export const ResourceSchema = z.object({
@@ -100,14 +153,6 @@ export const ResourceContentSchema = z.object({
 
 export type Resource = z.infer<typeof ResourceSchema>;
 export type ResourceContent = z.infer<typeof ResourceContentSchema>;
-
-// Extended types that accept readonly arrays for const definitions
-export interface ResourceDefinition {
-  uri: string;
-  name: string;
-  description: string;
-  mimeType: string;
-}
 
 // Prompt Types
 export const PromptArgumentSchema = z.object({
@@ -140,19 +185,6 @@ export type PromptMessage = z.infer<typeof PromptMessageSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
 export type PromptResponse = z.infer<typeof PromptResponseSchema>;
 
-// Extended types that accept readonly arrays for const definitions
-export interface PromptArgumentDefinition {
-  name: string;
-  description: string;
-  required: boolean;
-}
-
-export interface PromptDefinition {
-  name: string;
-  description: string;
-  arguments?: readonly PromptArgumentDefinition[];
-}
-
 // Response Types
 export const McpSuccessResponseSchema = z.object({
   success: z.literal(true),
@@ -168,26 +200,9 @@ export const McpErrorResponseSchema = z.object({
   executionTime: z.number().optional(),
 });
 
-export const McpResponseSchema = z.union([
-  McpSuccessResponseSchema,
-  McpErrorResponseSchema,
-]);
-
-export type McpSuccessResponse<T = unknown> = {
-  success: true;
-  data: T;
-  timestamp?: string;
-  executionTime?: number;
-};
-
-export type McpErrorResponse = {
-  success: false;
-  error: string;
-  timestamp?: string;
-  executionTime?: number;
-};
-
-export type McpResponse<T = unknown> = McpSuccessResponse<T> | McpErrorResponse;
+export type McpResponse<T = unknown> = z.infer<
+  typeof McpSuccessResponseSchema | typeof McpErrorResponseSchema
+>;
 
 // Server Configuration Types
 export const McpServerConfigSchema = z.object({
@@ -202,18 +217,3 @@ export const McpServerConfigSchema = z.object({
 });
 
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
-
-// Tool Implementation Interface
-export interface ToolImplementation {
-  [key: string]: (args: Record<string, unknown>) => Promise<McpResponse>;
-}
-
-// Server Interface that all MCP servers must implement
-export interface McpServerInterface {
-  name: string;
-  version: string;
-  tools?: Tool[];
-  resources?: Resource[];
-  prompts?: Prompt[];
-  executeTools?: ToolImplementation;
-}

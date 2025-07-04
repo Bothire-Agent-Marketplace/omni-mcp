@@ -1,27 +1,16 @@
 import { LinearClient } from "@linear/sdk";
 import * as handlers from "./handlers.js";
 
-// Resource handler function type
-export type ResourceHandler = (uri: string) => Promise<{
-  contents: Array<{
-    uri: string;
-    text: string;
-  }>;
-}>;
-
-// Resource definition interface
-export interface ResourceDefinition {
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string;
-  handler: ResourceHandler;
-}
-
 // Create resource handlers with bound LinearClient
-export function createResourceHandlers(
-  linearClient: LinearClient
-): Record<string, ResourceHandler> {
+export function createResourceHandlers(linearClient: LinearClient): Record<
+  string,
+  (uri: string) => Promise<{
+    contents: Array<{
+      uri: string;
+      text: string;
+    }>;
+  }>
+> {
   return {
     "linear://teams": (uri) =>
       handlers.handleLinearTeamsResource(linearClient, uri),
@@ -33,7 +22,12 @@ export function createResourceHandlers(
 // Resource metadata and descriptions
 export const RESOURCE_DEFINITIONS: Record<
   string,
-  Omit<ResourceDefinition, "handler">
+  {
+    uri: string;
+    name: string;
+    description: string;
+    mimeType?: string;
+  }
 > = {
   "linear://teams": {
     uri: "linear://teams",

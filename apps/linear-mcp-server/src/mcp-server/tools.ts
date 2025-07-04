@@ -1,25 +1,16 @@
 import { LinearClient } from "@linear/sdk";
 import * as handlers from "./handlers.js";
 
-// Tool handler function type
-export type ToolHandler = (params: Record<string, unknown>) => Promise<{
-  content: Array<{
-    type: "text";
-    text: string;
-  }>;
-}>;
-
-// Tool definition interface
-export interface ToolDefinition {
-  name: string;
-  description: string;
-  handler: ToolHandler;
-}
-
 // Create tool handlers with bound LinearClient
-export function createToolHandlers(
-  linearClient: LinearClient
-): Record<string, ToolHandler> {
+export function createToolHandlers(linearClient: LinearClient): Record<
+  string,
+  (params: Record<string, unknown>) => Promise<{
+    content: Array<{
+      type: "text";
+      text: string;
+    }>;
+  }>
+> {
   return {
     linear_search_issues: (params) =>
       handlers.handleLinearSearchIssues(linearClient, params),
@@ -37,7 +28,10 @@ export function createToolHandlers(
 // Tool metadata and descriptions
 export const TOOL_DEFINITIONS: Record<
   string,
-  Omit<ToolDefinition, "handler">
+  {
+    name: string;
+    description: string;
+  }
 > = {
   linear_search_issues: {
     name: "linear_search_issues",

@@ -1,84 +1,70 @@
 #!/usr/bin/env node
 
-const http = require("http");
+/**
+ * MCP Bridge using Supergateway
+ * Bridges Claude Desktop (stdio) to HTTP MCP Gateway
+ */
 
-// MCP bridge that connects Claude Desktop (stdio) to Omni Gateway (HTTP)
-class MCPBridge {
-  constructor() {
-    this.gatewayUrl = "http://localhost:3000/mcp";
-    this.setupStdio();
+const { spawn } = require("child_process");
+const path = require("path");
+
+// Configuration
+const GATEWAY_URL = process.env.GATEWAY_URL || "http://localhost:37373/mcp";
+const GATEWAY_API_KEY = process.env.MCP_API_KEY || "";
+
+// Function to start the bridge
+function startBridge() {
+  console.error("Starting MCP Bridge using Supergateway...");
+  console.error(`Gateway URL: ${GATEWAY_URL}`);
+
+  // Build the supergateway command
+  const args = [
+    "supergateway",
+    "--inputTransport",
+    "stdio",
+    "--outputTransport",
+    "streamableHttp",
+    "--httpUrl",
+    GATEWAY_URL,
+  ];
+
+  // Add API key if provided
+  if (GATEWAY_API_KEY) {
+    args.push("--httpHeaders", `x-api-key=${GATEWAY_API_KEY}`);
   }
 
-  setupStdio() {
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (data) => {
-      this.handleMCPMessage(data.trim());
-    });
-  }
+  console.error("Running command:", "npx", args.join(" "));
 
-  async handleMCPMessage(message) {
-    try {
-      const mcpRequest = JSON.parse(message);
+  // Spawn the supergateway process
+  const bridge = spawn("npx", args, {
+    stdio: "inherit",
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+    },
+  });
 
-      // Forward to gateway
-      const response = await this.forwardToGateway(mcpRequest);
+  bridge.on("error", (error) => {
+    console.error("Bridge error:", error);
+    process.exit(1);
+  });
 
-      // Send response back to Claude Desktop
-      process.stdout.write(JSON.stringify(response) + "\n");
-    } catch (error) {
-      // Send error response
-      const errorResponse = {
-        jsonrpc: "2.0",
-        id: null,
-        error: {
-          code: -32603,
-          message: "Internal error",
-          data: error.message,
-        },
-      };
-      process.stdout.write(JSON.stringify(errorResponse) + "\n");
-    }
-  }
+  bridge.on("exit", (code, signal) => {
+    console.error(`Bridge exited with code ${code} and signal ${signal}`);
+    process.exit(code || 0);
+  });
 
-  async forwardToGateway(mcpRequest) {
-    return new Promise((resolve, reject) => {
-      const postData = JSON.stringify(mcpRequest);
+  // Handle graceful shutdown
+  process.on("SIGTERM", () => {
+    console.error("Received SIGTERM, shutting down bridge...");
+    bridge.kill("SIGTERM");
+  });
 
-      const options = {
-        hostname: "localhost",
-        port: 3000,
-        path: "/mcp",
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(postData),
-        },
-      };
-
-      const req = http.request(options, (res) => {
-        let data = "";
-        res.on("data", (chunk) => {
-          data += chunk;
-        });
-        res.on("end", () => {
-          try {
-            const response = JSON.parse(data);
-            resolve(response);
-          } catch (_error) {
-            reject(new Error("Invalid JSON response from gateway"));
-          }
-        });
-      });
-
-      req.on("error", (error) => {
-        reject(error);
-      });
-
-      req.write(postData);
-      req.end();
-    });
-  }
+  process.on("SIGINT", () => {
+    console.error("Received SIGINT, shutting down bridge...");
+    bridge.kill("SIGINT");
+  });
 }
 
 // Start the bridge
-new MCPBridge();
+startBridge();

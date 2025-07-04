@@ -133,19 +133,8 @@ export class MCPGateway {
         return mcpResponse;
       }
 
-      // Convert MCP response back to HTTP format for tool calls
-      const httpResponse = (await this.protocolAdapter.handleMCPToHttp(
-        mcpResponse
-      )) as GatewayHTTPResponse;
-
-      // Include session token in response for new sessions
-      if (isNewSession) {
-        httpResponse.sessionToken = this.sessionManager.generateToken(
-          session.id
-        );
-      }
-
-      return httpResponse;
+      // For MCP bridge compatibility, return JSON-RPC response directly for all methods
+      return mcpResponse;
     } catch (error) {
       this.logger.error(
         "HTTP request handling error",
@@ -471,7 +460,7 @@ export class MCPGateway {
           jsonrpc: "2.0",
           id: request.id,
           result: {
-            tools: this.getAvailableTools(),
+            tools: await this.getAvailableTools(),
           },
         };
 
@@ -513,28 +502,48 @@ export class MCPGateway {
     }
   }
 
-  private getAvailableTools(): MCPTool[] {
-    // Build tools list from server capabilities
-    const tools: MCPTool[] = [];
+  private async getAvailableTools(): Promise<MCPTool[]> {
+    const allTools: MCPTool[] = [];
 
-    for (const [serverId, capabilities] of this.capabilityMap.entries()) {
-      for (const capability of capabilities) {
-        // Only include tool capabilities (not resources/prompts for now)
-        if (!capability.includes("://") && !capability.includes("_workflow")) {
-          tools.push({
-            name: capability,
-            description: `${capability} tool from ${serverId} server`,
-            inputSchema: {
-              type: "object",
-              properties: {},
-              description: `Execute ${capability}`,
-            },
+    // Fetch tools from all healthy servers
+    for (const [serverId] of this.capabilityMap.entries()) {
+      const serverInstance =
+        await this.serverManager.getServerInstance(serverId);
+
+      if (serverInstance) {
+        try {
+          const toolsRequest = {
+            jsonrpc: "2.0",
+            id: `tools_${Date.now()}`,
+            method: "tools/list",
+            params: {},
+          };
+
+          const response = await fetch(`${serverInstance.url}/mcp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(toolsRequest),
           });
+
+          if (response.ok) {
+            const result = await response.json();
+            if (result.result?.tools) {
+              // Use the actual tool definitions from the server
+              allTools.push(...result.result.tools);
+            }
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to fetch tools from ${serverId}:`, {
+            error: error instanceof Error ? error.message : String(error),
+            serverId,
+          });
+        } finally {
+          this.serverManager.releaseServerInstance(serverInstance);
         }
       }
     }
 
-    return tools;
+    return allTools;
   }
 
   private async getAvailableResources(): Promise<MCPResource[]> {

@@ -30,12 +30,6 @@ export interface GatewayConfig {
   mcpServers: MCPServersRuntimeConfig;
 }
 
-// DEPRECATED: This is now merged into GatewayConfig
-export interface MasterConfig {
-  servers: Record<string, ServerConfig>;
-  gateway: GatewayConfig;
-}
-
 export interface ServerInstance {
   id: string;
   serverId: string;

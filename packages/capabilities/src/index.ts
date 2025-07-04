@@ -1,19 +1,23 @@
+import { z } from "zod";
+
 // Central MCP Server Capabilities
 // This is the single source of truth for all MCP server configurations
 
-export interface MCPServerDefinition {
-  name: string;
-  port: number;
-  description: string;
-  productionUrl: string;
-  envVar: string;
-  tools: readonly string[];
-  resources: readonly string[];
-  prompts: readonly string[];
-}
+export const MCPServerSchema = z.object({
+  name: z.string(),
+  port: z.number(),
+  description: z.string(),
+  productionUrl: z.string().url(),
+  envVar: z.string(),
+  tools: z.array(z.string()).readonly(),
+  resources: z.array(z.string()).readonly(),
+  prompts: z.array(z.string()).readonly(),
+});
+
+export type MCPServerDefinition = z.infer<typeof MCPServerSchema>;
 
 // Linear MCP Server Configuration
-export const LINEAR_SERVER: MCPServerDefinition = {
+export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "linear",
   port: 3001,
   description: "Linear MCP Server for issue tracking",
@@ -28,7 +32,7 @@ export const LINEAR_SERVER: MCPServerDefinition = {
   ],
   resources: ["linear://teams", "linear://users"],
   prompts: ["create_issue_workflow", "triage_workflow", "sprint_planning"],
-} as const;
+});
 
 // Central registry of all MCP servers
 export const ALL_MCP_SERVERS: Record<string, MCPServerDefinition> = {

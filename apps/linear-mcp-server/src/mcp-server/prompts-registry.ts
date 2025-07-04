@@ -4,26 +4,19 @@ import {
   sprintPlanningPrompt,
 } from "./prompts.js";
 
-// Prompt handler function type
-export type PromptHandler = (args: Record<string, unknown>) => Promise<{
-  messages: Array<{
-    role: "user" | "assistant";
-    content: {
-      type: "text";
-      text: string;
-    };
-  }>;
-}>;
-
-// Prompt definition interface
-export interface PromptDefinition {
-  name: string;
-  description: string;
-  handler: PromptHandler;
-}
-
 // Create prompt handlers
-export function createPromptHandlers(): Record<string, PromptHandler> {
+export function createPromptHandlers(): Record<
+  string,
+  (args: Record<string, unknown>) => Promise<{
+    messages: Array<{
+      role: "user" | "assistant";
+      content: {
+        type: "text";
+        text: string;
+      };
+    }>;
+  }>
+> {
   return {
     create_issue_workflow: async (args) => createIssueWorkflowPrompt(args),
     triage_workflow: async () => triageWorkflowPrompt(),
@@ -34,7 +27,10 @@ export function createPromptHandlers(): Record<string, PromptHandler> {
 // Prompt metadata and descriptions
 export const PROMPT_DEFINITIONS: Record<
   string,
-  Omit<PromptDefinition, "handler">
+  {
+    name: string;
+    description: string;
+  }
 > = {
   create_issue_workflow: {
     name: "create_issue_workflow",
