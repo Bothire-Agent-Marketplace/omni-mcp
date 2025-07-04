@@ -24,39 +24,27 @@ export function createPromptHandlers(): Record<
   };
 }
 
-// Prompt metadata and descriptions
-export const PROMPT_DEFINITIONS: Record<
-  string,
-  {
-    name: string;
-    description: string;
-  }
-> = {
-  create_issue_workflow: {
-    name: "create_issue_workflow",
-    description:
-      "Step-by-step workflow for creating well-structured Linear issues",
-  },
-  triage_workflow: {
-    name: "triage_workflow",
-    description:
-      "Comprehensive workflow for triaging and prioritizing Linear issues",
-  },
-  sprint_planning: {
-    name: "sprint_planning",
-    description: "Sprint planning workflow using Linear issues and cycles",
-  },
-};
-
 // Get all available prompts with metadata
 export function getAvailablePrompts(): Array<{
   name: string;
   description: string;
 }> {
-  return Object.values(PROMPT_DEFINITIONS);
-}
+  const promptDefinitions = {
+    create_issue_workflow: {
+      name: "create_issue_workflow",
+      description:
+        "Step-by-step workflow for creating well-structured Linear issues",
+    },
+    triage_workflow: {
+      name: "triage_workflow",
+      description:
+        "Comprehensive workflow for triaging and prioritizing Linear issues",
+    },
+    sprint_planning: {
+      name: "sprint_planning",
+      description: "Sprint planning workflow using Linear issues and cycles",
+    },
+  };
 
-// Get prompt description by name
-export function getPromptDescription(name: string): string {
-  return PROMPT_DEFINITIONS[name]?.description || "Linear prompt";
+  return Object.values(promptDefinitions);
 }

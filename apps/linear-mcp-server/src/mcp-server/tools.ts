@@ -25,45 +25,33 @@ export function createToolHandlers(linearClient: LinearClient): Record<
   };
 }
 
-// Tool metadata and descriptions
-export const TOOL_DEFINITIONS: Record<
-  string,
-  {
-    name: string;
-    description: string;
-  }
-> = {
-  linear_search_issues: {
-    name: "linear_search_issues",
-    description: "Search for Linear issues with optional filters",
-  },
-  linear_get_teams: {
-    name: "linear_get_teams",
-    description: "Retrieve all teams in the Linear workspace",
-  },
-  linear_get_users: {
-    name: "linear_get_users",
-    description: "Retrieve users in the Linear workspace",
-  },
-  linear_get_projects: {
-    name: "linear_get_projects",
-    description: "Retrieve projects in the Linear workspace",
-  },
-  linear_get_issue: {
-    name: "linear_get_issue",
-    description: "Get detailed information about a specific Linear issue",
-  },
-};
-
 // Get all available tools with metadata
 export function getAvailableTools(): Array<{
   name: string;
   description: string;
 }> {
-  return Object.values(TOOL_DEFINITIONS);
-}
+  const toolDefinitions = {
+    linear_search_issues: {
+      name: "linear_search_issues",
+      description: "Search for Linear issues with optional filters",
+    },
+    linear_get_teams: {
+      name: "linear_get_teams",
+      description: "Retrieve all teams in the Linear workspace",
+    },
+    linear_get_users: {
+      name: "linear_get_users",
+      description: "Retrieve users in the Linear workspace",
+    },
+    linear_get_projects: {
+      name: "linear_get_projects",
+      description: "Retrieve projects in the Linear workspace",
+    },
+    linear_get_issue: {
+      name: "linear_get_issue",
+      description: "Get detailed information about a specific Linear issue",
+    },
+  };
 
-// Get tool description by name
-export function getToolDescription(name: string): string {
-  return TOOL_DEFINITIONS[name]?.description || "Linear tool";
+  return Object.values(toolDefinitions);
 }

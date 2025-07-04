@@ -80,7 +80,10 @@ export interface MCPErrorResponse {
 
 export interface IWebSocket {
   send(data: string): void;
-  on(event: "message", listener: (data: Buffer) => void): this;
+  on(
+    event: "message",
+    listener: (data: string | ArrayBuffer | Uint8Array) => void
+  ): this;
   on(event: "close", listener: () => void): this;
   on(event: "error", listener: (err: Error) => void): this;
   close(): void;
