@@ -309,3 +309,4 @@ apps/linear-mcp-server/src/schemas/linear.ts
 shared/
 servers/
 
+apps/linear-mcp-server/tsconfig.tsbuildinfo

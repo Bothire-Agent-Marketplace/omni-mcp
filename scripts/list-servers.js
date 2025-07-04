@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { serverRegistry } from "../packages/capabilities/dist/index.js";
+import { getAllMCPServers } from "../apps/gateway/dist/config/server-registry.js";
 
 function listServers() {
-  const servers = serverRegistry.getAllServers();
+  const servers = getAllMCPServers();
 
   console.log("📋 Registered MCP Servers:\n");
 

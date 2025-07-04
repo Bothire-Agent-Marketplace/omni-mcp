@@ -18,6 +18,7 @@
     "generate:server": "node scripts/generate-mcp-server.js",
     "dev:gateway": "turbo dev --filter=@mcp/gateway",
     "dev:all-servers": "turbo dev --filter=@mcp/*-server",
+    "dev:full": "turbo dev --filter=@mcp/gateway --filter=@mcp/linear-server",
     "health-check": "node scripts/health-check.js",
     "server:list": "node scripts/list-servers.js",
     "prepare": "husky",

@@ -1,7 +1,7 @@
 import { serverRegistry, type MCPServerDefinition } from "@mcp/capabilities";
 
-// Import the capabilities package to ensure all servers are registered
-// The LINEAR_SERVER should be auto-registered when @mcp/capabilities is imported
+// All server definitions are now centralized in @mcp/capabilities
+// No need to import individual definition files - they auto-register
 
 // Central registry of all MCP servers
 export function getAllMCPServers(): Record<string, MCPServerDefinition> {
