@@ -48,25 +48,7 @@ pnpm generate:server github --port 3002 --tools "search_repos,create_issue" --re
 - Faster development onboarding
 - Reduced boilerplate code
 
-### 3. **Testing Framework**
-
-**New:** Standardized MCP testing utilities in `@mcp/utils/test-helpers`
-
-```typescript
-import { MCPTestClient, createStandardMCPTests } from "@mcp/utils/test-helpers";
-
-const testClient = new MCPTestClient("http://localhost:3001");
-const tests = createStandardMCPTests(LINEAR_SERVER, testClient);
-const results = await tests.runAllTests();
-```
-
-**Benefits:**
-
-- Consistent testing patterns
-- Automated protocol compliance testing
-- Easier debugging and validation
-
-### 4. **Health Monitoring**
+### 3. **Health Monitoring**
 
 **New:** `pnpm health-check` command
 

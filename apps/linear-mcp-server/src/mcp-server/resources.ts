@@ -1,45 +1,45 @@
 import { LinearClient } from "@linear/sdk";
+import {
+  createGenericResourceHandlers,
+  getGenericAvailableResources,
+  ResourceDefinition,
+} from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
-// Create resource handlers with bound LinearClient
-export function createResourceHandlers(linearClient: LinearClient): Record<
-  string,
-  (uri: string) => Promise<{
-    contents: Array<{
-      uri: string;
-      text: string;
-    }>;
-  }>
-> {
-  return {
-    "linear://teams": (uri) =>
-      handlers.handleLinearTeamsResource(linearClient, uri),
-    "linear://users": (uri) =>
-      handlers.handleLinearUsersResource(linearClient, uri),
-  };
-}
+// ============================================================================
+// LINEAR MCP SERVER - Resource Definitions
+// ============================================================================
 
-// Get all available resources with metadata
-export function getAvailableResources(): Array<{
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string;
-}> {
-  const resourceDefinitions = {
-    "linear://teams": {
+const linearResourceDefinitions: Record<
+  string,
+  ResourceDefinition<LinearClient>
+> = {
+  "linear://teams": {
+    handler: handlers.handleLinearTeamsResource,
+    metadata: {
       uri: "linear://teams",
       name: "linear-teams",
       description: "List of all Linear teams",
       mimeType: "application/json",
     },
-    "linear://users": {
+  },
+  "linear://users": {
+    handler: handlers.handleLinearUsersResource,
+    metadata: {
       uri: "linear://users",
       name: "linear-users",
       description: "List of Linear users for assignment and collaboration",
       mimeType: "application/json",
     },
-  };
+  },
+};
 
-  return Object.values(resourceDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createResourceHandlers = (linearClient: LinearClient) =>
+  createGenericResourceHandlers(linearResourceDefinitions, linearClient);
+
+export const getAvailableResources = () =>
+  getGenericAvailableResources(linearResourceDefinitions);

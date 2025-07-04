@@ -1411,58 +1411,57 @@ function generateToolsTemplate(domain) {
 // ${domain.toUpperCase()} MCP SERVER - Tools
 // ============================================================================
 
-import { ${capitalize(domain)}InputSchemas, ToolInputSchema } from "@mcp/schemas";
+import { ${capitalize(domain)}InputSchemas } from "@mcp/schemas";
+import {
+  createGenericToolHandlers,
+  getGenericAvailableTools,
+  ToolDefinition,
+} from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
 
-// Create tool handlers with bound client
-export function createToolHandlers(/* ${domain.toLowerCase()}Client?: ${capitalize(domain)}Client */): Record<
-  string,
-  (params: Record<string, unknown>) => Promise<{
-    content: Array<{
-      type: "text";
-      text: string;
-    }>;
-  }>
-> {
-  return {
-    ${domain}_search_items: (params) =>
-      handlers.handle${capitalize(domain)}SearchItems(/* ${domain.toLowerCase()}Client, */ params),
-    ${domain}_get_item: (params) =>
-      handlers.handle${capitalize(domain)}GetItem(/* ${domain.toLowerCase()}Client, */ params),
-    ${domain}_create_item: (params) =>
-      handlers.handle${capitalize(domain)}CreateItem(/* ${domain.toLowerCase()}Client, */ params),
-  };
-}
+// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Tool Definitions
+// ============================================================================
 
-// Get all available tools with metadata INCLUDING inputSchema
-export function getAvailableTools(): Array<{
-  name: string;
-  description: string;
-  inputSchema: ToolInputSchema;
-}> {
-  const toolDefinitions = {
-    ${domain}_search_items: {
+const ${domain.toLowerCase()}ToolDefinitions: Record<string, ToolDefinition<any /* ${capitalize(domain)}Client */>> = {
+  ${domain}_search_items: {
+    handler: handlers.handle${capitalize(domain)}SearchItems,
+    metadata: {
       name: "${domain}_search_items",
       description: "Search for ${domain} items",
       inputSchema: ${capitalize(domain)}InputSchemas.searchItems,
     },
-    ${domain}_get_item: {
+  },
+  ${domain}_get_item: {
+    handler: handlers.handle${capitalize(domain)}GetItem,
+    metadata: {
       name: "${domain}_get_item",
       description: "Get a specific ${domain} item by ID",
       inputSchema: ${capitalize(domain)}InputSchemas.getItem,
     },
-    ${domain}_create_item: {
+  },
+  ${domain}_create_item: {
+    handler: handlers.handle${capitalize(domain)}CreateItem,
+    metadata: {
       name: "${domain}_create_item",
       description: "Create a new ${domain} item",
       inputSchema: ${capitalize(domain)}InputSchemas.createItem,
     },
-  };
+  },
+};
 
-  return Object.values(toolDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createToolHandlers = (/* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client */) =>
+  createGenericToolHandlers(${domain.toLowerCase()}ToolDefinitions, {} /* ${domain.toLowerCase()}Client */);
+
+export const getAvailableTools = () =>
+  getGenericAvailableTools(${domain.toLowerCase()}ToolDefinitions);
 `;
 }
 
@@ -1471,53 +1470,50 @@ function generateResourcesTemplate(domain) {
 // ${domain.toUpperCase()} MCP SERVER - Resources
 // ============================================================================
 
+import {
+  createGenericResourceHandlers,
+  getGenericAvailableResources,
+  ResourceDefinition,
+} from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
 
-// Create resource handlers with bound client
-export function createResourceHandlers(/* ${domain.toLowerCase()}Client?: ${capitalize(domain)}Client */): Record<
-  string,
-  (uri: string) => Promise<{
-    contents: Array<{
-      uri: string;
-      text: string;
-    }>;
-  }>
-> {
-  return {
-    "${domain}://items": (uri) =>
-      handlers.handle${capitalize(domain)}ItemsResource(/* ${domain.toLowerCase()}Client, */ uri),
-    "${domain}://projects": (uri) =>
-      handlers.handle${capitalize(domain)}ProjectsResource(/* ${domain.toLowerCase()}Client, */ uri),
-  };
-}
+// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Resource Definitions
+// ============================================================================
 
-// Get all available resources with metadata
-export function getAvailableResources(): Array<{
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string;
-}> {
-  const resourceDefinitions = {
-    "${domain}://items": {
+const ${domain.toLowerCase()}ResourceDefinitions: Record<string, ResourceDefinition<any /* ${capitalize(domain)}Client */>> = {
+  "${domain}://items": {
+    handler: handlers.handle${capitalize(domain)}ItemsResource,
+    metadata: {
       uri: "${domain}://items",
       name: "${domain}-items",
       description: "Access to ${domain} items",
       mimeType: "application/json",
     },
-    "${domain}://projects": {
+  },
+  "${domain}://projects": {
+    handler: handlers.handle${capitalize(domain)}ProjectsResource,
+    metadata: {
       uri: "${domain}://projects",
       name: "${domain}-projects",
       description: "Access to ${domain} projects",
       mimeType: "application/json",
     },
-  };
+  },
+};
 
-  return Object.values(resourceDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createResourceHandlers = (/* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client */) =>
+  createGenericResourceHandlers(${domain.toLowerCase()}ResourceDefinitions, {} /* ${domain.toLowerCase()}Client */);
+
+export const getAvailableResources = () =>
+  getGenericAvailableResources(${domain.toLowerCase()}ResourceDefinitions);
 `;
 }
 
@@ -1525,6 +1521,12 @@ function generatePromptsTemplate(domain) {
   return `// ============================================================================
 // ${domain.toUpperCase()} MCP SERVER - Prompts
 // ============================================================================
+
+import {
+  createGenericPromptHandlers,
+  getGenericAvailablePrompts,
+  PromptDefinition,
+} from "@mcp/utils";
 
 // Prompt implementation functions
 function ${domain.toLowerCase()}WorkflowPrompt(args: unknown = {}) {
@@ -1561,42 +1563,36 @@ function ${domain.toLowerCase()}AutomationPrompt(args: unknown = {}) {
   };
 }
 
-// Registry functions - Following the same pattern as tools.ts and resources.ts
-export function createPromptHandlers(): Record<
-  string,
-  (args: Record<string, unknown>) => Promise<{
-    messages: Array<{
-      role: "user" | "assistant";
-      content: {
-        type: "text";
-        text: string;
-      };
-    }>;
-  }>
-> {
-  return {
-    "${domain}_workflow": async (args) => ${domain.toLowerCase()}WorkflowPrompt(args),
-    "${domain}_automation": async (args) => ${domain.toLowerCase()}AutomationPrompt(args),
-  };
-}
+// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Prompt Definitions
+// ============================================================================
 
-export function getAvailablePrompts(): Array<{
-  name: string;
-  description: string;
-}> {
-  const promptDefinitions = {
-    "${domain}_workflow": {
+const ${domain.toLowerCase()}PromptDefinitions: Record<string, PromptDefinition> = {
+  "${domain}_workflow": {
+    handler: async (args) => ${domain.toLowerCase()}WorkflowPrompt(args),
+    metadata: {
       name: "${domain}_workflow",
       description: "Standard ${domain} workflow prompt",
     },
-    "${domain}_automation": {
+  },
+  "${domain}_automation": {
+    handler: async (args) => ${domain.toLowerCase()}AutomationPrompt(args),
+    metadata: {
       name: "${domain}_automation",
       description: "Automation prompt for ${domain}",
     },
-  };
+  },
+};
 
-  return Object.values(promptDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createPromptHandlers = () =>
+  createGenericPromptHandlers(${domain.toLowerCase()}PromptDefinitions);
+
+export const getAvailablePrompts = () =>
+  getGenericAvailablePrompts(${domain.toLowerCase()}PromptDefinitions);
 `;
 }
 

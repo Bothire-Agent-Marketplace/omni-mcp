@@ -1,4 +1,9 @@
 import {
+  createGenericPromptHandlers,
+  getGenericAvailablePrompts,
+  PromptDefinition,
+} from "@mcp/utils";
+import {
   CreateIssueWorkflowArgsSchema,
   SprintPlanningArgsSchema,
 } from "../schemas/domain-schemas.js";
@@ -87,46 +92,42 @@ What's your sprint goal and what issues are you considering?`,
   };
 }
 
-// Registry functions - Following the same pattern as tools.ts and resources.ts
-export function createPromptHandlers(): Record<
-  string,
-  (args: Record<string, unknown>) => Promise<{
-    messages: Array<{
-      role: "user" | "assistant";
-      content: {
-        type: "text";
-        text: string;
-      };
-    }>;
-  }>
-> {
-  return {
-    create_issue_workflow: async (args) => createIssueWorkflowPrompt(args),
-    triage_workflow: async () => triageWorkflowPrompt(),
-    sprint_planning: async (args) => sprintPlanningPrompt(args),
-  };
-}
+// ============================================================================
+// LINEAR MCP SERVER - Prompt Definitions
+// ============================================================================
 
-export function getAvailablePrompts(): Array<{
-  name: string;
-  description: string;
-}> {
-  const promptDefinitions = {
-    create_issue_workflow: {
+const linearPromptDefinitions: Record<string, PromptDefinition> = {
+  create_issue_workflow: {
+    handler: async (args) => createIssueWorkflowPrompt(args),
+    metadata: {
       name: "create_issue_workflow",
       description:
         "Step-by-step workflow for creating well-structured Linear issues",
     },
-    triage_workflow: {
+  },
+  triage_workflow: {
+    handler: async () => triageWorkflowPrompt(),
+    metadata: {
       name: "triage_workflow",
       description:
         "Comprehensive workflow for triaging and prioritizing Linear issues",
     },
-    sprint_planning: {
+  },
+  sprint_planning: {
+    handler: async (args) => sprintPlanningPrompt(args),
+    metadata: {
       name: "sprint_planning",
       description: "Sprint planning workflow using Linear issues and cycles",
     },
-  };
+  },
+};
 
-  return Object.values(promptDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createPromptHandlers = () =>
+  createGenericPromptHandlers(linearPromptDefinitions);
+
+export const getAvailablePrompts = () =>
+  getGenericAvailablePrompts(linearPromptDefinitions);

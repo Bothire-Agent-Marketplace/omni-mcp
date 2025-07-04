@@ -1,64 +1,65 @@
 import { LinearClient } from "@linear/sdk";
-import { LinearInputSchemas, ToolInputSchema } from "@mcp/schemas";
+import { LinearInputSchemas } from "@mcp/schemas";
+import {
+  createGenericToolHandlers,
+  getGenericAvailableTools,
+  ToolDefinition,
+} from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
-// Create tool handlers with bound LinearClient
-export function createToolHandlers(linearClient: LinearClient): Record<
-  string,
-  (params: Record<string, unknown>) => Promise<{
-    content: Array<{
-      type: "text";
-      text: string;
-    }>;
-  }>
-> {
-  return {
-    linear_search_issues: (params) =>
-      handlers.handleLinearSearchIssues(linearClient, params),
-    linear_get_teams: (params) =>
-      handlers.handleLinearGetTeams(linearClient, params),
-    linear_get_users: (params) =>
-      handlers.handleLinearGetUsers(linearClient, params),
-    linear_get_projects: (params) =>
-      handlers.handleLinearGetProjects(linearClient, params),
-    linear_get_issue: (params) =>
-      handlers.handleLinearGetIssue(linearClient, params),
-  };
-}
+// ============================================================================
+// LINEAR MCP SERVER - Tool Definitions
+// ============================================================================
 
-// Get all available tools with metadata INCLUDING inputSchema
-export function getAvailableTools(): Array<{
-  name: string;
-  description: string;
-  inputSchema: ToolInputSchema;
-}> {
-  const toolDefinitions = {
-    linear_search_issues: {
+const linearToolDefinitions: Record<string, ToolDefinition<LinearClient>> = {
+  linear_search_issues: {
+    handler: handlers.handleLinearSearchIssues,
+    metadata: {
       name: "linear_search_issues",
       description: "Search for Linear issues with optional filters",
       inputSchema: LinearInputSchemas.searchIssues,
     },
-    linear_get_teams: {
+  },
+  linear_get_teams: {
+    handler: handlers.handleLinearGetTeams,
+    metadata: {
       name: "linear_get_teams",
       description: "Retrieve all teams in the Linear workspace",
       inputSchema: LinearInputSchemas.getTeams,
     },
-    linear_get_users: {
+  },
+  linear_get_users: {
+    handler: handlers.handleLinearGetUsers,
+    metadata: {
       name: "linear_get_users",
       description: "Retrieve users in the Linear workspace",
       inputSchema: LinearInputSchemas.getUsers,
     },
-    linear_get_projects: {
+  },
+  linear_get_projects: {
+    handler: handlers.handleLinearGetProjects,
+    metadata: {
       name: "linear_get_projects",
       description: "Retrieve projects in the Linear workspace",
       inputSchema: LinearInputSchemas.getProjects,
     },
-    linear_get_issue: {
+  },
+  linear_get_issue: {
+    handler: handlers.handleLinearGetIssue,
+    metadata: {
       name: "linear_get_issue",
       description: "Get detailed information about a specific Linear issue",
       inputSchema: LinearInputSchemas.getIssueDetails,
     },
-  };
+  },
+};
 
-  return Object.values(toolDefinitions);
-}
+// ============================================================================
+// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
+// ============================================================================
+
+export const createToolHandlers = (linearClient: LinearClient) =>
+  createGenericToolHandlers(linearToolDefinitions, linearClient);
+
+export const getAvailableTools = () =>
+  getGenericAvailableTools(linearToolDefinitions);
