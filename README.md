@@ -87,7 +87,7 @@ pnpm test
 ### Dead Code Detection with Knip
 
 We use [Knip](https://knip.dev) to automatically detect and clean up dead code, unused dependencies,
-and unused exports:
+and unused exports. **Knip is now integrated into our pre-commit hooks** to catch issues early:
 
 ```bash
 # Scan for dead code and unused dependencies
@@ -107,6 +107,13 @@ pnpm run audit:ci
 - ✅ Unreferenced types and interfaces
 - ✅ Duplicate exports
 - ✅ Missing dependencies
+
+**Pre-commit Integration:**
+
+- 🔍 **Pre-commit**: Knip runs automatically before each commit
+- 🚫 **Blocks commits**: If unused imports/exports are found
+- 🔧 **Auto-fix**: Run `pnpm run audit:fix` to resolve issues
+- 📦 **Pre-push**: Comprehensive audit before pushing changes
 
 ### Other Quality Tools
 
