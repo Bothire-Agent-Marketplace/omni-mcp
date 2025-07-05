@@ -140,3 +140,10 @@ Bridge logs are written to stderr and include:
 - Request buffering available for clients that need it
 - Graceful shutdown ensures no data loss
 - Configurable timeouts and retry logic
+
+## TODO
+
+- Add claude config when it supports sse/http
+
+{ "mcpServers": { "my-http-server": { "type": "http", "url": "http://localhost:PORT" },
+"my-sse-server": { "type": "sse", "url": "http://localhost:PORT/sse" } } }
