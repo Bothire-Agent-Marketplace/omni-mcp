@@ -1,5 +1,6 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { LINEAR_SERVER } from "@mcp/capabilities";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
 import type { Environment } from "@mcp/utils";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
@@ -26,7 +27,7 @@ function createLinearServerConfig(): LinearServerConfig {
 
   const config: LinearServerConfig = {
     env,
-    port: validatePort(process.env.LINEAR_SERVER_PORT, 3001),
+    port: validatePort(process.env.LINEAR_SERVER_PORT, LINEAR_SERVER.port),
     host: process.env.HOST || "0.0.0.0",
     linearApiKey: validateSecret(
       process.env.LINEAR_API_KEY,

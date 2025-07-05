@@ -19,6 +19,7 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
+    "@mcp/capabilities": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/server-core": "workspace:*",
     "@mcp/utils": "workspace:*",

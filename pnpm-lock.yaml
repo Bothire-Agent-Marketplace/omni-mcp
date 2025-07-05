@@ -127,12 +127,12 @@ importers:
 
   apps/linear-mcp-server:
     dependencies:
-      '@fastify/cors':
-        specifier: ^9.0.1
-        version: 9.0.1
       '@linear/sdk':
         specifier: ^44.1.0
         version: 44.1.0
+      '@mcp/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -142,9 +142,6 @@ importers:
       '@mcp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      fastify:
-        specifier: ^4.28.1
-        version: 4.29.1
       zod:
         specifier: ^3.25.67
         version: 3.25.67
@@ -161,9 +158,9 @@ importers:
 
   apps/perplexity-mcp-server:
     dependencies:
-      '@fastify/cors':
-        specifier: ^9.0.1
-        version: 9.0.1
+      '@mcp/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -173,9 +170,6 @@ importers:
       '@mcp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
-      fastify:
-        specifier: ^4.28.1
-        version: 4.29.1
       zod:
         specifier: ^3.25.67
         version: 3.25.74

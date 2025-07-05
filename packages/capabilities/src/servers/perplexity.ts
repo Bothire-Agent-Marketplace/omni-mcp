@@ -6,7 +6,7 @@ import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
 export const PERPLEXITY_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "perplexity",
-  port: 3003,
+  port: 3002,
   description:
     "Perplexity MCP Server for AI-powered search, research, comparison, and summarization",
   productionUrl: "https://perplexity-mcp.vercel.app",

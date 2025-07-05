@@ -1,4 +1,4 @@
-import { createMcpHttpServer } from "@mcp/server-core";
+import { createMcpHttpServer, type FastifyInstance } from "@mcp/server-core";
 import type { PerplexityServerConfig } from "../config/config.js";
 import { createPromptHandlers, getAvailablePrompts } from "./prompts.js";
 import { createResourceHandlers, getAvailableResources } from "./resources.js";
@@ -9,7 +9,7 @@ import { createToolHandlers, getAvailableTools } from "./tools.js";
 
 export async function createPerplexityHttpServer(
   config: PerplexityServerConfig
-) {
+): Promise<FastifyInstance> {
   // TODO: Initialize your perplexity client if you have one
   // const perplexityClient = new PerplexityClient({ apiKey: config.perplexityApiKey });
 

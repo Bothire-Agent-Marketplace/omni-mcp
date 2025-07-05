@@ -1,5 +1,6 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { PERPLEXITY_SERVER } from "@mcp/capabilities";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
@@ -25,7 +26,10 @@ function createPerplexityServerConfig(): PerplexityServerConfig {
 
   const config: PerplexityServerConfig = {
     env,
-    port: validatePort(process.env.PERPLEXITY_SERVER_PORT, 3003),
+    port: validatePort(
+      process.env.PERPLEXITY_SERVER_PORT,
+      PERPLEXITY_SERVER.port
+    ),
     host: process.env.HOST || "0.0.0.0",
     perplexityApiKey: validateSecret(
       process.env.PERPLEXITY_API_KEY,

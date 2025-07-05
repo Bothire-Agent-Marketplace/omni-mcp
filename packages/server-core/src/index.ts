@@ -16,6 +16,7 @@ export type {
 
 // HTTP server factory
 export { createMcpHttpServer } from "./http-server.js";
+export type { FastifyInstance } from "fastify";
 
 // Server startup utilities
 export { startMcpServer, createServerStarter } from "./server-startup.js";
