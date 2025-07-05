@@ -22,8 +22,8 @@ apps/[domain]-mcp-server/
 │   │   ├── http-server.ts         # HTTP server setup
 │   │   ├── tools.ts               # Tool definitions and exports
 │   │   ├── resources.ts           # Resource definitions and exports
-│   │   ├── prompts.ts             # Prompt functions
-│   │   └── prompts-registry.ts    # Prompt definitions and exports
+│   │   └── prompts.ts             # Prompt functions
+│   │
 │   └── index.ts                   # Main entry point
 ├── package.json
 └── tsconfig.json
