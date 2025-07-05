@@ -1,5 +1,5 @@
 // Import servers and registry for auto-registration
-import { serverRegistry } from "./registry.js";
+import { serverRegistry } from "./mcp-server-registry.js";
 import { LINEAR_SERVER } from "./servers/index.js";
 
 // ============================================================================
@@ -10,7 +10,7 @@ import { LINEAR_SERVER } from "./servers/index.js";
 export * from "./types.js";
 
 // Export registry system
-export * from "./registry.js";
+export * from "./mcp-server-registry.js";
 
 // Export all server definitions
 export * from "./servers/index.js";

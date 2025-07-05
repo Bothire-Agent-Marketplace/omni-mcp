@@ -1,5 +1,5 @@
 export * from "./env-loader.js";
 export * from "./validation.js";
 export * from "./mcp-servers.js";
-export * from "./mcp-registry.js";
+export * from "./mcp-server-utilities.js";
 export * from "./logger.js";
