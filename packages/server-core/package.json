@@ -1,44 +1,45 @@
 {
-  "name": "@mcp/perplexity-server",
-  "version": "workspace:*",
-  "description": "Perplexity MCP Server with TypeScript and Zod validation",
-  "author": "Your Name",
+  "name": "@mcp/server-core",
+  "version": "1.0.0",
+  "description": "Core utilities and abstractions for building MCP servers with TypeScript",
+  "author": "Bothire Agent Marketplace",
   "main": "dist/index.js",
   "type": "module",
   "exports": {
-    ".": "./dist/index.js"
+    ".": "./dist/index.js",
+    "./http-server": "./dist/http-server.js",
+    "./config": "./dist/config.js",
+    "./entry-point": "./dist/entry-point.js"
   },
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "dev": "tsx --watch src/index.ts",
-    "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc --watch",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
+    "@fastify/cors": "^9.0.1",
     "@mcp/schemas": "workspace:*",
-    "@mcp/server-core": "workspace:*",
     "@mcp/utils": "workspace:*",
+    "fastify": "^4.28.1",
     "zod": "^3.25.67"
   },
   "devDependencies": {
     "@types/node": "^24.0.8",
-    "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "keywords": [
-    "claude",
-    "perplexity",
     "mcp",
     "model-context-protocol",
+    "server",
+    "core",
     "typescript",
-    "zod"
+    "fastify"
   ],
   "license": "MIT"
 }

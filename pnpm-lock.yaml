@@ -136,6 +136,9 @@ importers:
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@mcp/server-core':
+        specifier: workspace:*
+        version: link:../../packages/server-core
       '@mcp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -164,6 +167,9 @@ importers:
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
+      '@mcp/server-core':
+        specifier: workspace:*
+        version: link:../../packages/server-core
       '@mcp/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -225,6 +231,31 @@ importers:
         specifier: ^3.25.67
         version: 3.25.67
     devDependencies:
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  packages/server-core:
+    dependencies:
+      '@fastify/cors':
+        specifier: ^9.0.1
+        version: 9.0.1
+      '@mcp/schemas':
+        specifier: workspace:*
+        version: link:../schemas
+      '@mcp/utils':
+        specifier: workspace:*
+        version: link:../utils
+      fastify:
+        specifier: ^4.28.1
+        version: 4.29.1
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.74
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.8
+        version: 24.0.10
       typescript:
         specifier: ^5.8.3
         version: 5.8.3

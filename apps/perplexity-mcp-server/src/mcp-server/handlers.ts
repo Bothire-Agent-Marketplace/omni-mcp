@@ -3,7 +3,6 @@
 // ============================================================================
 
 import { perplexityServerConfig } from "../config/config.js";
-import { logger } from "../index.js";
 import {
   SearchInputSchema,
   ResearchInputSchema,
@@ -20,13 +19,6 @@ import {
 async function callPerplexityAPI(
   request: PerplexityRequest
 ): Promise<PerplexityResponse> {
-  logger.debug("Perplexity API request", {
-    model: request.model,
-    maxTokens: request.max_tokens,
-    temperature: request.temperature,
-    apiKeyPrefix: perplexityServerConfig.perplexityApiKey?.substring(0, 10),
-  });
-
   const response = await fetch(
     `${perplexityServerConfig.baseUrl}/chat/completions`,
     {
@@ -42,13 +34,8 @@ async function callPerplexityAPI(
 
   if (!response.ok) {
     const errorBody = await response.text();
-    logger.error(
-      `Perplexity API error: ${response.status} ${response.statusText}`,
-      undefined,
-      { errorBody }
-    );
     throw new Error(
-      `Perplexity API error: ${response.status} ${response.statusText}`
+      `Perplexity API error: ${response.status} ${response.statusText} - ${errorBody}`
     );
   }
 
@@ -75,12 +62,6 @@ export async function handlePerplexitySearch(
     return_related_questions,
     search_domain_filter,
   } = validatedParams;
-
-  logger.debug("Perplexity search handler called", {
-    query: query.substring(0, 50) + "...",
-    model,
-    maxTokens: max_tokens,
-  });
 
   const messages: PerplexityMessage[] = [
     {

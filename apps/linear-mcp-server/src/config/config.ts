@@ -1,5 +1,6 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import type { BaseMcpServerConfig } from "@mcp/server-core";
 import type { Environment } from "@mcp/utils";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
@@ -11,7 +12,7 @@ const SERVICE_PATH = join(__dirname, "..");
 // Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
 
-export interface LinearServerConfig {
+export interface LinearServerConfig extends BaseMcpServerConfig {
   env: Environment;
   port: number;
   host: string;

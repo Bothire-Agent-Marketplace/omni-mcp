@@ -147,10 +147,9 @@ function generateTemplateFiles(serverDir, domain) {
       "lint:fix": "eslint src --ext .ts --fix",
     },
     dependencies: {
-      "@fastify/cors": "^9.0.1",
       "@mcp/schemas": "workspace:*",
+      "@mcp/server-core": "workspace:*",
       "@mcp/utils": "workspace:*",
-      fastify: "^4.28.1",
       zod: "^3.25.67",
     },
     devDependencies: {
@@ -694,52 +693,19 @@ LOG_LEVEL=debug
 function generateIndexTemplate(domain) {
   return `#!/usr/bin/env node
 
-import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
+import { runMcpServer } from "@mcp/server-core";
 import { ${domain.toLowerCase()}ServerConfig } from "./config/config.js";
-import { start${capitalize(domain)}Server } from "./mcp-server/http-server.js";
+import { create${capitalize(domain)}HttpServer } from "./mcp-server/http-server.js";
 
-// Initialize MCP-compliant logger
-export const logger = createMcpLogger({
-  serverName: "${domain}-mcp-server",
-  logLevel: ${domain.toLowerCase()}ServerConfig.logLevel,
-  environment: ${domain.toLowerCase()}ServerConfig.env,
-});
-
-// Setup global error handlers
-setupGlobalErrorHandlers(logger);
-
-// Graceful shutdown handlers
-process.on("SIGTERM", () => {
-  logger.serverShutdown({ signal: "SIGTERM" });
-  process.exit(0);
-});
-
-process.on("SIGINT", () => {
-  logger.serverShutdown({ signal: "SIGINT" });
-  process.exit(0);
-});
-
-// Start the server
-async function main() {
-    logger.serverStartup(${domain.toLowerCase()}ServerConfig.port);
-    start${capitalize(domain)}Server(${domain.toLowerCase()}ServerConfig);
-  } catch (error) {
-    logger.error("Unhandled error during startup", error as Error);
-    process.exit(1);
-  }
-}
-
-// Start the server if this file is run directly
-if (import.meta.url === \`file://\${process.argv[1]}\`) {
-  main();
-}
+// Start the server using the server-core helper
+runMcpServer("${domain}-mcp-server", ${domain.toLowerCase()}ServerConfig, create${capitalize(domain)}HttpServer);
 `;
 }
 
 function generateConfigTemplate(domain) {
   return `import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import type { Environment } from "@mcp/utils";
+import type { BaseMcpServerConfig } from "@mcp/server-core";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
 
@@ -750,12 +716,8 @@ const SERVICE_PATH = join(__dirname, "..");
 // Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
 
-export interface ${capitalize(domain)}ServerConfig {
-  env: Environment;
-  port: number;
-  host: string;
+export interface ${capitalize(domain)}ServerConfig extends BaseMcpServerConfig {
   ${domain.toLowerCase()}ApiKey: string;
-  logLevel: string;
 }
 
 function create${capitalize(domain)}ServerConfig(): ${capitalize(domain)}ServerConfig {
@@ -766,12 +728,12 @@ function create${capitalize(domain)}ServerConfig(): ${capitalize(domain)}ServerC
     env,
     port: validatePort(process.env.${domain.toUpperCase()}_SERVER_PORT, ${getNextAvailablePort()}),
     host: process.env.HOST || "0.0.0.0",
+    logLevel: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
     ${domain.toLowerCase()}ApiKey: validateSecret(
       process.env.${domain.toUpperCase()}_API_KEY,
       env,
       "${domain.toUpperCase()}_API_KEY"
     ),
-    logLevel: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
   };
 
   return config;
@@ -868,7 +830,6 @@ function generateHandlersTemplate(domain) {
 
 import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
 import type { ${capitalize(domain)}Item, ${capitalize(domain)}Project } from "../types/domain-types.js";
-import { logger } from "../index.js";
 
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
@@ -885,7 +846,7 @@ export class ${capitalize(domain)}Handlers {
 
   // Tool handlers
   async searchItems(query: string, limit: number = 10): Promise<${capitalize(domain)}Item[]> {
-    logger.debug(\`Searching \${query} with limit \${limit}\`);
+
     
     // TODO: Implement your ${domain} search logic
     // const results = await this.client.searchItems({ query, limit });
@@ -904,7 +865,7 @@ export class ${capitalize(domain)}Handlers {
   }
 
   async getItem(id: string): Promise<${capitalize(domain)}Item | null> {
-    logger.debug(\`Getting item \${id}\`);
+
     
     // TODO: Implement your ${domain} get item logic
     // const item = await this.client.getItem(id);
@@ -921,7 +882,7 @@ export class ${capitalize(domain)}Handlers {
   }
 
   async createItem(title: string, description?: string): Promise<${capitalize(domain)}Item> {
-    logger.debug(\`Creating item with title: \${title}\`);
+
     
     // TODO: Implement your ${domain} create item logic
     // const item = await this.client.createItem({ title, description });
@@ -939,7 +900,7 @@ export class ${capitalize(domain)}Handlers {
 
   // Resource handlers
   async getProjects(): Promise<${capitalize(domain)}Project[]> {
-    logger.debug("Getting projects");
+
     
     // TODO: Implement your ${domain} get projects logic
     // const projects = await this.client.getProjects();
@@ -968,7 +929,7 @@ export async function handle${capitalize(domain)}SearchItems(
   // TODO: Add Zod validation for params
   const { query, limit } = params as { query?: string; limit?: number };
   
-  logger.debug(\`Searching \${query || ""} with limit \${limit || 10}\`);
+
   
   // TODO: Implement your ${domain} search logic
   // const results = await ${domain.toLowerCase()}Client.searchItems({ query, limit });
@@ -1001,7 +962,7 @@ export async function handle${capitalize(domain)}GetItem(
   // TODO: Add Zod validation for params
   const { id } = params as { id: string };
   
-  logger.debug(\`Getting item \${id}\`);
+
   
   // TODO: Implement your ${domain} get item logic
   // const item = await ${domain.toLowerCase()}Client.getItem(id);
@@ -1032,7 +993,7 @@ export async function handle${capitalize(domain)}CreateItem(
   // TODO: Add Zod validation for params
   const { title, description } = params as { title: string; description?: string };
   
-  logger.debug(\`Creating item with title: \${title}\`);
+
   
   // TODO: Implement your ${domain} create item logic
   // const item = await ${domain.toLowerCase()}Client.createItem({ title, description });
@@ -1065,7 +1026,7 @@ export async function handle${capitalize(domain)}ItemsResource(
   uri: string
 ) {
   try {
-    logger.debug("Getting items resource");
+
     
     // TODO: Implement your ${domain} get items logic
     // const items = await ${domain.toLowerCase()}Client.getItems();
@@ -1108,7 +1069,7 @@ export async function handle${capitalize(domain)}ProjectsResource(
   uri: string
 ) {
   try {
-    logger.debug("Getting projects resource");
+
     
     // TODO: Implement your ${domain} get projects logic
     // const projects = await ${domain.toLowerCase()}Client.getProjects();
@@ -1148,15 +1109,7 @@ export async function handle${capitalize(domain)}ProjectsResource(
 }
 
 function generateHttpServerTemplate(domain) {
-  return `import cors from "@fastify/cors";
-import fastify, {
-  FastifyInstance,
-  FastifyReply,
-  FastifyRequest,
-} from "fastify";
-import { ZodError } from "zod";
-import { MCPRequest, MCPResponse, MCPErrorResponse } from "@mcp/schemas";
-import { createMcpLogger } from "@mcp/utils";
+  return `import { createMcpHttpServer } from "@mcp/server-core";
 import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
 import {
   createPromptHandlers,
@@ -1168,16 +1121,7 @@ import { createToolHandlers, getAvailableTools } from "./tools.js";
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
 
-// Default empty parameters object
-const DEFAULT_PARAMS: Record<string, unknown> = {};
-
-function createHttpServer(config: ${capitalize(domain)}ServerConfig): FastifyInstance {
-  const logger = createMcpLogger({
-    serverName: "${domain}-http-server",
-    logLevel: config.logLevel,
-    environment: config.env,
-  });
-
+export function create${capitalize(domain)}HttpServer(config: ${capitalize(domain)}ServerConfig) {
   // TODO: Initialize your ${domain} client
   // const ${domain.toLowerCase()}Client = new ${capitalize(domain)}Client({ apiKey: config.${domain.toLowerCase()}ApiKey });
 
@@ -1186,222 +1130,21 @@ function createHttpServer(config: ${capitalize(domain)}ServerConfig): FastifyIns
   const resourceHandlers = createResourceHandlers(/* ${domain.toLowerCase()}Client */);
   const promptHandlers = createPromptHandlers();
 
-  const server = fastify({ logger: false }); // Disable default logger to use our own
-
-  server.register(cors);
-
-  server.setErrorHandler(
-    (error: Error, request: FastifyRequest, reply: FastifyReply) => {
-      logger.error("Unhandled error:", error);
-      reply.status(500).send({
-        jsonrpc: "2.0",
-        error: {
-          code: -32603,
-          message: "Internal server error",
-          data: error.message,
-        },
-      });
-    }
-  );
-
-  server.get("/health", async () => {
-    return { status: "ok" };
+  return createMcpHttpServer({
+    config,
+    tools: {
+      handlers: toolHandlers,
+      list: getAvailableTools(),
+    },
+    resources: {
+      handlers: resourceHandlers,
+      list: getAvailableResources(),
+    },
+    prompts: {
+      handlers: promptHandlers,
+      list: getAvailablePrompts(),
+    },
   });
-
-  // Main MCP endpoint - handles tools, resources, and prompts
-  server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { jsonrpc, method, params, id } = request.body as MCPRequest;
-
-    if (jsonrpc !== "2.0") {
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32600, message: "Invalid Request" },
-      };
-      reply.status(400).send(errorResponse);
-      return;
-    }
-
-    try {
-      // Handle different MCP methods
-      switch (method) {
-        case "tools/call": {
-          const toolName = params?.name;
-          const handler =
-            toolName && typeof toolName === "string"
-              ? toolHandlers[toolName]
-              : undefined;
-
-          if (!handler || !toolName) {
-            const errorResponse: MCPErrorResponse = {
-              jsonrpc: "2.0",
-              id,
-              error: {
-                code: -32601,
-                message: \`Tool not found: \${toolName}\`,
-              },
-            };
-            reply.status(404).send(errorResponse);
-            return;
-          }
-
-          const result = await handler(
-            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
-          );
-          const response: MCPResponse = { jsonrpc: "2.0", id, result };
-          return response;
-        }
-
-        case "resources/read": {
-          const uri = params?.uri;
-          const handler =
-            uri && typeof uri === "string" ? resourceHandlers[uri] : undefined;
-
-          if (!handler || !uri) {
-            const errorResponse: MCPErrorResponse = {
-              jsonrpc: "2.0",
-              id,
-              error: {
-                code: -32601,
-                message: \`Resource not found: \${uri}\`,
-              },
-            };
-            reply.status(404).send(errorResponse);
-            return;
-          }
-
-          const result = await handler(uri as string);
-          const response: MCPResponse = { jsonrpc: "2.0", id, result };
-          return response;
-        }
-
-        case "prompts/get": {
-          const name = params?.name;
-          const handler =
-            name && typeof name === "string" ? promptHandlers[name] : undefined;
-
-          if (!handler || !name) {
-            const errorResponse: MCPErrorResponse = {
-              jsonrpc: "2.0",
-              id,
-              error: {
-                code: -32601,
-                message: \`Prompt not found: \${name}\`,
-              },
-            };
-            reply.status(404).send(errorResponse);
-            return;
-          }
-
-          const result = await handler(
-            (params?.arguments as Record<string, unknown>) || DEFAULT_PARAMS
-          );
-          const response: MCPResponse = { jsonrpc: "2.0", id, result };
-          return response;
-        }
-
-        case "tools/list": {
-          const tools = getAvailableTools();
-          const response: MCPResponse = {
-            jsonrpc: "2.0",
-            id,
-            result: { tools },
-          };
-          return response;
-        }
-
-        case "resources/list": {
-          const resources = getAvailableResources();
-          const response: MCPResponse = {
-            jsonrpc: "2.0",
-            id,
-            result: { resources },
-          };
-          return response;
-        }
-
-        case "prompts/list": {
-          const prompts = getAvailablePrompts();
-          const response: MCPResponse = {
-            jsonrpc: "2.0",
-            id,
-            result: { prompts },
-          };
-          return response;
-        }
-
-        default: {
-          const errorResponse: MCPErrorResponse = {
-            jsonrpc: "2.0",
-            id,
-            error: {
-              code: -32601,
-              message: \`Method not found: \${method}\`,
-            },
-          };
-          reply.status(404).send(errorResponse);
-          return;
-        }
-      }
-    } catch (error: unknown) {
-      // Handle Zod validation errors specifically
-      if (error instanceof ZodError) {
-        const validationErrors = error.errors
-          .map((err) => \`\${err.path.join(".")}: \${err.message}\`)
-          .join(", ");
-
-        const errorResponse: MCPErrorResponse = {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32602,
-            message: "Invalid params",
-            data: \`Validation failed: \${validationErrors}\`,
-          },
-        };
-        reply.status(400).send(errorResponse);
-        return;
-      }
-
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32603,
-          message: "Internal server error",
-          data: errorMessage,
-        },
-      };
-      reply.status(500).send(errorResponse);
-    }
-  });
-
-  return server;
-}
-
-export async function start${capitalize(domain)}Server(config: ${capitalize(domain)}ServerConfig) {
-  const server = createHttpServer(config);
-  const { port, host } = config;
-
-  const logger = createMcpLogger({
-    serverName: "${domain}-http-server",
-    logLevel: config.logLevel,
-    environment: config.env,
-  });
-
-  try {
-    await server.listen({ port, host });
-    logger.info(\`🚀 ${capitalize(domain)} MCP HTTP server listening on port \${port}\`);
-    logger.info(\`📋 Health check: http://localhost:\${port}/health\`);
-    logger.info(\`🔌 MCP endpoint: http://localhost:\${port}/mcp\`);
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error starting server";
-    logger.error("Error starting server", new Error(errorMessage));
-    process.exit(1);
-  }
 }
 `;
 }
