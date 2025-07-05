@@ -32,12 +32,16 @@ export const CommonInputSchemas = {
   } as JSONSchemaProperty,
 
   optionalLimit: {
-    type: "integer",
+    type: "number",
     minimum: 1,
     maximum: 100,
     default: 10,
-    description: "Optional limit for results (1-100, default: 10)",
+    description: "Optional limit for number of results",
   } as JSONSchemaProperty,
+
+  optionalNumber: {
+    type: "number",
+  },
 
   // Boolean inputs
   optionalBoolean: {
@@ -68,6 +72,19 @@ export const CommonInputSchemas = {
     additionalProperties: true,
     description: "Optional object parameter",
   } as JSONSchemaProperty,
+
+  optionalMaxTokens: {
+    type: "number",
+    minimum: 1,
+    description: "Optional max tokens for the response",
+  },
+
+  temperature: {
+    type: "number",
+    minimum: 0,
+    maximum: 2,
+    description: "Optional temperature for the response",
+  },
 } as const;
 
 // ============================================================================

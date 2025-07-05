@@ -10,3 +10,5 @@ export * from "./common.js";
 
 // Export server-specific schemas
 export * from "./linear.js";
+
+export * from "./perplexity.js";

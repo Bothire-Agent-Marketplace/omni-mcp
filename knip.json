@@ -2,7 +2,11 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["client-integrations/shared/mcp-bridge-core.js", "client-integrations/shared/config.js"]
+      "entry": [
+        "client-integrations/shared/mcp-bridge-core.js",
+        "client-integrations/shared/config.js",
+        "scripts/scaffold-mcp-server.js"
+      ]
     },
     "packages/*": {},
     "apps/*": {},

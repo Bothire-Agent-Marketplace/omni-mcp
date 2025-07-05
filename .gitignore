@@ -242,6 +242,7 @@ gateway/coverage
 # Service-specific environment files
 .env.gateway.local
 .env.linear.local
+.env.perplexity.local
 .env.database.local
 .env.monitoring.local
 

@@ -156,6 +156,34 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
 
+  apps/perplexity-mcp-server:
+    dependencies:
+      '@fastify/cors':
+        specifier: ^9.0.1
+        version: 9.0.1
+      '@mcp/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      '@mcp/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      fastify:
+        specifier: ^4.28.1
+        version: 4.29.1
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.74
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.8
+        version: 24.0.10
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   packages/capabilities:
     dependencies:
       zod:

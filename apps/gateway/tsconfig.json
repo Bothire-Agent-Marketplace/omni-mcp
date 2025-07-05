@@ -16,6 +16,9 @@
     },
     {
       "path": "../../packages/utils"
+    },
+    {
+      "path": "../perplexity-mcp-server"
     }
   ],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]
