@@ -31,12 +31,12 @@
     "@vitest/ui": "^3.2.4",
     "eslint": "^9.30.1",
     "eslint-import-resolver-typescript": "^4.4.4",
-    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-unused-imports": "^4.1.4",
-    "husky": "^9.0.0",
+    "husky": "^9.1.7",
     "knip": "^5.61.3",
     "lint-staged": "^16.1.2",
-    "prettier": "^3.2.5",
+    "prettier": "^3.6.2",
     "syncpack": "^13.0.4",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
@@ -56,7 +56,8 @@
     "overrides": {}
   },
   "dependencies": {
+    "eventsource": "^2.0.2",
     "typescript-eslint": "^8.35.1",
-    "zod": "^3.25.67"
+    "zod": "^3.25.74"
   }
 }

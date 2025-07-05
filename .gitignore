@@ -18,11 +18,6 @@ secrets/*.staging
 !.env.production.local.example
 !.env.test.local.example
 
-# Claude Desktop Configuration (contains sensitive paths)
-# =============================================================================
-config.json
-*config.local.json
-claude_desktop_config.local.json
 
 # Database Data and Backups
 # =============================================================================

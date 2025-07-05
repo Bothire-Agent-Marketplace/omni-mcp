@@ -43,10 +43,10 @@ function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
   return headers;
 }
 
-// Initialize MCP-compliant logger
+// Initialize logger
 const logger = createMcpLogger({
   serverName: "mcp-gateway",
-  logLevel: gatewayConfig.env,
+  logLevel: gatewayConfig.env === "production" ? "info" : "debug",
   environment: gatewayConfig.env,
 });
 
@@ -54,6 +54,9 @@ const logger = createMcpLogger({
 setupGlobalErrorHandlers(logger);
 
 let serverInstance: FastifyInstance | null = null;
+
+// Store SSE connections
+const sseConnections = new Map<string, FastifyReply>();
 
 async function createServer(): Promise<FastifyInstance> {
   if (serverInstance) {
@@ -130,6 +133,75 @@ async function createServer(): Promise<FastifyInstance> {
         };
 
         return reply.send(response);
+      }
+    );
+
+    // SSE endpoint for mcp-bridge compatibility
+    server.get("/sse", async (request: FastifyRequest, reply: FastifyReply) => {
+      const sessionId = Math.random().toString(36).substr(2, 9);
+
+      reply.raw.writeHead(200, {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Cache-Control",
+      });
+
+      // Store the connection
+      sseConnections.set(sessionId, reply);
+
+      // Send initial connection event
+      reply.raw.write(
+        `data: ${JSON.stringify({
+          type: "connection",
+          sessionId: sessionId,
+        })}\n\n`
+      );
+
+      // Handle client disconnect
+      request.raw.on("close", () => {
+        sseConnections.delete(sessionId);
+        logger.info(`SSE connection closed: ${sessionId}`);
+      });
+
+      // Keep connection alive
+      const keepAlive = setInterval(() => {
+        if (reply.raw.destroyed) {
+          clearInterval(keepAlive);
+          sseConnections.delete(sessionId);
+          return;
+        }
+        reply.raw.write(": keep-alive\n\n");
+      }, 30000);
+
+      logger.info(`SSE connection established: ${sessionId}`);
+    });
+
+    // Messages endpoint for mcp-bridge compatibility
+    server.post(
+      "/messages",
+      async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+          logger.info("Received message via /messages endpoint", {
+            body: request.body,
+          });
+
+          // Process the MCP request through the gateway
+          const response = await mcpGateway.handleHttpRequest(
+            request.body,
+            convertHeaders(request.headers)
+          );
+
+          // Send response back immediately for synchronous requests
+          return reply.send(response);
+        } catch (error) {
+          logger.error("Messages endpoint error", error as Error);
+          return reply.status(500).send({
+            error: "Internal server error",
+            message: error instanceof Error ? error.message : "Unknown error",
+          });
+        }
       }
     );
 
@@ -220,28 +292,27 @@ async function createServer(): Promise<FastifyInstance> {
     // Graceful shutdown with proper cleanup
     const close = async () => {
       logger.info("Initiating graceful shutdown...");
+      // Close all SSE connections
+      for (const [_sessionId, reply] of sseConnections.entries()) {
+        if (!reply.raw.destroyed) {
+          reply.raw.end();
+        }
+      }
+      sseConnections.clear();
       await mcpGateway.shutdown();
       await server.close();
       logger.info("Gateway shutdown complete");
     };
 
-    process.on("SIGINT", async () => {
-      logger.serverShutdown({ signal: "SIGINT" });
-      await close();
-      process.exit(0);
-    });
-
-    process.on("SIGTERM", async () => {
-      logger.serverShutdown({ signal: "SIGTERM" });
-      await close();
-      process.exit(0);
-    });
+    // Handle shutdown signals
+    process.on("SIGINT", close);
+    process.on("SIGTERM", close);
 
     serverInstance = server;
     return server;
   } catch (error) {
-    logger.error("Failed to initialize MCP Gateway", error as Error);
-    process.exit(1);
+    logger.error("Failed to create server", error as Error);
+    throw error;
   }
 }
 
@@ -263,6 +334,12 @@ async function start() {
       `🔌 MCP endpoint: http://${gatewayConfig.host}:${gatewayConfig.port}/mcp`
     );
     logger.info(
+      `📡 SSE endpoint: http://${gatewayConfig.host}:${gatewayConfig.port}/sse`
+    );
+    logger.info(
+      `📨 Messages endpoint: http://${gatewayConfig.host}:${gatewayConfig.port}/messages`
+    );
+    logger.info(
       `🌐 WebSocket: ws://${gatewayConfig.host}:${gatewayConfig.port}/mcp/ws`
     );
 
@@ -275,9 +352,10 @@ async function start() {
   }
 }
 
-// Auto-start if this is the main module
+// Export for testing
+export { createServer };
+
+// Start the server if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
   start();
 }
-
-export { createServer };

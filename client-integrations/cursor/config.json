@@ -1,0 +1,19 @@
+{
+  "name": "cursor",
+  "description": "MCP Bridge configuration for Cursor IDE",
+  "bridge": {
+    "timeout": 30000,
+    "retries": 3,
+    "debug": false
+  },
+  "mcp": {
+    "serverName": "gateway",
+    "command": "node",
+    "args": ["bridge.js"]
+  },
+  "features": {
+    "autoReconnect": true,
+    "gracefulShutdown": true,
+    "requestBuffering": false
+  }
+}

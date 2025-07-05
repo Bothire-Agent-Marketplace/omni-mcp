@@ -504,41 +504,34 @@ export class MCPGateway {
   private async getAvailableTools(): Promise<MCPTool[]> {
     const allTools: MCPTool[] = [];
 
-    // Fetch tools from all healthy servers
-    for (const [serverId] of this.capabilityMap.entries()) {
-      const serverInstance =
-        await this.serverManager.getServerInstance(serverId);
+    // Fetch tools from all servers (not just healthy ones) in development
+    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
+      try {
+        const toolsRequest = {
+          jsonrpc: "2.0",
+          id: `tools_${Date.now()}`,
+          method: "tools/list",
+          params: {},
+        };
 
-      if (serverInstance) {
-        try {
-          const toolsRequest = {
-            jsonrpc: "2.0",
-            id: `tools_${Date.now()}`,
-            method: "tools/list",
-            params: {},
-          };
+        const response = await fetch(`${config.url}/mcp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(toolsRequest),
+        });
 
-          const response = await fetch(`${serverInstance.url}/mcp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(toolsRequest),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.result?.tools) {
-              // Use the actual tool definitions from the server
-              allTools.push(...result.result.tools);
-            }
+        if (response.ok) {
+          const result = await response.json();
+          if (result.result?.tools) {
+            // Use the actual tool definitions from the server
+            allTools.push(...result.result.tools);
           }
-        } catch (error) {
-          this.logger.warn(`Failed to fetch tools from ${serverId}:`, {
-            error: error instanceof Error ? error.message : String(error),
-            serverId,
-          });
-        } finally {
-          this.serverManager.releaseServerInstance(serverInstance);
         }
+      } catch (error) {
+        this.logger.warn(`Failed to fetch tools from ${serverId}:`, {
+          error: error instanceof Error ? error.message : String(error),
+          serverId,
+        });
       }
     }
 
@@ -548,40 +541,33 @@ export class MCPGateway {
   private async getAvailableResources(): Promise<MCPResource[]> {
     const allResources: MCPResource[] = [];
 
-    // Fetch resources from all healthy servers
-    for (const [serverId] of this.capabilityMap.entries()) {
-      const serverInstance =
-        await this.serverManager.getServerInstance(serverId);
+    // Fetch resources from all servers (not just healthy ones) in development
+    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
+      try {
+        const resourcesRequest = {
+          jsonrpc: "2.0",
+          id: `resources_${Date.now()}`,
+          method: "resources/list",
+          params: {},
+        };
 
-      if (serverInstance) {
-        try {
-          const resourcesRequest = {
-            jsonrpc: "2.0",
-            id: `resources_${Date.now()}`,
-            method: "resources/list",
-            params: {},
-          };
+        const response = await fetch(`${config.url}/mcp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(resourcesRequest),
+        });
 
-          const response = await fetch(`${serverInstance.url}/mcp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(resourcesRequest),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.result?.resources) {
-              allResources.push(...result.result.resources);
-            }
+        if (response.ok) {
+          const result = await response.json();
+          if (result.result?.resources) {
+            allResources.push(...result.result.resources);
           }
-        } catch (error) {
-          this.logger.warn(`Failed to fetch resources from ${serverId}:`, {
-            error: error instanceof Error ? error.message : String(error),
-            serverId,
-          });
-        } finally {
-          this.serverManager.releaseServerInstance(serverInstance);
         }
+      } catch (error) {
+        this.logger.warn(`Failed to fetch resources from ${serverId}:`, {
+          error: error instanceof Error ? error.message : String(error),
+          serverId,
+        });
       }
     }
 
@@ -591,37 +577,33 @@ export class MCPGateway {
   private async getAvailablePrompts(): Promise<MCPPrompt[]> {
     const allPrompts: MCPPrompt[] = [];
 
-    // Fetch prompts from all healthy servers
-    for (const [serverId] of this.capabilityMap.entries()) {
-      const serverInstance =
-        await this.serverManager.getServerInstance(serverId);
+    // Fetch prompts from all servers (not just healthy ones) in development
+    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
+      try {
+        const promptsRequest = {
+          jsonrpc: "2.0",
+          id: `prompts_${Date.now()}`,
+          method: "prompts/list",
+          params: {},
+        };
 
-      if (serverInstance) {
-        try {
-          const promptsRequest = {
-            jsonrpc: "2.0",
-            id: `prompts_${Date.now()}`,
-            method: "prompts/list",
-            params: {},
-          };
+        const response = await fetch(`${config.url}/mcp`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(promptsRequest),
+        });
 
-          const response = await fetch(`${serverInstance.url}/mcp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(promptsRequest),
-          });
-
-          if (response.ok) {
-            const result = await response.json();
-            if (result.result?.prompts) {
-              allPrompts.push(...result.result.prompts);
-            }
+        if (response.ok) {
+          const result = await response.json();
+          if (result.result?.prompts) {
+            allPrompts.push(...result.result.prompts);
           }
-        } catch {
-          this.logger.warn(`Failed to fetch prompts from ${serverId}:`);
-        } finally {
-          this.serverManager.releaseServerInstance(serverInstance);
         }
+      } catch (error) {
+        this.logger.warn(`Failed to fetch prompts from ${serverId}:`, {
+          error: error instanceof Error ? error.message : String(error),
+          serverId,
+        });
       }
     }
 

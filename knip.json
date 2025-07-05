@@ -1,12 +1,14 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "workspaces": {
-    ".": {},
+    ".": {
+      "entry": ["client-integrations/shared/mcp-bridge-core.js", "client-integrations/shared/config.js"]
+    },
     "packages/*": {},
     "apps/*": {},
     "packages/dev-tools": {
       "entry": ["src/index.ts", "src/cli/index.ts"]
     }
   },
-  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
+  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "client-integrations/*/bridge.js"]
 }
