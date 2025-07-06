@@ -1,177 +1,203 @@
-# 🔧 Omni MCP Development Tools
+# 🚀 Omni MCP Development CLI
 
-Official CLI for testing and developing with the Omni MCP architecture.
+**Server Capability Showcase & Testing** - Simplified CLI for exploring and testing MCP server
+capabilities.
 
-## Installation
-
-The CLI is automatically available in the workspace:
+## 🎯 Quick Start
 
 ```bash
-# Install dependencies
-pnpm install
+# Check if everything is running
+pnpm omni-mcp health
 
-# Use the CLI
-pnpm omni-mcp --help
+# See what's available across all servers
+pnpm omni-mcp showcase --examples
+
+# Quick test all servers
+pnpm omni-mcp test
 ```
 
-## Commands
+## 🛠️ Main Commands
 
-### 🌐 Test Gateway
+### 🎯 **Showcase** - Explore Server Capabilities
 
 ```bash
-# Test all gateway endpoints
-pnpm omni-mcp test-gateway
+# Show all servers and their tools
+pnpm omni-mcp showcase
 
-# Test specific endpoints
-pnpm omni-mcp test-gateway --tools
-pnpm omni-mcp test-gateway --resources
-pnpm omni-mcp test-gateway --prompts
+# Show specific server with examples
+pnpm omni-mcp showcase devtools --examples
+pnpm omni-mcp showcase linear --examples
+pnpm omni-mcp showcase perplexity --examples
 
-# Interactive testing
-pnpm omni-mcp test-gateway --interactive
-
-# Call a specific tool
-pnpm omni-mcp test-gateway --call linear_get_teams --args '{"limit": 5}'
+# Test tools with example payloads
+pnpm omni-mcp showcase devtools --test
 ```
 
-### 🔧 Test Individual Servers
+### 🔧 **Quick Test** - Verify Everything Works
 
 ```bash
-# Test Linear server directly
-pnpm omni-mcp test-server linear
+# Test all servers with basic functionality
+pnpm omni-mcp test
 
-# Test with custom port
-pnpm omni-mcp test-server linear --port 3001
+# Test specific server only
+pnpm omni-mcp test --server devtools
 ```
 
-### 🏥 Health Checks
+### 🏥 **Health Check** - System Status
 
 ```bash
-# Check all services
-pnpm omni-mcp health --all
-
-# Check gateway only
-pnpm omni-mcp health --gateway
-
-# Check servers only
-pnpm omni-mcp health --servers
+# Check gateway and all servers
+pnpm omni-mcp health
 ```
 
-### 📋 List Capabilities
+### ⚡ **Call Tool** - Direct Testing
 
 ```bash
-# List all available tools, resources, and prompts
-pnpm omni-mcp list
-
-# List specific types
-pnpm omni-mcp list --tools
-pnpm omni-mcp list --resources
-pnpm omni-mcp list --prompts
+# Call a tool directly
+pnpm omni-mcp call chrome_start --args '{"headless": true}'
+pnpm omni-mcp call linear_get_teams
 ```
 
-### 🔧 Call Tools Directly
+### 🎮 **Interactive Mode** - Explore Dynamically
 
 ```bash
-# Call a tool with arguments
-pnpm omni-mcp call linear_get_teams --args '{"limit": 10}'
-
-# Call with empty arguments
-pnpm omni-mcp call linear_get_users
-```
-
-### 🎯 Interactive Mode
-
-```bash
-# Start interactive testing session
+# Start interactive exploration
 pnpm omni-mcp interactive
 ```
 
-## Common Workflows
+## 📊 Server Overview
 
-### Development Testing
+### **Linear MCP Server** (Port: 3001)
 
-1. **Check everything is running**: `pnpm omni-mcp health --all`
-2. **See what's available**: `pnpm omni-mcp list --tools`
-3. **Test a specific tool**: `pnpm omni-mcp call <tool-name>`
+- **linear_get_teams** - Retrieve team information
+- **linear_get_users** - Get user lists with limits
+- **linear_get_issues** - Query issues by state
+- **linear_create_issue** - Create new issues
+- **linear_search_issues** - Search with queries
 
-### Gateway Validation
+### **Perplexity MCP Server** (Port: 3002)
 
-1. **Test tool discovery**: `pnpm omni-mcp test-gateway --tools`
-2. **Interactive testing**: `pnpm omni-mcp test-gateway --interactive`
+- **perplexity_search** - AI-powered search with results limit
+- **perplexity_research** - Deep research on topics
+- **perplexity_compare** - Compare multiple topics
+- **perplexity_summarize** - Text summarization
 
-### Server Development
+### **Chrome DevTools MCP Server** (Port: 3004)
 
-1. **Test server directly**: `pnpm omni-mcp test-server linear`
-2. **Test via gateway**: `pnpm omni-mcp test-gateway --call linear_get_teams`
+**40 tools across 8 categories:**
 
-## Why Use This CLI?
+- **Chrome Management** (5 tools) - Browser startup, navigation, status
+- **Console Tools** (3 tools) - JavaScript execution, log capture
+- **DOM Manipulation** (9 tools) - Element querying, modification, removal
+- **Network Monitoring** (2 tools) - Request tracking, response analysis
+- **CSS Inspection** (2 tools) - Style computation, rule analysis
+- **Storage Tools** (3 tools) - localStorage, sessionStorage, cookies
+- **Debugging Tools** (9 tools) - Breakpoints, stepping, evaluation
+- **Error Handling** (6 tools) - Runtime, network, console error tracking
+- **Screenshot** (1 tool) - Page capture
 
-### ✅ **JSON-RPC ID Management**
+## 🚀 Example Usage
 
-The CLI automatically handles the required `id` field in JSON-RPC requests:
+### Explore Chrome DevTools Capabilities
 
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/list",
-  "id": 1 // ← Automatically generated and managed
-}
+```bash
+pnpm omni-mcp showcase devtools --examples
 ```
 
-### ✅ **MCP Protocol Compliance**
+**Output:** Organized display of all 40 Chrome automation tools with example payloads
 
-- Proper JSON-RPC 2.0 format
-- Correct error handling
-- Request/response correlation
+### Quick System Test
+
+```bash
+pnpm omni-mcp test
+```
+
+**Output:** Tests basic functionality across Linear, Perplexity, and Chrome DevTools servers
+
+### Check System Health
+
+```bash
+pnpm omni-mcp health
+```
+
+**Output:** Gateway status + server tool counts + sample capabilities
+
+### Call Specific Tools
+
+```bash
+# Start Chrome and navigate
+pnpm omni-mcp call chrome_start --args '{"headless": false, "autoConnect": true}'
+pnpm omni-mcp call chrome_navigate --args '{"url": "https://example.com"}'
+
+# Get Linear teams
+pnpm omni-mcp call linear_get_teams
+
+# Search with Perplexity
+pnpm omni-mcp call perplexity_search --args '{"query": "TypeScript best practices", "max_results": 5}'
+```
+
+## 🎯 Why This CLI?
+
+### ✅ **Capability Discovery**
+
+- **Visual organization** of tools by server and category
+- **Example payloads** for immediate testing
+- **Clear descriptions** of what each tool does
+
+### ✅ **Quick Validation**
+
+- **Health checks** ensure everything is running
+- **Quick tests** verify basic functionality
+- **Success rates** show system reliability
 
 ### ✅ **Developer Experience**
 
-- Pretty-printed responses
-- Clear error messages
-- Interactive testing modes
-- Comprehensive help
+- **Simplified interface** focused on capabilities
+- **Example-driven** approach to tool exploration
+- **Immediate feedback** on tool availability and status
 
 ### ✅ **Testing Automation**
 
-- Scriptable commands
-- CI/CD integration
-- Health monitoring
+- **Scriptable commands** for CI/CD integration
+- **JSON-RPC compliance** with proper error handling
+- **Gateway integration** testing
 
-## Architecture Support
+## 🏗️ Architecture Support
 
-This CLI supports the complete Omni MCP architecture:
+This CLI validates the complete Omni MCP architecture:
 
-- **Gateway Testing**: Validate the MCP gateway aggregation
-- **Server Testing**: Test individual MCP servers directly
-- **End-to-End**: Full client → gateway → server workflows
-- **Protocol Validation**: Ensure JSON-RPC 2.0 + MCP compliance
+- **Gateway Aggregation** - All servers accessible through single endpoint
+- **Protocol Compliance** - JSON-RPC 2.0 + MCP specification
+- **Server Health** - Individual server status and capability monitoring
+- **Tool Discovery** - Dynamic capability enumeration and testing
 
-## Examples
+## 🔧 Development Workflow
 
-### Quick Health Check
+1. **Start Development**
 
-```bash
-pnpm omni-mcp health --all
-```
+   ```bash
+   pnpm omni-mcp health    # Verify everything is running
+   ```
 
-### Discover Available Tools
+2. **Explore Capabilities**
 
-```bash
-pnpm omni-mcp list --tools
-```
+   ```bash
+   pnpm omni-mcp showcase --examples    # See what's available
+   ```
 
-### Test Linear Integration
+3. **Test Functionality**
 
-```bash
-pnpm omni-mcp call linear_get_teams --args '{"limit": 5}'
-```
+   ```bash
+   pnpm omni-mcp test    # Quick validation
+   ```
 
-### Interactive Development
-
-```bash
-pnpm omni-mcp interactive
-```
+4. **Develop & Debug**
+   ```bash
+   pnpm omni-mcp call <tool-name> --args '{...}'    # Test specific tools
+   pnpm omni-mcp interactive    # Explore dynamically
+   ```
 
 ---
 
-**Need help?** Run `pnpm omni-mcp --help` for detailed usage information.
+**Total Capabilities:** 49 tools across 3 servers, ready for comprehensive automation and
+integration workflows.

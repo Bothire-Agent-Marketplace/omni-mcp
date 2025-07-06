@@ -2,82 +2,74 @@
 
 import boxen from "boxen";
 import chalk from "chalk";
-import { Command } from "commander";
+import { program } from "commander";
 
-const program = new Command();
+// Display banner
+console.log(
+  boxen(
+    `${chalk.blue.bold("🚀 Omni MCP")} ${chalk.gray("Development CLI")}\n${chalk.yellow(
+      "Server Capability Showcase & Testing"
+    )}`,
+    {
+      padding: 1,
+      margin: 1,
+      borderStyle: "round",
+      borderColor: "blue",
+    }
+  )
+);
 
-// ASCII Art Banner
-const banner = chalk.cyan(`
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║   ███████╗ ███╗   ███╗███╗   ███╗██╗      ███╗   ███╗    ║
-║  ██╔═══██╗████╗ ████║████╗ ████║██║      ████╗ ████║    ║
-║  ██║   ██║██╔████╔██║██╔████╔██║██║      ██╔████╔██║    ║  
-║  ██║   ██║██║╚██╔╝██║██║╚██╔╝██║██║      ██║╚██╔╝██║    ║
-║  ╚██████╔╝██║ ╚═╝ ██║██║ ╚═╝ ██║██║      ██║ ╚═╝ ██║    ║
-║   ╚═════╝ ╚═╝     ╚═╝╚═╝     ╚═╝╚═╝      ╚═╝     ╚═╝    ║
-║                                                           ║
-║              M C P   D E V   T O O L S                    ║
-╚═══════════════════════════════════════════════════════════╝
-`);
-
+// Configure CLI
 program
   .name("omni-mcp")
-  .description("🔧 Official Omni MCP Development CLI")
-  .version("1.0.0")
-  .addHelpText("beforeAll", banner);
+  .description("🚀 Omni MCP Server Capability Showcase & Testing CLI")
+  .version("1.0.0");
 
-// Test Gateway Command
+// Showcase Command - Main feature
 program
-  .command("test-gateway")
-  .alias("tg")
-  .description("🌐 Test the MCP gateway")
+  .command("showcase")
+  .alias("show")
+  .description("🎯 Showcase server capabilities with example payloads")
+  .argument(
+    "[server]",
+    "Server to showcase (linear, perplexity, devtools, all)"
+  )
+  .option("-e, --examples", "Show example payloads for each tool")
+  .option("-t, --test", "Test tools with example payloads")
   .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
-  .option("-i, --interactive", "Interactive testing mode")
-  .option("--tools", "Test tools/list endpoint")
-  .option("--resources", "Test resources/list endpoint")
-  .option("--prompts", "Test prompts/list endpoint")
-  .option("--call <toolName>", "Call a specific tool")
-  .option("--args <json>", "Tool arguments as JSON", "{}")
-  .action(async (options) => {
-    const { testGateway } = await import("./commands/test-gateway.js");
-    await testGateway(options);
+  .action(async (server, options) => {
+    const { showcaseCapabilities } = await import("./commands/showcase.js");
+    await showcaseCapabilities(server || "all", options);
   });
 
-// Test Server Command
+// Quick Test Command
 program
-  .command("test-server")
-  .alias("ts")
-  .description("🔧 Test a specific MCP server")
-  .argument("<server>", "Server name (linear, github, etc.)")
-  .option("-p, --port <port>", "Server port")
-  .option("-u, --url <url>", "Custom server URL")
-  .option("--tools", "Test tools only")
-  .option("--resources", "Test resources only")
-  .option("--prompts", "Test prompts only")
-  .action(async (serverName, options) => {
-    const { testServer } = await import("./commands/test-server.js");
-    await testServer(serverName, options);
+  .command("test")
+  .alias("t")
+  .description("🔧 Quick test of all servers via gateway")
+  .option("-s, --server <name>", "Test specific server only")
+  .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
+  .action(async (options) => {
+    const { quickTest } = await import("./commands/quick-test.js");
+    await quickTest(options);
   });
 
 // Health Check Command
 program
   .command("health")
   .alias("h")
-  .description("🏥 Check health of services")
-  .option("--gateway", "Check gateway health only")
-  .option("--servers", "Check all servers health")
-  .option("--all", "Check everything", true)
+  .description("🏥 Check health of all servers and gateway")
+  .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
   .action(async (options) => {
     const { checkHealth } = await import("./commands/health.js");
     await checkHealth(options);
   });
 
-// Call Tool Command
+// Call Tool Command (simplified)
 program
   .command("call")
   .alias("c")
-  .description("🔧 Call a tool directly")
+  .description("⚡ Call a tool with arguments")
   .argument("<toolName>", "Tool name to call")
   .option("-a, --args <json>", "Tool arguments as JSON", "{}")
   .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
@@ -86,25 +78,11 @@ program
     await callTool(toolName, options);
   });
 
-// List Command
-program
-  .command("list")
-  .alias("ls")
-  .description("📋 List available capabilities")
-  .option("--tools", "List tools only")
-  .option("--resources", "List resources only")
-  .option("--prompts", "List prompts only")
-  .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
-  .action(async (options) => {
-    const { listCapabilities } = await import("./commands/list.js");
-    await listCapabilities(options);
-  });
-
-// Interactive Mode Command
+// Interactive Mode (simplified)
 program
   .command("interactive")
   .alias("i")
-  .description("🎯 Interactive MCP testing mode")
+  .description("🎮 Interactive server exploration mode")
   .option("-u, --url <url>", "Gateway URL", "http://localhost:37373")
   .action(async (options) => {
     const { interactiveMode } = await import("./commands/interactive.js");
@@ -115,28 +93,26 @@ program
 program.addHelpText(
   "after",
   `
-${chalk.yellow("Examples:")}
-  ${chalk.green("omni-mcp test-gateway")}                    Test gateway with all endpoints
-  ${chalk.green("omni-mcp test-gateway --interactive")}      Interactive gateway testing
-  ${chalk.green("omni-mcp test-server linear")}              Test Linear server directly
-  ${chalk.green("omni-mcp call linear_get_teams")}           Call a specific tool
-  ${chalk.green("omni-mcp list --tools")}                    List all available tools
-  ${chalk.green("omni-mcp health --all")}                    Check health of all services
-  ${chalk.green("omni-mcp interactive")}                     Start interactive mode
+${chalk.yellow("🎯 Main Commands:")}
+  ${chalk.green("omni-mcp showcase")}                       Show all server capabilities
+  ${chalk.green("omni-mcp showcase linear")}                Show Linear server tools
+  ${chalk.green("omni-mcp showcase devtools --examples")}   Show Chrome DevTools with examples
+  ${chalk.green("omni-mcp test")}                           Quick test all servers
+  ${chalk.green("omni-mcp health")}                         Check server health
 
-${chalk.yellow("Common Workflows:")}
-  ${chalk.blue("Development Testing:")}
-    1. ${chalk.green("omni-mcp health --all")}               Check everything is running
-    2. ${chalk.green("omni-mcp list --tools")}               See what tools are available
-    3. ${chalk.green("omni-mcp call <tool-name>")}           Test a specific tool
+${chalk.yellow("🔧 Development:")}
+  ${chalk.green("omni-mcp call linear_get_teams")}          Call specific tool
+  ${chalk.green("omni-mcp interactive")}                    Interactive exploration
 
-  ${chalk.blue("Gateway Validation:")}
-    1. ${chalk.green("omni-mcp test-gateway --tools")}       Test tool discovery
-    2. ${chalk.green("omni-mcp test-gateway --interactive")} Interactive testing
-    
-  ${chalk.blue("Server Development:")}
-    1. ${chalk.green("omni-mcp test-server linear")}         Test server directly
-    2. ${chalk.green("omni-mcp test-gateway --call linear_get_teams")} Test via gateway
+${chalk.yellow("📊 Server Capabilities:")}
+  ${chalk.blue("Linear MCP Server")}        - Project management, teams, issues
+  ${chalk.blue("Perplexity MCP Server")}    - AI search, research, content generation  
+  ${chalk.blue("Chrome DevTools Server")}   - Browser automation, debugging, testing
+
+${chalk.yellow("🚀 Quick Start:")}
+  1. ${chalk.green("omni-mcp health")}                      Check everything is running
+  2. ${chalk.green("omni-mcp showcase --examples")}         See what's available
+  3. ${chalk.green("omni-mcp test")}                        Test key functionality
 
 ${chalk.yellow("Documentation:")}
   ${chalk.blue("https://github.com/Bothire-Agent-Marketplace/omni-mcp")}
