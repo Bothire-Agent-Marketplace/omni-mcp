@@ -11,6 +11,10 @@ import type {
   DevtoolsProjectResource,
 } from "../types/domain-types.js";
 import type { ChromeDevToolsClient } from "./chrome-client.js";
+import {
+  GetComputedStylesSchema,
+  GetCSSRulesSchema,
+} from "../schemas/domain-schemas.js";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -657,6 +661,75 @@ export async function handleGetPageScreenshot(
             success: true,
             format,
             data: screenshot.data,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// CSS HANDLERS
+// ============================================================================
+
+export async function handleGetComputedStyles(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId } = GetComputedStylesSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  const styles = await client.CSS.getComputedStyleForNode({ nodeId });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            nodeId,
+            computedStyles: styles.computedStyle,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetCSSRules(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId } = GetCSSRulesSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  const matchedRules = await client.CSS.getMatchedStylesForNode({ nodeId });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            nodeId,
+            matchedCSSRules: matchedRules.matchedCSSRules,
+            inlineStyle: matchedRules.inlineStyle,
             timestamp: Date.now(),
           },
           null,

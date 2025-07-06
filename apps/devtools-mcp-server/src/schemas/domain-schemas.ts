@@ -41,3 +41,15 @@ export const DevtoolsWorkflowArgsSchema = z.object({
 export const DevtoolsAutomationArgsSchema = z.object({
   action: z.string().optional().describe("Specific devtools action to automate"),
 });
+
+// ============================================================================
+// CSS INSPECTION SCHEMAS
+// ============================================================================
+
+export const GetComputedStylesSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to get computed styles for"),
+});
+
+export const GetCSSRulesSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to get CSS rules for"),
+});

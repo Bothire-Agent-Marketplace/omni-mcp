@@ -148,6 +148,24 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.getPageScreenshot,
     },
   },
+
+  // CSS Tools
+  css_computed_styles: {
+    handler: handlers.handleGetComputedStyles,
+    metadata: {
+      name: "css_computed_styles",
+      description: "Get computed CSS styles for element",
+      inputSchema: DevToolsInputSchemas.getComputedStyles,
+    },
+  },
+  css_rules: {
+    handler: handlers.handleGetCSSRules,
+    metadata: {
+      name: "css_rules",
+      description: "Get CSS rules for element",
+      inputSchema: DevToolsInputSchemas.getCSSRules,
+    },
+  },
 };
 
 // ============================================================================

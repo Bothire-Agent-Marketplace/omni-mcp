@@ -259,4 +259,29 @@ export const DevToolsInputSchemas = {
     required: [],
     additionalProperties: false,
   } as ToolInputSchema,
+
+  // CSS Tools
+  getComputedStyles: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to get computed styles for",
+      },
+    },
+    required: ["nodeId"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getCSSRules: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to get CSS rules for",
+      },
+    },
+    required: ["nodeId"],
+    additionalProperties: false,
+  } as ToolInputSchema,
 } as const;

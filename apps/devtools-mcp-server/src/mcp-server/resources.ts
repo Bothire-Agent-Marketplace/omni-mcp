@@ -7,8 +7,8 @@ import {
   getGenericAvailableResources,
   ResourceDefinition,
 } from "@mcp/utils";
-import * as handlers from "./handlers.js";
 import type { ChromeDevToolsClient } from "./chrome-client.js";
+import * as handlers from "./handlers.js";
 
 // TODO: Replace with your actual devtools SDK/API client
 // import { DevtoolsClient } from "@devtools/sdk";

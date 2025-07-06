@@ -1,9 +1,9 @@
 import { createMcpHttpServer, type FastifyInstance } from "@mcp/server-core";
 import type { DevtoolsServerConfig } from "../config/config.js";
+import { ChromeDevToolsClient } from "./chrome-client.js";
 import { createPromptHandlers, getAvailablePrompts } from "./prompts.js";
 import { createResourceHandlers, getAvailableResources } from "./resources.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
-import { ChromeDevToolsClient } from "./chrome-client.js";
 
 // TODO: Replace with your actual devtools SDK/API client
 // import { DevtoolsClient } from "@devtools/sdk";
