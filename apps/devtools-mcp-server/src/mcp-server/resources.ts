@@ -10,9 +10,6 @@ import {
 import type { ChromeDevToolsClient } from "./chrome-client.js";
 import * as handlers from "./handlers.js";
 
-// TODO: Replace with your actual devtools SDK/API client
-// import { DevtoolsClient } from "@devtools/sdk";
-
 // ============================================================================
 // CHROME DEVTOOLS MCP SERVER - Resource Definitions
 // ============================================================================
@@ -21,21 +18,21 @@ const devtoolsResourceDefinitions: Record<
   string,
   ResourceDefinition<ChromeDevToolsClient>
 > = {
-  "devtools://items": {
+  "chrome://session": {
     handler: handlers.handleDevtoolsItemsResource,
     metadata: {
-      uri: "devtools://items",
-      name: "devtools-items",
-      description: "Access to devtools items",
+      uri: "chrome://session",
+      name: "chrome-session",
+      description: "Current Chrome debugging session data",
       mimeType: "application/json",
     },
   },
-  "devtools://projects": {
+  "chrome://browser": {
     handler: handlers.handleDevtoolsProjectsResource,
     metadata: {
-      uri: "devtools://projects",
-      name: "devtools-projects",
-      description: "Access to devtools projects",
+      uri: "chrome://browser",
+      name: "chrome-browser",
+      description: "Chrome browser instance information",
       mimeType: "application/json",
     },
   },

@@ -15,7 +15,7 @@ export interface ChromeConnectionStatus {
   userAgent?: string;
 }
 
-export interface ChromeTargetInfo {
+interface ChromeTargetInfo {
   id: string;
   title: string;
   type: string;
@@ -48,7 +48,7 @@ export interface ConsoleLogEntry {
   stackTrace?: StackTrace;
 }
 
-export interface ConsoleArgument {
+interface ConsoleArgument {
   type: string;
   value?: unknown;
   description?: string;
@@ -56,26 +56,26 @@ export interface ConsoleArgument {
   preview?: ObjectPreview;
 }
 
-export interface ObjectPreview {
+interface ObjectPreview {
   type: string;
   description: string;
   overflow: boolean;
   properties: PropertyPreview[];
 }
 
-export interface PropertyPreview {
+interface PropertyPreview {
   name: string;
   type: string;
   value?: string;
   valuePreview?: ObjectPreview;
 }
 
-export interface StackTrace {
+interface StackTrace {
   callFrames: CallFrame[];
   description?: string;
 }
 
-export interface CallFrame {
+interface CallFrame {
   functionName: string;
   scriptId: string;
   url: string;
@@ -129,7 +129,7 @@ export interface NetworkInitiator {
   lineNumber?: number;
 }
 
-export interface ResourceTiming {
+interface ResourceTiming {
   requestTime: number;
   proxyStart: number;
   proxyEnd: number;
@@ -152,211 +152,40 @@ export interface ResourceTiming {
 // DOM TYPES
 // ============================================================================
 
-export interface DOMNode {
-  nodeId: number;
-  parentId?: number;
-  backendNodeId: number;
-  nodeType: number;
-  nodeName: string;
-  localName: string;
-  nodeValue: string;
-  childNodeCount?: number;
-  children?: DOMNode[];
-  attributes?: string[];
-  documentURL?: string;
-  baseURL?: string;
-  publicId?: string;
-  systemId?: string;
-  internalSubset?: string;
-  xmlVersion?: string;
-  name?: string;
-  value?: string;
-  pseudoType?: string;
-  shadowRootType?: string;
-  frameId?: string;
-  contentDocument?: DOMNode;
-  shadowRoots?: DOMNode[];
-  templateContent?: DOMNode;
-  pseudoElements?: DOMNode[];
-  importedDocument?: DOMNode;
-  distributedNodes?: BackendNode[];
-  isSVG?: boolean;
-}
+// DOM interfaces removed - not currently used in implementation
 
-export interface BackendNode {
-  nodeType: number;
-  nodeName: string;
-  backendNodeId: number;
-}
-
-export interface DOMRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface ElementBounds {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
+// DOMRect interface removed - not currently used
 
 // ============================================================================
 // CSS TYPES
 // ============================================================================
 
-export interface CSSStyle {
-  styleSheetId?: string;
-  cssProperties: CSSProperty[];
-  shorthandEntries: ShorthandEntry[];
-  cssText?: string;
-  range?: SourceRange;
-}
-
-export interface CSSProperty {
-  name: string;
-  value: string;
-  important?: boolean;
-  implicit?: boolean;
-  text?: string;
-  parsedOk?: boolean;
-  disabled?: boolean;
-  range?: SourceRange;
-}
-
-export interface ShorthandEntry {
-  name: string;
-  value: string;
-  important?: boolean;
-}
-
-export interface SourceRange {
-  startLine: number;
-  startColumn: number;
-  endLine: number;
-  endColumn: number;
-}
-
-export interface ComputedStyleProperty {
-  name: string;
-  value: string;
-}
+// CSS interfaces removed - not currently used in implementation
 
 // ============================================================================
-// PERFORMANCE TYPES
+// PERFORMANCE TYPES (Future Implementation)
 // ============================================================================
-
-export interface PerformanceMetrics {
-  Timestamp: number;
-  Documents: number;
-  Frames: number;
-  JSEventListeners: number;
-  Nodes: number;
-  LayoutCount: number;
-  RecalcStyleCount: number;
-  LayoutDuration: number;
-  RecalcStyleDuration: number;
-  ScriptDuration: number;
-  TaskDuration: number;
-  JSHeapUsedSize: number;
-  JSHeapTotalSize: number;
-}
-
-export interface PageInfo {
-  url: string;
-  title: string;
-  loadTime: number;
-  domContentLoadedTime: number;
-  firstPaintTime: number;
-  firstContentfulPaintTime: number;
-  largestContentfulPaintTime?: number;
-  metrics: PerformanceMetrics;
-}
+// Note: Performance domain not yet implemented
 
 // ============================================================================
 // STORAGE TYPES
 // ============================================================================
 
-export interface StorageItem {
-  key: string;
-  value: string;
-}
-
-export interface CookieInfo {
-  name: string;
-  value: string;
-  domain: string;
-  path: string;
-  expires: number;
-  size: number;
-  httpOnly: boolean;
-  secure: boolean;
-  session: boolean;
-  sameSite?: "Strict" | "Lax" | "None";
-}
+// Storage interfaces removed - not currently used in implementation
 
 // ============================================================================
 // SCREENSHOT TYPES
 // ============================================================================
 
-export interface ScreenshotOptions {
-  format?: "jpeg" | "png";
-  quality?: number;
-  clip?: ViewportClip;
-  fromSurface?: boolean;
-}
-
-export interface ViewportClip {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  scale: number;
-}
+// ScreenshotOptions interface removed - not currently used
 
 // ============================================================================
 // RESOURCE TYPES FOR MCP
 // ============================================================================
 
-export interface ChromeConsoleResource {
-  id: string;
-  type: "console-logs" | "console-errors";
-  logs: ConsoleLogEntry[];
-  uri: string;
-  mimeType: string;
-}
+// Chrome resource interfaces removed - not currently used in implementation
 
-export interface ChromeNetworkResource {
-  id: string;
-  type: "network-requests" | "network-responses";
-  requests: NetworkRequest[];
-  responses: NetworkResponse[];
-  uri: string;
-  mimeType: string;
-}
-
-export interface ChromeDOMResource {
-  id: string;
-  type: "dom-structure" | "dom-elements";
-  document: DOMNode;
-  uri: string;
-  mimeType: string;
-}
-
-export interface ChromePerformanceResource {
-  id: string;
-  type: "performance-metrics" | "page-info";
-  metrics: PerformanceMetrics;
-  pageInfo: PageInfo;
-  uri: string;
-  mimeType: string;
-}
+// ChromePerformanceResource removed - Performance domain not yet implemented
 
 // ============================================================================
 // BACKWARD COMPATIBILITY TYPES (for existing handlers)
