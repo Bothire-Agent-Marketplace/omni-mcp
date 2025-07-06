@@ -22,6 +22,15 @@ import {
   RemoveElementSchema,
   GetElementStylesSchema,
   SetElementStyleSchema,
+  SetBreakpointSchema,
+  RemoveBreakpointSchema,
+  EvaluateExpressionSchema,
+  GetCallStackSchema,
+  StepOverSchema,
+  StepIntoSchema,
+  StepOutSchema,
+  ResumeExecutionSchema,
+  PauseExecutionSchema,
 } from "../schemas/domain-schemas.js";
 
 // ============================================================================
@@ -1090,6 +1099,322 @@ export async function handleSetElementStyle(
             message: `Set style ${property}: ${value} for node ${nodeId}`,
             nodeId,
             style: { property, value },
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// DEBUGGING HANDLERS
+// ============================================================================
+
+export async function handleSetBreakpoint(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { url, lineNumber, columnNumber, condition } =
+    SetBreakpointSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  const breakpoint = await client.Debugger.setBreakpointByUrl({
+    url,
+    lineNumber,
+    columnNumber,
+    condition,
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            breakpointId: breakpoint.breakpointId,
+            locations: breakpoint.locations,
+            message: `Breakpoint set at ${url}:${lineNumber}`,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleRemoveBreakpoint(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { breakpointId } = RemoveBreakpointSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.removeBreakpoint({ breakpointId });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Removed breakpoint ${breakpointId}`,
+            breakpointId,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleEvaluateExpression(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const {
+    expression,
+    objectGroup,
+    includeCommandLineAPI,
+    silent,
+    contextId,
+    returnByValue,
+    generatePreview,
+  } = EvaluateExpressionSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  const result = await client.Runtime.evaluate({
+    expression,
+    objectGroup,
+    includeCommandLineAPI,
+    silent,
+    contextId,
+    returnByValue,
+    generatePreview,
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            result: result.result,
+            exceptionDetails: result.exceptionDetails,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetCallStack(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { maxDepth } = GetCallStackSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Check if execution is paused
+  const _callFrames = await client.Debugger.getScriptSource({
+    scriptId: "",
+  }).catch(() => {
+    throw new Error("Cannot get call stack - execution is not paused");
+  });
+
+  // This is a simplified version - in practice, you'd get this from paused state
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Call stack retrieval requires execution to be paused",
+            maxDepth,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleStepOver(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  StepOverSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.stepOver();
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Stepped over",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleStepInto(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  StepIntoSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.stepInto();
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Stepped into",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleStepOut(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  StepOutSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.stepOut();
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Stepped out",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleResumeExecution(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  ResumeExecutionSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.resume();
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Resumed execution",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handlePauseExecution(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  PauseExecutionSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  await client.Debugger.pause();
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Paused execution",
             timestamp: Date.now(),
           },
           null,

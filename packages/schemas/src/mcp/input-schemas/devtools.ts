@@ -404,4 +404,129 @@ export const DevToolsInputSchemas = {
     required: ["nodeId", "property", "value"],
     additionalProperties: false,
   } as ToolInputSchema,
+
+  // Debugging Tools
+  setBreakpoint: {
+    type: "object",
+    properties: {
+      url: {
+        type: "string",
+        description: "URL of the script to set breakpoint in",
+      },
+      lineNumber: {
+        type: "integer",
+        description: "Line number to set breakpoint at",
+      },
+      columnNumber: {
+        type: "integer",
+        description: "Column number (optional)",
+      },
+      condition: {
+        type: "string",
+        description: "Breakpoint condition (optional)",
+      },
+    },
+    required: ["url", "lineNumber"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  removeBreakpoint: {
+    type: "object",
+    properties: {
+      breakpointId: {
+        type: "string",
+        description: "ID of the breakpoint to remove",
+      },
+    },
+    required: ["breakpointId"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  evaluateExpression: {
+    type: "object",
+    properties: {
+      expression: {
+        type: "string",
+        description: "JavaScript expression to evaluate",
+      },
+      objectGroup: {
+        type: "string",
+        description: "Object group for cleanup",
+      },
+      includeCommandLineAPI: {
+        type: "boolean",
+        default: true,
+        description: "Include command line API",
+      },
+      silent: {
+        type: "boolean",
+        default: false,
+        description: "Don't throw on side effects",
+      },
+      contextId: {
+        type: "integer",
+        description: "Execution context ID",
+      },
+      returnByValue: {
+        type: "boolean",
+        default: true,
+        description: "Return result by value",
+      },
+      generatePreview: {
+        type: "boolean",
+        default: false,
+        description: "Generate object preview",
+      },
+    },
+    required: ["expression"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getCallStack: {
+    type: "object",
+    properties: {
+      maxDepth: {
+        type: "integer",
+        default: 50,
+        description: "Maximum stack depth to retrieve",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  stepOver: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  stepInto: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  stepOut: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  resumeExecution: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  pauseExecution: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
 } as const;

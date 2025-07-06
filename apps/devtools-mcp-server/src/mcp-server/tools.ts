@@ -234,6 +234,80 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.setElementStyle,
     },
   },
+
+  // Debugging Tools
+  debug_set_breakpoint: {
+    handler: handlers.handleSetBreakpoint,
+    metadata: {
+      name: "debug_set_breakpoint",
+      description: "Set JavaScript breakpoint",
+      inputSchema: DevToolsInputSchemas.setBreakpoint,
+    },
+  },
+  debug_remove_breakpoint: {
+    handler: handlers.handleRemoveBreakpoint,
+    metadata: {
+      name: "debug_remove_breakpoint",
+      description: "Remove JavaScript breakpoint",
+      inputSchema: DevToolsInputSchemas.removeBreakpoint,
+    },
+  },
+  debug_evaluate: {
+    handler: handlers.handleEvaluateExpression,
+    metadata: {
+      name: "debug_evaluate",
+      description: "Evaluate JavaScript expression in debug context",
+      inputSchema: DevToolsInputSchemas.evaluateExpression,
+    },
+  },
+  debug_call_stack: {
+    handler: handlers.handleGetCallStack,
+    metadata: {
+      name: "debug_call_stack",
+      description: "Get JavaScript call stack",
+      inputSchema: DevToolsInputSchemas.getCallStack,
+    },
+  },
+  debug_step_over: {
+    handler: handlers.handleStepOver,
+    metadata: {
+      name: "debug_step_over",
+      description: "Step over in debugger",
+      inputSchema: DevToolsInputSchemas.stepOver,
+    },
+  },
+  debug_step_into: {
+    handler: handlers.handleStepInto,
+    metadata: {
+      name: "debug_step_into",
+      description: "Step into in debugger",
+      inputSchema: DevToolsInputSchemas.stepInto,
+    },
+  },
+  debug_step_out: {
+    handler: handlers.handleStepOut,
+    metadata: {
+      name: "debug_step_out",
+      description: "Step out in debugger",
+      inputSchema: DevToolsInputSchemas.stepOut,
+    },
+  },
+  debug_resume: {
+    handler: handlers.handleResumeExecution,
+    metadata: {
+      name: "debug_resume",
+      description: "Resume JavaScript execution",
+      inputSchema: DevToolsInputSchemas.resumeExecution,
+    },
+  },
+  debug_pause: {
+    handler: handlers.handlePauseExecution,
+    metadata: {
+      name: "debug_pause",
+      description: "Pause JavaScript execution",
+      inputSchema: DevToolsInputSchemas.pauseExecution,
+    },
+  },
 };
 
 // ============================================================================

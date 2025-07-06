@@ -111,3 +111,62 @@ export const SetElementStyleSchema = z.object({
   property: z.string().describe("CSS property name"),
   value: z.string().describe("CSS property value"),
 });
+
+// ============================================================================
+// DEBUGGING TOOLS SCHEMAS
+// ============================================================================
+
+export const SetBreakpointSchema = z.object({
+  url: z.string().describe("URL of the script to set breakpoint in"),
+  lineNumber: z.number().describe("Line number to set breakpoint at"),
+  columnNumber: z.number().optional().describe("Column number (optional)"),
+  condition: z.string().optional().describe("Breakpoint condition (optional)"),
+});
+
+export const RemoveBreakpointSchema = z.object({
+  breakpointId: z.string().describe("ID of the breakpoint to remove"),
+});
+
+export const EvaluateExpressionSchema = z.object({
+  expression: z.string().describe("JavaScript expression to evaluate"),
+  objectGroup: z.string().optional().describe("Object group for cleanup"),
+  includeCommandLineAPI: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Include command line API"),
+  silent: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe("Don't throw on side effects"),
+  contextId: z.number().optional().describe("Execution context ID"),
+  returnByValue: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Return result by value"),
+  generatePreview: z
+    .boolean()
+    .optional()
+    .default(false)
+    .describe("Generate object preview"),
+});
+
+export const GetCallStackSchema = z.object({
+  maxDepth: z
+    .number()
+    .optional()
+    .default(50)
+    .describe("Maximum stack depth to retrieve"),
+});
+
+export const StepOverSchema = z.object({});
+
+export const StepIntoSchema = z.object({});
+
+export const StepOutSchema = z.object({});
+
+export const ResumeExecutionSchema = z.object({});
+
+export const PauseExecutionSchema = z.object({});
