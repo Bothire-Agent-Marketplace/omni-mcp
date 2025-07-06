@@ -189,6 +189,7 @@ export class ChromeDevToolsClient {
         this.client.Runtime.enable(),
         this.client.Page.enable(),
         this.client.CSS.enable(),
+        this.client.DOMStorage.enable(),
       ]);
 
       // Set up event listeners

@@ -14,6 +14,9 @@ import type { ChromeDevToolsClient } from "./chrome-client.js";
 import {
   GetComputedStylesSchema,
   GetCSSRulesSchema,
+  GetLocalStorageSchema,
+  GetSessionStorageSchema,
+  GetCookiesSchema,
 } from "../schemas/domain-schemas.js";
 
 // ============================================================================
@@ -730,6 +733,162 @@ export async function handleGetCSSRules(
             nodeId,
             matchedCSSRules: matchedRules.matchedCSSRules,
             inlineStyle: matchedRules.inlineStyle,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// STORAGE HANDLERS
+// ============================================================================
+
+export async function handleGetLocalStorage(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { origin } = GetLocalStorageSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Get current page origin if not provided
+  let storageOrigin = origin;
+  if (!storageOrigin) {
+    const document = await client.DOM.getDocument({ depth: 1 });
+    const url = new URL(document.root.documentURL || "");
+    storageOrigin = url.origin;
+  }
+
+  // Get localStorage data
+  const localStorage = await client.DOMStorage.getDOMStorageItems({
+    storageId: {
+      securityOrigin: storageOrigin,
+      isLocalStorage: true,
+    },
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            origin: storageOrigin,
+            localStorage: localStorage.entries.map(([key, value]) => ({
+              key,
+              value,
+            })),
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetSessionStorage(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { origin } = GetSessionStorageSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Get current page origin if not provided
+  let storageOrigin = origin;
+  if (!storageOrigin) {
+    const document = await client.DOM.getDocument({ depth: 1 });
+    const url = new URL(document.root.documentURL || "");
+    storageOrigin = url.origin;
+  }
+
+  // Get sessionStorage data
+  const sessionStorage = await client.DOMStorage.getDOMStorageItems({
+    storageId: {
+      securityOrigin: storageOrigin,
+      isLocalStorage: false,
+    },
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            origin: storageOrigin,
+            sessionStorage: sessionStorage.entries.map(([key, value]) => ({
+              key,
+              value,
+            })),
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetCookies(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { domain } = GetCookiesSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Get current page domain if not provided
+  let cookieDomain = domain;
+  if (!cookieDomain) {
+    const document = await client.DOM.getDocument({ depth: 1 });
+    const url = new URL(document.root.documentURL || "");
+    cookieDomain = url.hostname;
+  }
+
+  // Get cookies
+  const cookies = await client.Network.getCookies({
+    urls: [`https://${cookieDomain}`, `http://${cookieDomain}`],
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            domain: cookieDomain,
+            cookies: cookies.cookies.map((cookie) => ({
+              name: cookie.name,
+              value: cookie.value,
+              domain: cookie.domain,
+              path: cookie.path,
+              expires: cookie.expires,
+              size: cookie.size,
+              httpOnly: cookie.httpOnly,
+              secure: cookie.secure,
+              session: cookie.session,
+              sameSite: cookie.sameSite,
+            })),
             timestamp: Date.now(),
           },
           null,

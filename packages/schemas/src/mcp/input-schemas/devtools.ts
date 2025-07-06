@@ -284,4 +284,43 @@ export const DevToolsInputSchemas = {
     required: ["nodeId"],
     additionalProperties: false,
   } as ToolInputSchema,
+
+  // Storage Tools
+  getLocalStorage: {
+    type: "object",
+    properties: {
+      origin: {
+        type: "string",
+        description:
+          "Origin to get localStorage for (defaults to current page)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getSessionStorage: {
+    type: "object",
+    properties: {
+      origin: {
+        type: "string",
+        description:
+          "Origin to get sessionStorage for (defaults to current page)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getCookies: {
+    type: "object",
+    properties: {
+      domain: {
+        type: "string",
+        description: "Domain to get cookies for (defaults to current page)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
 } as const;

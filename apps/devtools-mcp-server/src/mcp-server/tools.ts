@@ -166,6 +166,32 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.getCSSRules,
     },
   },
+
+  // Storage Tools
+  storage_local: {
+    handler: handlers.handleGetLocalStorage,
+    metadata: {
+      name: "storage_local",
+      description: "Get localStorage data",
+      inputSchema: DevToolsInputSchemas.getLocalStorage,
+    },
+  },
+  storage_session: {
+    handler: handlers.handleGetSessionStorage,
+    metadata: {
+      name: "storage_session",
+      description: "Get sessionStorage data",
+      inputSchema: DevToolsInputSchemas.getSessionStorage,
+    },
+  },
+  storage_cookies: {
+    handler: handlers.handleGetCookies,
+    metadata: {
+      name: "storage_cookies",
+      description: "Get browser cookies",
+      inputSchema: DevToolsInputSchemas.getCookies,
+    },
+  },
 };
 
 // ============================================================================

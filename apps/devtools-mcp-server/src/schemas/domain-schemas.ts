@@ -13,9 +13,7 @@ import { z } from "zod";
 
 // Tool validation schemas - Update these for your specific domain tools
 export const SearchDevtoolsItemsRequestSchema = z.object({
-  query: z
-    .string()
-    .describe("Text to search in item titles and descriptions"),
+  query: z.string().describe("Text to search in item titles and descriptions"),
   limit: z
     .number()
     .min(1)
@@ -30,7 +28,10 @@ export const GetDevtoolsItemRequestSchema = z.object({
 
 export const CreateDevtoolsItemRequestSchema = z.object({
   title: z.string().describe("Title for the new devtools item"),
-  description: z.string().optional().describe("Description for the new devtools item"),
+  description: z
+    .string()
+    .optional()
+    .describe("Description for the new devtools item"),
 });
 
 // Prompt validation schemas - Update these for your specific prompts
@@ -39,7 +40,10 @@ export const DevtoolsWorkflowArgsSchema = z.object({
 });
 
 export const DevtoolsAutomationArgsSchema = z.object({
-  action: z.string().optional().describe("Specific devtools action to automate"),
+  action: z
+    .string()
+    .optional()
+    .describe("Specific devtools action to automate"),
 });
 
 // ============================================================================
@@ -52,4 +56,29 @@ export const GetComputedStylesSchema = z.object({
 
 export const GetCSSRulesSchema = z.object({
   nodeId: z.number().describe("DOM node ID to get CSS rules for"),
+});
+
+// ============================================================================
+// STORAGE INSPECTION SCHEMAS
+// ============================================================================
+
+export const GetLocalStorageSchema = z.object({
+  origin: z
+    .string()
+    .optional()
+    .describe("Origin to get localStorage for (defaults to current page)"),
+});
+
+export const GetSessionStorageSchema = z.object({
+  origin: z
+    .string()
+    .optional()
+    .describe("Origin to get sessionStorage for (defaults to current page)"),
+});
+
+export const GetCookiesSchema = z.object({
+  domain: z
+    .string()
+    .optional()
+    .describe("Domain to get cookies for (defaults to current page)"),
 });
