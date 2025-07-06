@@ -1,5 +1,5 @@
 // ============================================================================
-// DEVTOOLS MCP SERVER - Resources
+// CHROME DEVTOOLS MCP SERVER - Resources
 // ============================================================================
 
 import {
@@ -8,17 +8,18 @@ import {
   ResourceDefinition,
 } from "@mcp/utils";
 import * as handlers from "./handlers.js";
+import type { ChromeDevToolsClient } from "./chrome-client.js";
 
 // TODO: Replace with your actual devtools SDK/API client
 // import { DevtoolsClient } from "@devtools/sdk";
 
 // ============================================================================
-// DEVTOOLS MCP SERVER - Resource Definitions
+// CHROME DEVTOOLS MCP SERVER - Resource Definitions
 // ============================================================================
 
 const devtoolsResourceDefinitions: Record<
   string,
-  ResourceDefinition<unknown /* DevtoolsClient */>
+  ResourceDefinition<ChromeDevToolsClient>
 > = {
   "devtools://items": {
     handler: handlers.handleDevtoolsItemsResource,
@@ -44,11 +45,8 @@ const devtoolsResourceDefinitions: Record<
 // EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
 // ============================================================================
 
-export const createResourceHandlers = (/* devtoolsClient: DevtoolsClient */) =>
-  createGenericResourceHandlers(
-    devtoolsResourceDefinitions,
-    {} /* devtoolsClient */
-  );
+export const createResourceHandlers = (chromeClient: ChromeDevToolsClient) =>
+  createGenericResourceHandlers(devtoolsResourceDefinitions, chromeClient);
 
 export const getAvailableResources = () =>
   getGenericAvailableResources(devtoolsResourceDefinitions);
