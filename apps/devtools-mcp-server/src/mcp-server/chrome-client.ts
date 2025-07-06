@@ -8,6 +8,8 @@ import { existsSync } from "fs";
 import { platform } from "os";
 import { join } from "path";
 import CDP from "chrome-remote-interface";
+import puppeteer from "puppeteer-core";
+import WebSocket, { WebSocketServer } from "ws";
 import type {
   ChromeConnectionStatus,
   ChromeStartOptions,
@@ -20,6 +22,9 @@ import type {
 export class ChromeDevToolsClient {
   private client: CDP.Client | null = null;
   private chromeProcess: ChildProcess | null = null;
+  private browser: puppeteer.Browser | null = null;
+  private page: puppeteer.Page | null = null;
+  private streamingWs: WebSocket | null = null;
   private connectionStatus: ChromeConnectionStatus = {
     connected: false,
     port: 9222,
@@ -29,6 +34,7 @@ export class ChromeDevToolsClient {
     onRequest?: (request: NetworkRequest) => void;
     onResponse?: (response: NetworkResponse) => void;
   } = {};
+  private streamingEnabled = false;
 
   constructor(private options: ChromeStartOptions = {}) {
     this.connectionStatus.port = options.port || 9222;
@@ -390,5 +396,209 @@ export class ChromeDevToolsClient {
         resolve();
       });
     });
+  }
+
+  // ============================================================================
+  // ENHANCED BROWSER MANAGEMENT WITH PUPPETEER
+  // ============================================================================
+
+  async startWithPuppeteer(): Promise<ChromeConnectionStatus> {
+    try {
+      const chromePath = this.findChromeExecutable();
+
+      this.browser = await puppeteer.launch({
+        executablePath: chromePath,
+        headless: this.options.headless || false,
+        args: [
+          `--remote-debugging-port=${this.connectionStatus.port}`,
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=TranslateUI",
+          "--disable-ipc-flooding-protection",
+          ...(this.options.userDataDir
+            ? [`--user-data-dir=${this.options.userDataDir}`]
+            : ["--no-sandbox"]),
+          ...(this.options.args || []),
+        ],
+      });
+
+      this.page = await this.browser.newPage();
+
+      if (this.options.url) {
+        await this.page.goto(this.options.url);
+      }
+
+      // Connect CDP for advanced debugging
+      if (this.options.autoConnect) {
+        await this.connect();
+      }
+
+      this.connectionStatus.connected = true;
+      return this.connectionStatus;
+    } catch (error) {
+      throw new Error(
+        `Failed to start Chrome with Puppeteer: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+
+  // ============================================================================
+  // REAL-TIME STREAMING WITH WEBSOCKET
+  // ============================================================================
+
+  async enableStreaming(wsPort = 8080): Promise<void> {
+    if (this.streamingEnabled) {
+      return;
+    }
+
+    try {
+      // Create WebSocket server for real-time streaming
+      const wss = new WebSocketServer({ port: wsPort });
+
+      wss.on("connection", (ws: WebSocket) => {
+        this.streamingWs = ws;
+
+        // Send initial connection status
+        ws.send(
+          JSON.stringify({
+            type: "connection",
+            status: this.connectionStatus,
+            timestamp: Date.now(),
+          })
+        );
+
+        // Set up real-time event streaming
+        this.setupStreamingListeners(ws);
+      });
+
+      this.streamingEnabled = true;
+      console.log(`WebSocket streaming enabled on port ${wsPort}`);
+    } catch (error) {
+      console.error("Failed to enable streaming:", error);
+      throw error;
+    }
+  }
+
+  private setupStreamingListeners(ws: WebSocket): void {
+    if (!this.client) return;
+
+    // Stream console events
+    this.client.Console.messageAdded((params) => {
+      ws.send(
+        JSON.stringify({
+          type: "console",
+          data: params,
+          timestamp: Date.now(),
+        })
+      );
+    });
+
+    // Stream network events
+    this.client.Network.requestWillBeSent((params) => {
+      ws.send(
+        JSON.stringify({
+          type: "network_request",
+          data: params,
+          timestamp: Date.now(),
+        })
+      );
+    });
+
+    this.client.Network.responseReceived((params) => {
+      ws.send(
+        JSON.stringify({
+          type: "network_response",
+          data: params,
+          timestamp: Date.now(),
+        })
+      );
+    });
+
+    // Stream runtime exceptions
+    this.client.Runtime.exceptionThrown((params) => {
+      ws.send(
+        JSON.stringify({
+          type: "runtime_exception",
+          data: params,
+          timestamp: Date.now(),
+        })
+      );
+    });
+
+    // Stream debugger events
+    this.client.Debugger.paused((params) => {
+      ws.send(
+        JSON.stringify({
+          type: "debugger_paused",
+          data: params,
+          timestamp: Date.now(),
+        })
+      );
+    });
+  }
+
+  // ============================================================================
+  // ENHANCED DEBUGGING CAPABILITIES
+  // ============================================================================
+
+  async takeScreenshot(options?: {
+    fullPage?: boolean;
+    quality?: number;
+  }): Promise<string> {
+    if (this.page) {
+      // Use Puppeteer for better screenshot capabilities
+      return (await this.page.screenshot({
+        fullPage: options?.fullPage || false,
+        quality: options?.quality || 90,
+        encoding: "base64",
+      })) as string;
+    } else if (this.client) {
+      // Fallback to CDP
+      const screenshot = await this.client.Page.captureScreenshot({
+        format: "png",
+        captureBeyondViewport: options?.fullPage || false,
+      });
+      return screenshot.data;
+    } else {
+      throw new Error("No browser connection available");
+    }
+  }
+
+  async evaluateInPage(expression: string): Promise<unknown> {
+    if (this.page) {
+      // Use Puppeteer for better evaluation
+      return await this.page.evaluate(expression);
+    } else if (this.client) {
+      // Fallback to CDP
+      const result = await this.client.Runtime.evaluate({
+        expression,
+        returnByValue: true,
+      });
+      return result.result.value;
+    } else {
+      throw new Error("No browser connection available");
+    }
+  }
+
+  async closeBrowserEnhanced(): Promise<void> {
+    if (this.streamingWs) {
+      this.streamingWs.close();
+      this.streamingWs = null;
+    }
+
+    if (this.page) {
+      await this.page.close();
+      this.page = null;
+    }
+
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
+    }
+
+    await this.closeBrowser(); // Call original method for CDP cleanup
   }
 }
