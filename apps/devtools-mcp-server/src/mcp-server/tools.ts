@@ -308,6 +308,56 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.pauseExecution,
     },
   },
+
+  // Error Handling Tools
+  error_runtime: {
+    handler: handlers.handleGetRuntimeErrors,
+    metadata: {
+      name: "error_runtime",
+      description: "Get JavaScript runtime errors",
+      inputSchema: DevToolsInputSchemas.getRuntimeErrors,
+    },
+  },
+  error_network: {
+    handler: handlers.handleGetNetworkErrors,
+    metadata: {
+      name: "error_network",
+      description: "Get network request errors",
+      inputSchema: DevToolsInputSchemas.getNetworkErrors,
+    },
+  },
+  error_console: {
+    handler: handlers.handleGetConsoleErrors,
+    metadata: {
+      name: "error_console",
+      description: "Get console errors and warnings",
+      inputSchema: DevToolsInputSchemas.getConsoleErrors,
+    },
+  },
+  error_clear: {
+    handler: handlers.handleClearErrors,
+    metadata: {
+      name: "error_clear",
+      description: "Clear stored errors",
+      inputSchema: DevToolsInputSchemas.clearErrors,
+    },
+  },
+  error_listener: {
+    handler: handlers.handleSetErrorListener,
+    metadata: {
+      name: "error_listener",
+      description: "Enable/disable error listening",
+      inputSchema: DevToolsInputSchemas.setErrorListener,
+    },
+  },
+  error_summary: {
+    handler: handlers.handleGetErrorSummary,
+    metadata: {
+      name: "error_summary",
+      description: "Get error summary statistics",
+      inputSchema: DevToolsInputSchemas.getErrorSummary,
+    },
+  },
 };
 
 // ============================================================================

@@ -377,3 +377,55 @@ export interface DevtoolsProjectResource {
   uri: string;
   mimeType: string;
 }
+
+// ============================================================================
+// ERROR HANDLING TYPES
+// ============================================================================
+
+export interface RuntimeError {
+  id: string;
+  timestamp: number;
+  message: string;
+  source: string;
+  line?: number;
+  column?: number;
+  stack?: string;
+  type: "runtime";
+  url?: string;
+  scriptId?: string;
+}
+
+export interface NetworkError {
+  id: string;
+  timestamp: number;
+  requestId: string;
+  url: string;
+  method: string;
+  status?: number;
+  statusText?: string;
+  errorText: string;
+  type: "network";
+  resourceType?: string;
+}
+
+export interface ConsoleError {
+  id: string;
+  timestamp: number;
+  level: "error" | "warn";
+  message: string;
+  source?: string;
+  line?: number;
+  column?: number;
+  url?: string;
+  type: "console";
+  args?: ConsoleArgument[];
+  stackTrace?: StackTrace;
+}
+
+export interface ErrorSummary {
+  runtimeErrors: number;
+  networkErrors: number;
+  consoleErrors: number;
+  totalErrors: number;
+  lastErrorTime?: number;
+}

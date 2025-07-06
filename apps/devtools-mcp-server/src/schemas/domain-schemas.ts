@@ -170,3 +170,65 @@ export const StepOutSchema = z.object({});
 export const ResumeExecutionSchema = z.object({});
 
 export const PauseExecutionSchema = z.object({});
+
+// ============================================================================
+// ERROR HANDLING SCHEMAS
+// ============================================================================
+
+export const GetRuntimeErrorsSchema = z.object({
+  limit: z
+    .number()
+    .optional()
+    .default(50)
+    .describe("Maximum number of errors to return"),
+  since: z
+    .number()
+    .optional()
+    .describe("Timestamp to get errors since (optional)"),
+});
+
+export const GetNetworkErrorsSchema = z.object({
+  limit: z
+    .number()
+    .optional()
+    .default(50)
+    .describe("Maximum number of errors to return"),
+  since: z
+    .number()
+    .optional()
+    .describe("Timestamp to get errors since (optional)"),
+});
+
+export const GetConsoleErrorsSchema = z.object({
+  limit: z
+    .number()
+    .optional()
+    .default(50)
+    .describe("Maximum number of errors to return"),
+  level: z
+    .enum(["error", "warn", "all"])
+    .optional()
+    .default("error")
+    .describe("Error level filter"),
+  since: z
+    .number()
+    .optional()
+    .describe("Timestamp to get errors since (optional)"),
+});
+
+export const ClearErrorsSchema = z.object({
+  type: z
+    .enum(["runtime", "network", "console", "all"])
+    .optional()
+    .default("all")
+    .describe("Type of errors to clear"),
+});
+
+export const SetErrorListenerSchema = z.object({
+  enabled: z.boolean().describe("Enable or disable error listening"),
+  types: z
+    .array(z.enum(["runtime", "network", "console"]))
+    .optional()
+    .default(["runtime", "network", "console"])
+    .describe("Types of errors to listen for"),
+});

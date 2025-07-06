@@ -3,14 +3,6 @@
 // ============================================================================
 
 import { z } from "zod";
-import type {
-  ConsoleLogEntry,
-  NetworkRequest,
-  NetworkResponse,
-  DevtoolsItemResource,
-  DevtoolsProjectResource,
-} from "../types/domain-types.js";
-import type { ChromeDevToolsClient } from "./chrome-client.js";
 import {
   GetComputedStylesSchema,
   GetCSSRulesSchema,
@@ -31,7 +23,24 @@ import {
   StepOutSchema,
   ResumeExecutionSchema,
   PauseExecutionSchema,
+  GetRuntimeErrorsSchema,
+  GetNetworkErrorsSchema,
+  GetConsoleErrorsSchema,
+  ClearErrorsSchema,
+  SetErrorListenerSchema,
 } from "../schemas/domain-schemas.js";
+import type {
+  ConsoleLogEntry,
+  NetworkRequest,
+  NetworkResponse,
+  DevtoolsItemResource,
+  DevtoolsProjectResource,
+  RuntimeError,
+  NetworkError,
+  ConsoleError,
+  ErrorSummary,
+} from "../types/domain-types.js";
+import type { ChromeDevToolsClient } from "./chrome-client.js";
 
 // ============================================================================
 // VALIDATION SCHEMAS
@@ -1415,6 +1424,272 @@ export async function handlePauseExecution(
           {
             success: true,
             message: "Paused execution",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// ERROR HANDLING STORAGE
+// ============================================================================
+
+const runtimeErrors: RuntimeError[] = [];
+const networkErrors: NetworkError[] = [];
+const consoleErrors: ConsoleError[] = [];
+let errorListenerEnabled = true;
+
+// ============================================================================
+// ERROR HANDLING HANDLERS
+// ============================================================================
+
+export async function handleGetRuntimeErrors(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { limit, since } = GetRuntimeErrorsSchema.parse(params);
+
+  let filteredErrors = runtimeErrors;
+  if (since) {
+    filteredErrors = runtimeErrors.filter((error) => error.timestamp >= since);
+  }
+
+  const recentErrors = filteredErrors.slice(-limit);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            errors: recentErrors,
+            count: recentErrors.length,
+            totalCount: runtimeErrors.length,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetNetworkErrors(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { limit, since } = GetNetworkErrorsSchema.parse(params);
+
+  let filteredErrors = networkErrors;
+  if (since) {
+    filteredErrors = networkErrors.filter((error) => error.timestamp >= since);
+  }
+
+  const recentErrors = filteredErrors.slice(-limit);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            errors: recentErrors,
+            count: recentErrors.length,
+            totalCount: networkErrors.length,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetConsoleErrors(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { limit, level, since } = GetConsoleErrorsSchema.parse(params);
+
+  let filteredErrors = consoleErrors;
+
+  // Filter by level
+  if (level !== "all") {
+    filteredErrors = filteredErrors.filter((error) => error.level === level);
+  }
+
+  // Filter by timestamp
+  if (since) {
+    filteredErrors = filteredErrors.filter((error) => error.timestamp >= since);
+  }
+
+  const recentErrors = filteredErrors.slice(-limit);
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            errors: recentErrors,
+            count: recentErrors.length,
+            totalCount: consoleErrors.length,
+            level,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleClearErrors(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { type } = ClearErrorsSchema.parse(params);
+
+  let clearedCount = 0;
+
+  switch (type) {
+    case "runtime":
+      clearedCount = runtimeErrors.length;
+      runtimeErrors.length = 0;
+      break;
+    case "network":
+      clearedCount = networkErrors.length;
+      networkErrors.length = 0;
+      break;
+    case "console":
+      clearedCount = consoleErrors.length;
+      consoleErrors.length = 0;
+      break;
+    case "all":
+      clearedCount =
+        runtimeErrors.length + networkErrors.length + consoleErrors.length;
+      runtimeErrors.length = 0;
+      networkErrors.length = 0;
+      consoleErrors.length = 0;
+      break;
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Cleared ${clearedCount} ${type} errors`,
+            clearedCount,
+            type,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleSetErrorListener(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { enabled, types } = SetErrorListenerSchema.parse(params);
+
+  errorListenerEnabled = enabled;
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Set up error listeners based on types
+  if (enabled && types.includes("runtime")) {
+    client.Runtime.exceptionThrown((params) => {
+      if (!errorListenerEnabled) return;
+
+      const error: RuntimeError = {
+        id: `runtime_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: Date.now(),
+        message: params.exceptionDetails.text || "Runtime exception",
+        source: params.exceptionDetails.url || "unknown",
+        line: params.exceptionDetails.lineNumber,
+        column: params.exceptionDetails.columnNumber,
+        stack: params.exceptionDetails.stackTrace?.description,
+        type: "runtime",
+        url: params.exceptionDetails.url,
+        scriptId: params.exceptionDetails.scriptId,
+      };
+
+      runtimeErrors.push(error);
+      // Keep only last 1000 errors
+      if (runtimeErrors.length > 1000) {
+        runtimeErrors.splice(0, runtimeErrors.length - 1000);
+      }
+    });
+  }
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Error listener ${enabled ? "enabled" : "disabled"}`,
+            enabled,
+            types,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetErrorSummary(
+  _chromeClient: ChromeDevToolsClient,
+  _params: unknown
+) {
+  const summary: ErrorSummary = {
+    runtimeErrors: runtimeErrors.length,
+    networkErrors: networkErrors.length,
+    consoleErrors: consoleErrors.length,
+    totalErrors:
+      runtimeErrors.length + networkErrors.length + consoleErrors.length,
+    lastErrorTime:
+      Math.max(
+        ...runtimeErrors.map((e) => e.timestamp),
+        ...networkErrors.map((e) => e.timestamp),
+        ...consoleErrors.map((e) => e.timestamp),
+        0
+      ) || undefined,
+  };
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            summary,
             timestamp: Date.now(),
           },
           null,

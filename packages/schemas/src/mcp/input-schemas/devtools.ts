@@ -1,5 +1,5 @@
-import { ToolInputSchema } from "./types.js";
 import { CommonInputSchemas } from "./common.js";
+import { ToolInputSchema } from "./types.js";
 
 // ============================================================================
 // CHROME DEVTOOLS MCP SERVER - Input Schemas
@@ -524,6 +524,106 @@ export const DevToolsInputSchemas = {
   } as ToolInputSchema,
 
   pauseExecution: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  // Error Handling Tools
+  getRuntimeErrors: {
+    type: "object",
+    properties: {
+      limit: {
+        type: "integer",
+        default: 50,
+        description: "Maximum number of errors to return",
+      },
+      since: {
+        type: "integer",
+        description: "Timestamp to get errors since (optional)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getNetworkErrors: {
+    type: "object",
+    properties: {
+      limit: {
+        type: "integer",
+        default: 50,
+        description: "Maximum number of errors to return",
+      },
+      since: {
+        type: "integer",
+        description: "Timestamp to get errors since (optional)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getConsoleErrors: {
+    type: "object",
+    properties: {
+      limit: {
+        type: "integer",
+        default: 50,
+        description: "Maximum number of errors to return",
+      },
+      level: {
+        type: "string",
+        enum: ["error", "warn", "all"],
+        default: "error",
+        description: "Error level filter",
+      },
+      since: {
+        type: "integer",
+        description: "Timestamp to get errors since (optional)",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  clearErrors: {
+    type: "object",
+    properties: {
+      type: {
+        type: "string",
+        enum: ["runtime", "network", "console", "all"],
+        default: "all",
+        description: "Type of errors to clear",
+      },
+    },
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  setErrorListener: {
+    type: "object",
+    properties: {
+      enabled: {
+        type: "boolean",
+        description: "Enable or disable error listening",
+      },
+      types: {
+        type: "array",
+        items: {
+          type: "string",
+          enum: ["runtime", "network", "console"],
+        },
+        default: ["runtime", "network", "console"],
+        description: "Types of errors to listen for",
+      },
+    },
+    required: ["enabled"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getErrorSummary: {
     type: "object",
     properties: {},
     required: [],
