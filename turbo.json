@@ -22,15 +22,23 @@
     "MAX_CONCURRENT_SESSIONS",
     "APP_TIMEZONE",
     "PERPLEXITY_API_KEY",
-    "PERPLEXITY_SERVER_URL"
+    "PERPLEXITY_SERVER_URL",
+    "DEVTOOLS_API_KEY",
+    "DEVTOOLS_SERVER_URL"
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "docker:build": {
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "cache": false,
       "outputs": []
     },
@@ -44,7 +52,9 @@
       "cache": false
     },
     "type-check": {
-      "dependsOn": ["^build"]
+      "dependsOn": [
+        "^build"
+      ]
     },
     "clean": {
       "cache": false

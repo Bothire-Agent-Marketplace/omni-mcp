@@ -1,6 +1,6 @@
 // Import servers and registry for auto-registration
 import { serverRegistry } from "./mcp-server-registry.js";
-import { LINEAR_SERVER, PERPLEXITY_SERVER } from "./servers/index.js";
+import { LINEAR_SERVER, PERPLEXITY_SERVER, DEVTOOLS_SERVER } from "./servers/index.js";
 
 // ============================================================================
 // MCP CAPABILITIES - Centralized Export
@@ -19,6 +19,8 @@ export * from "./servers/index.js";
 serverRegistry.register(LINEAR_SERVER);
 
 serverRegistry.register(PERPLEXITY_SERVER);
+
+serverRegistry.register(DEVTOOLS_SERVER);
 
 // Export registry as default for gateway usage
 export { serverRegistry as default };

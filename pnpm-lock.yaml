@@ -67,6 +67,34 @@ importers:
         specifier: ^3.2.4
         version: 3.2.4(@types/node@24.0.10)(@vitest/ui@3.2.4)(jiti@2.4.2)(tsx@4.20.3)(yaml@2.8.0)
 
+  apps/devtools-mcp-server:
+    dependencies:
+      '@mcp/capabilities':
+        specifier: workspace:*
+        version: link:../../packages/capabilities
+      '@mcp/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
+      '@mcp/server-core':
+        specifier: workspace:*
+        version: link:../../packages/server-core
+      '@mcp/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.74
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.8
+        version: 24.0.10
+      tsx:
+        specifier: ^4.20.3
+        version: 4.20.3
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
   apps/gateway:
     dependencies:
       '@fastify/cors':
