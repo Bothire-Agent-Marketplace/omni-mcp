@@ -147,6 +147,7 @@ function generateTemplateFiles(serverDir, domain) {
       "lint:fix": "eslint src --ext .ts --fix",
     },
     dependencies: {
+      "@mcp/capabilities": "workspace:*",
       "@mcp/schemas": "workspace:*",
       "@mcp/server-core": "workspace:*",
       "@mcp/utils": "workspace:*",
@@ -670,14 +671,16 @@ function generateTsConfig() {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
+    "rootDir": "./src",
     "composite": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../packages/capabilities" },
     { "path": "../../packages/schemas" },
     { "path": "../../packages/utils" }
   ],
-  "exclude": ["dist", "node_modules", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist"]
 }`;
 }
 
@@ -692,20 +695,26 @@ LOG_LEVEL=debug
 
 function generateIndexTemplate(domain) {
   return `#!/usr/bin/env node
-
-import { runMcpServer } from "@mcp/server-core";
+import { runMcpServer, createServerStarter } from "@mcp/server-core";
 import { ${domain.toLowerCase()}ServerConfig } from "./config/config.js";
 import { create${capitalize(domain)}HttpServer } from "./mcp-server/http-server.js";
 
-// Start the server using the server-core helper
-runMcpServer("${domain}-mcp-server", ${domain.toLowerCase()}ServerConfig, create${capitalize(domain)}HttpServer);
+const startServer = createServerStarter("${domain}", create${capitalize(domain)}HttpServer);
+
+runMcpServer({
+  serverName: "${domain}-mcp-server",
+  config: ${domain.toLowerCase()}ServerConfig,
+  startServer,
+});
 `;
 }
 
 function generateConfigTemplate(domain) {
   return `import { dirname, join } from "path";
 import { fileURLToPath } from "url";
+import { ${domain.toUpperCase()}_SERVER } from "@mcp/capabilities";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
+import type { Environment } from "@mcp/utils";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
 
@@ -717,7 +726,11 @@ const SERVICE_PATH = join(__dirname, "..");
 loadEnvironment(SERVICE_PATH);
 
 export interface ${capitalize(domain)}ServerConfig extends BaseMcpServerConfig {
+  env: Environment;
+  port: number;
+  host: string;
   ${domain.toLowerCase()}ApiKey: string;
+  logLevel: string;
 }
 
 function create${capitalize(domain)}ServerConfig(): ${capitalize(domain)}ServerConfig {
@@ -726,15 +739,19 @@ function create${capitalize(domain)}ServerConfig(): ${capitalize(domain)}ServerC
 
   const config: ${capitalize(domain)}ServerConfig = {
     env,
-    port: validatePort(process.env.${domain.toUpperCase()}_SERVER_PORT, ${getNextAvailablePort()}),
+    port: validatePort(process.env.${domain.toUpperCase()}_SERVER_PORT, ${domain.toUpperCase()}_SERVER.port),
     host: process.env.HOST || "0.0.0.0",
-    logLevel: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
     ${domain.toLowerCase()}ApiKey: validateSecret(
       process.env.${domain.toUpperCase()}_API_KEY,
       env,
       "${domain.toUpperCase()}_API_KEY"
     ),
+    logLevel: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
   };
+
+  if (env !== "test" && !config.${domain.toLowerCase()}ApiKey) {
+    throw new Error("${domain.toUpperCase()}_API_KEY is required for ${domain}-mcp-server.");
+  }
 
   return config;
 }
@@ -745,30 +762,17 @@ export const ${domain.toLowerCase()}ServerConfig = create${capitalize(domain)}Se
 
 function generateTypesTemplate(domain) {
   return `// ============================================================================
-// ${domain.toUpperCase()} MCP SERVER - Domain Types
+// MCP Server - Domain-Specific TypeScript Types
 // ============================================================================
+// This file contains TypeScript types specific to the domain this MCP server serves.
+// For ${capitalize(domain)}: Items, Projects, etc.
+// For future servers: Replace with relevant domain types (GitHub: Repos, Issues, PRs, etc.)
 
-// TODO: Add your ${domain}-specific types here
-export interface ${capitalize(domain)}Item {
+// Resource types - Update these for your specific domain
+export interface ${capitalize(domain)}ItemResource {
   id: string;
   title: string;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface ${capitalize(domain)}Project {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-}
-
-// Resource types for MCP protocol
-export interface ${capitalize(domain)}ItemResource {
-  id: string;
-  name: string;
-  description: string;
   uri: string;
   mimeType: string;
 }
@@ -776,7 +780,7 @@ export interface ${capitalize(domain)}ItemResource {
 export interface ${capitalize(domain)}ProjectResource {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   uri: string;
   mimeType: string;
 }
@@ -787,38 +791,45 @@ function generateSchemasTemplate(domain) {
   return `import { z } from "zod";
 
 // ============================================================================
-// ${domain.toUpperCase()} MCP SERVER - Zod Schemas
+// MCP Server - Domain-Specific Zod Validation Schemas
 // ============================================================================
+// This file contains Zod schemas for runtime validation of tool parameters and prompt arguments.
+// These schemas are specific to the domain this MCP server serves.
+// For ${capitalize(domain)}: Items, Projects, etc.
+// For future servers: Replace with relevant domain schemas (GitHub: Repos, Issues, PRs, etc.)
+//
+// NOTE: These are separate from the inputSchemas in @mcp/schemas which are for MCP protocol.
+// These schemas are for internal validation within the server's business logic.
 
-// TODO: Add your ${domain}-specific validation schemas here
-export const ${capitalize(domain)}ItemSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().optional(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export const ${capitalize(domain)}ProjectSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  description: z.string().optional(),
-  createdAt: z.string(),
-});
-
-// Request/Response schemas
+// Tool validation schemas - Update these for your specific domain tools
 export const Search${capitalize(domain)}ItemsRequestSchema = z.object({
-  query: z.string(),
-  limit: z.number().optional().default(10),
+  query: z
+    .string()
+    .describe("Text to search in item titles and descriptions"),
+  limit: z
+    .number()
+    .min(1)
+    .max(50)
+    .default(10)
+    .describe("Maximum number of items to return"),
 });
 
 export const Get${capitalize(domain)}ItemRequestSchema = z.object({
-  id: z.string(),
+  id: z.string().describe("ID of the ${domain} item to retrieve"),
 });
 
 export const Create${capitalize(domain)}ItemRequestSchema = z.object({
-  title: z.string(),
-  description: z.string().optional(),
+  title: z.string().describe("Title for the new ${domain} item"),
+  description: z.string().optional().describe("Description for the new ${domain} item"),
+});
+
+// Prompt validation schemas - Update these for your specific prompts
+export const ${capitalize(domain)}WorkflowArgsSchema = z.object({
+  task: z.string().optional().describe("Specific ${domain} task to help with"),
+});
+
+export const ${capitalize(domain)}AutomationArgsSchema = z.object({
+  action: z.string().optional().describe("Specific ${domain} action to automate"),
 });
 `;
 }
@@ -828,112 +839,41 @@ function generateHandlersTemplate(domain) {
 // ${domain.toUpperCase()} MCP SERVER - Request Handlers
 // ============================================================================
 
-import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
-import type { ${capitalize(domain)}Item, ${capitalize(domain)}Project } from "../types/domain-types.js";
+import {
+  Search${capitalize(domain)}ItemsRequestSchema,
+  Get${capitalize(domain)}ItemRequestSchema,
+  Create${capitalize(domain)}ItemRequestSchema,
+} from "../schemas/domain-schemas.js";
+import type {
+  ${capitalize(domain)}ItemResource,
+  ${capitalize(domain)}ProjectResource,
+} from "../types/domain-types.js";
 
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
 
-export class ${capitalize(domain)}Handlers {
-  private config: ${capitalize(domain)}ServerConfig;
-  // private client: ${capitalize(domain)}Client;
-
-  constructor(config: ${capitalize(domain)}ServerConfig) {
-    this.config = config;
-    // TODO: Initialize your ${domain} client
-    // this.client = new ${capitalize(domain)}Client({ apiKey: config.${domain.toLowerCase()}ApiKey });
-  }
-
-  // Tool handlers
-  async searchItems(query: string, limit: number = 10): Promise<${capitalize(domain)}Item[]> {
-
-    
-    // TODO: Implement your ${domain} search logic
-    // const results = await this.client.searchItems({ query, limit });
-    // return results;
-    
-    // Placeholder implementation
-    return [
-      {
-        id: "1",
-        title: \`Sample \${query} item\`,
-        description: "This is a placeholder item",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-    ];
-  }
-
-  async getItem(id: string): Promise<${capitalize(domain)}Item | null> {
-
-    
-    // TODO: Implement your ${domain} get item logic
-    // const item = await this.client.getItem(id);
-    // return item;
-    
-    // Placeholder implementation
-    return {
-      id,
-      title: \`Sample item \${id}\`,
-      description: "This is a placeholder item",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  async createItem(title: string, description?: string): Promise<${capitalize(domain)}Item> {
-
-    
-    // TODO: Implement your ${domain} create item logic
-    // const item = await this.client.createItem({ title, description });
-    // return item;
-    
-    // Placeholder implementation
-    return {
-      id: Math.random().toString(36).substring(7),
-      title,
-      description,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  // Resource handlers
-  async getProjects(): Promise<${capitalize(domain)}Project[]> {
-
-    
-    // TODO: Implement your ${domain} get projects logic
-    // const projects = await this.client.getProjects();
-    // return projects;
-    
-    // Placeholder implementation
-    return [
-      {
-        id: "1",
-        name: "Sample Project",
-        description: "This is a placeholder project",
-        createdAt: new Date().toISOString(),
-      }
-    ];
-  }
+// ${capitalize(domain)} SDK Filter Types based on API patterns
+interface ${capitalize(domain)}ItemFilter {
+  // TODO: Add your ${domain}-specific filter types
+  query?: string;
+  limit?: number;
 }
 
 // ============================================================================
-// TOOL HANDLERS - Following Linear server pattern
+// HANDLER 1: Search Items
 // ============================================================================
 
 export async function handle${capitalize(domain)}SearchItems(
   /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
   params: unknown
 ) {
-  // TODO: Add Zod validation for params
-  const { query, limit } = params as { query?: string; limit?: number };
-  
+  // Validate and parse input with Zod
+  const validatedParams = Search${capitalize(domain)}ItemsRequestSchema.parse(params);
+  const { query, limit } = validatedParams;
 
-  
   // TODO: Implement your ${domain} search logic
   // const results = await ${domain.toLowerCase()}Client.searchItems({ query, limit });
-  
+
   // Placeholder implementation
   const items = [
     {
@@ -949,24 +889,31 @@ export async function handle${capitalize(domain)}SearchItems(
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(items, null, 2),
+        text: JSON.stringify(
+          { items, count: items.length },
+          null,
+          2
+        ),
       },
     ],
   };
 }
 
+// ============================================================================
+// HANDLER 2: Get Item
+// ============================================================================
+
 export async function handle${capitalize(domain)}GetItem(
   /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
   params: unknown
 ) {
-  // TODO: Add Zod validation for params
-  const { id } = params as { id: string };
-  
+  // Validate and parse input with Zod
+  const validatedParams = Get${capitalize(domain)}ItemRequestSchema.parse(params);
+  const { id } = validatedParams;
 
-  
   // TODO: Implement your ${domain} get item logic
   // const item = await ${domain.toLowerCase()}Client.getItem(id);
-  
+
   // Placeholder implementation
   const item = {
     id,
@@ -986,18 +933,21 @@ export async function handle${capitalize(domain)}GetItem(
   };
 }
 
+// ============================================================================
+// HANDLER 3: Create Item
+// ============================================================================
+
 export async function handle${capitalize(domain)}CreateItem(
   /* ${domain.toLowerCase()}Client: ${capitalize(domain)}Client, */
   params: unknown
 ) {
-  // TODO: Add Zod validation for params
-  const { title, description } = params as { title: string; description?: string };
-  
+  // Validate and parse input with Zod
+  const validatedParams = Create${capitalize(domain)}ItemRequestSchema.parse(params);
+  const { title, description } = validatedParams;
 
-  
   // TODO: Implement your ${domain} create item logic
   // const item = await ${domain.toLowerCase()}Client.createItem({ title, description });
-  
+
   // Placeholder implementation
   const item = {
     id: Math.random().toString(36).substring(7),
@@ -1018,7 +968,7 @@ export async function handle${capitalize(domain)}CreateItem(
 }
 
 // ============================================================================
-// RESOURCE HANDLERS - Following Linear server pattern
+// RESOURCE HANDLERS
 // ============================================================================
 
 export async function handle${capitalize(domain)}ItemsResource(
@@ -1026,19 +976,17 @@ export async function handle${capitalize(domain)}ItemsResource(
   uri: string
 ) {
   try {
-
-    
     // TODO: Implement your ${domain} get items logic
     // const items = await ${domain.toLowerCase()}Client.getItems();
-    
+
     // Placeholder implementation
-    const items = [
+    const items: ${capitalize(domain)}ItemResource[] = [
       {
         id: "1",
         title: "Sample Item",
         description: "This is a placeholder item",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        uri: uri,
+        mimeType: "application/json",
       }
     ];
 
@@ -1069,18 +1017,17 @@ export async function handle${capitalize(domain)}ProjectsResource(
   uri: string
 ) {
   try {
-
-    
     // TODO: Implement your ${domain} get projects logic
     // const projects = await ${domain.toLowerCase()}Client.getProjects();
-    
+
     // Placeholder implementation
-    const projects = [
+    const projects: ${capitalize(domain)}ProjectResource[] = [
       {
         id: "1",
         name: "Sample Project",
         description: "This is a placeholder project",
-        createdAt: new Date().toISOString(),
+        uri: uri,
+        mimeType: "application/json",
       }
     ];
 
@@ -1109,42 +1056,34 @@ export async function handle${capitalize(domain)}ProjectsResource(
 }
 
 function generateHttpServerTemplate(domain) {
-  return `import { createMcpHttpServer } from "@mcp/server-core";
+  return `import { createMcpHttpServer, type FastifyInstance } from "@mcp/server-core";
 import type { ${capitalize(domain)}ServerConfig } from "../config/config.js";
-import {
-  createPromptHandlers,
-  getAvailablePrompts,
-} from "./prompts.js";
+import { createPromptHandlers, getAvailablePrompts } from "./prompts.js";
 import { createResourceHandlers, getAvailableResources } from "./resources.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
 
 // TODO: Replace with your actual ${domain} SDK/API client
 // import { ${capitalize(domain)}Client } from "@${domain}/sdk";
 
-export function create${capitalize(domain)}HttpServer(config: ${capitalize(domain)}ServerConfig) {
+export async function create${capitalize(domain)}HttpServer(
+  config: ${capitalize(domain)}ServerConfig
+): Promise<FastifyInstance> {
   // TODO: Initialize your ${domain} client
   // const ${domain.toLowerCase()}Client = new ${capitalize(domain)}Client({ apiKey: config.${domain.toLowerCase()}ApiKey });
 
-  // Create handler registries
-  const toolHandlers = createToolHandlers(/* ${domain.toLowerCase()}Client */);
-  const resourceHandlers = createResourceHandlers(/* ${domain.toLowerCase()}Client */);
-  const promptHandlers = createPromptHandlers();
-
-  return createMcpHttpServer({
+  const server = createMcpHttpServer({
+    serverName: "${domain}",
     config,
-    tools: {
-      handlers: toolHandlers,
-      list: getAvailableTools(),
-    },
-    resources: {
-      handlers: resourceHandlers,
-      list: getAvailableResources(),
-    },
-    prompts: {
-      handlers: promptHandlers,
-      list: getAvailablePrompts(),
-    },
+    client: undefined, // ${domain.toLowerCase()}Client,
+    toolHandlers: createToolHandlers(/* ${domain.toLowerCase()}Client */),
+    resourceHandlers: createResourceHandlers(/* ${domain.toLowerCase()}Client */),
+    promptHandlers: createPromptHandlers(),
+    getAvailableTools,
+    getAvailableResources,
+    getAvailablePrompts,
   });
+
+  return server;
 }
 `;
 }
@@ -1270,11 +1209,20 @@ import {
   getGenericAvailablePrompts,
   PromptDefinition,
 } from "@mcp/utils";
+import {
+  ${capitalize(domain)}WorkflowArgsSchema,
+  ${capitalize(domain)}AutomationArgsSchema,
+} from "../schemas/domain-schemas.js";
+
+// ============================================================================
+// ${domain.toUpperCase()} MCP SERVER - Prompts
+// ============================================================================
 
 // Prompt implementation functions
 function ${domain.toLowerCase()}WorkflowPrompt(args: unknown = {}) {
-  // TODO: Add Zod validation for args if needed
-  const { task } = args as { task?: string };
+  // Validate and parse input with Zod
+  const validatedArgs = ${capitalize(domain)}WorkflowArgsSchema.parse(args);
+  const { task } = validatedArgs;
   
   return {
     messages: [
@@ -1282,7 +1230,14 @@ function ${domain.toLowerCase()}WorkflowPrompt(args: unknown = {}) {
         role: "user" as const,
         content: {
           type: "text" as const,
-          text: \`Please help me with this ${domain} task: \${task || "general workflow"}\`,
+          text: \`Help me with this ${domain} task: \${task || "general workflow"}. Please guide me through:
+
+1. Understanding the requirements
+2. Planning the approach
+3. Implementing the solution
+4. Testing and validation
+
+Let's start - what specific aspect of ${domain} are we working on?\`,
         },
       },
     ],
@@ -1290,8 +1245,9 @@ function ${domain.toLowerCase()}WorkflowPrompt(args: unknown = {}) {
 }
 
 function ${domain.toLowerCase()}AutomationPrompt(args: unknown = {}) {
-  // TODO: Add Zod validation for args if needed
-  const { action } = args as { action?: string };
+  // Validate and parse input with Zod
+  const validatedArgs = ${capitalize(domain)}AutomationArgsSchema.parse(args);
+  const { action } = validatedArgs;
   
   return {
     messages: [
@@ -1299,7 +1255,14 @@ function ${domain.toLowerCase()}AutomationPrompt(args: unknown = {}) {
         role: "user" as const,
         content: {
           type: "text" as const,
-          text: \`Please automate this ${domain} action: \${action || "general automation"}\`,
+          text: \`Let's automate this ${domain} action: \${action || "general automation"}. I'll help you:
+
+1. Identify repetitive tasks
+2. Design automation workflows
+3. Set up triggers and conditions
+4. Monitor and optimize
+
+What ${domain} process would you like to automate?\`,
         },
       },
     ],
@@ -1315,14 +1278,14 @@ const ${domain.toLowerCase()}PromptDefinitions: Record<string, PromptDefinition>
     handler: async (args) => ${domain.toLowerCase()}WorkflowPrompt(args),
     metadata: {
       name: "${domain}_workflow",
-      description: "Standard ${domain} workflow prompt",
+      description: "Step-by-step workflow for ${domain} tasks",
     },
   },
   "${domain}_automation": {
     handler: async (args) => ${domain.toLowerCase()}AutomationPrompt(args),
     metadata: {
       name: "${domain}_automation",
-      description: "Automation prompt for ${domain}",
+      description: "Automation guidance for ${domain} processes",
     },
   },
 };

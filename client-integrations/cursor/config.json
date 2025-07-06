@@ -4,7 +4,7 @@
   "bridge": {
     "timeout": 30000,
     "retries": 3,
-    "debug": false
+    "debug": true
   },
   "mcp": {
     "serverName": "gateway",
