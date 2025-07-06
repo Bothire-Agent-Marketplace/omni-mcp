@@ -44,123 +44,92 @@ apps/[domain]-mcp-server/
 
 ## Creating a New MCP Server
 
-### Step 1: Copy the Linear Server Structure
+### Quick Start with Scaffolding Tool
+
+Use the automated scaffolding tool to create a new MCP server:
 
 ```bash
-# Copy the linear server as a template
-cp -r apps/linear-mcp-server apps/[new-domain]-mcp-server
+# Create a new MCP server (e.g., GitHub)
+node scripts/scaffold-mcp-server.js add github
+
+# The tool will automatically:
+# 1. Create the server directory structure
+# 2. Generate all template files
+# 3. Create input schemas in @mcp/schemas
+# 4. Register with @mcp/capabilities
+# 5. Update configuration files
+# 6. Install dependencies
+# 7. Build and validate the server
 ```
 
-### Step 2: Update Domain-Specific Files
+### What Gets Generated
 
-#### `domain-types.ts`
+The scaffolding tool creates a complete, working MCP server with:
 
-Replace Linear-specific types with your domain types:
+- **Server Structure**: All directories and files following the standard pattern
+- **Template Handlers**: Placeholder API handlers with proper error handling
+- **Input Schemas**: Centralized schemas in `@mcp/schemas/input-schemas/[domain].ts`
+- **Capabilities Registration**: Auto-registration in `@mcp/capabilities`
+- **Configuration**: Environment variables, TypeScript config, and dependency setup
+- **Validation**: Builds successfully and passes startup tests
+
+### Customization After Scaffolding
+
+After running the scaffolding tool, customize these files for your domain:
+
+#### 1. Update API Handlers (`src/mcp-server/handlers.ts`)
+
+Replace placeholder logic with real API calls:
 
 ```typescript
-// Before (Linear)
-export interface LinearTeamResource {
-  id: string;
-  name: string;
-  key: string;
-}
+// Replace placeholder with real API client
+import { GitHubClient } from "@github/sdk";
 
-// After (GitHub example)
+export async function handleGitHubSearchRepos(githubClient: GitHubClient, params: unknown) {
+  const { query, language, limit } = SearchReposRequestSchema.parse(params);
+  const results = await githubClient.search.repos({ query, language, limit });
+  // ... return formatted results
+}
+```
+
+#### 2. Update Domain Types (`src/types/domain-types.ts`)
+
+Add your domain-specific TypeScript interfaces:
+
+```typescript
 export interface GitHubRepoResource {
   id: number;
   name: string;
   fullName: string;
   private: boolean;
+  language: string | null;
+  stars: number;
 }
 ```
 
-#### `domain-schemas.ts`
+#### 3. Update Validation Schemas (`src/schemas/domain-schemas.ts`)
 
-Replace Linear-specific schemas with your domain schemas:
+Customize Zod schemas for your domain's validation needs:
 
 ```typescript
-// Before (Linear)
-export const SearchIssuesInputSchema = z.object({
-  query: z.string().optional(),
-  teamId: z.string().optional(),
-  // ...
-});
-
-// After (GitHub example)
-export const SearchReposInputSchema = z.object({
-  query: z.string().optional(),
-  language: z.string().optional(),
-  // ...
+export const SearchReposRequestSchema = z.object({
+  query: z.string().describe("Search query for repositories"),
+  language: z.string().optional().describe("Filter by programming language"),
+  sort: z.enum(["stars", "forks", "updated"]).optional(),
 });
 ```
 
-### Step 3: Update Centralized InputSchemas
-
-Add your server's inputSchemas to the `@mcp/schemas/input-schemas/` directory:
-
-1. **Create your server's schema file**:
+### Additional Commands
 
 ```bash
-# Create a new file for your server
-touch packages/schemas/src/mcp/input-schemas/github.ts
-```
+# List all registered servers
+node scripts/scaffold-mcp-server.js list
 
-2. **Define your inputSchemas**:
+# Remove a server completely
+node scripts/scaffold-mcp-server.js remove github
 
-```typescript
-// packages/schemas/src/mcp/input-schemas/github.ts
-import { ToolInputSchema } from "./types.js";
-import { CommonInputSchemas } from "./common.js";
-
-export const GitHubInputSchemas = {
-  searchRepos: {
-    type: "object",
-    properties: {
-      query: {
-        type: "string",
-        description: "Search query for repositories",
-      },
-      language: {
-        type: "string",
-        description: "Filter by programming language",
-      },
-      limit: CommonInputSchemas.optionalLimit, // Reuse common patterns
-      sortOrder: CommonInputSchemas.sortOrder,
-    },
-    required: ["query"],
-    additionalProperties: false,
-  } as ToolInputSchema,
-
-  createIssue: {
-    type: "object",
-    properties: {
-      title: {
-        type: "string",
-        description: "Issue title",
-      },
-      body: {
-        type: "string",
-        description: "Issue description",
-      },
-      repository: {
-        type: "string",
-        description: "Repository name (owner/repo)",
-      },
-    },
-    required: ["title", "repository"],
-    additionalProperties: false,
-  } as ToolInputSchema,
-} as const;
-```
-
-3. **Export your schemas**:
-
-```typescript
-// packages/schemas/src/mcp/input-schemas/index.ts
-export * from "./types.js";
-export * from "./common.js";
-export * from "./linear.js";
-export * from "./github.js"; // Add this line
+# Test the server through the gateway
+node packages/dev-tools/src/cli/index.js test-server github
 ```
 
 ## InputSchemas Directory Structure
@@ -170,23 +139,19 @@ packages/schemas/src/mcp/input-schemas/
 ├── types.ts           # ToolInputSchema interface
 ├── common.ts          # Reusable schema patterns
 ├── linear.ts          # Linear-specific schemas
-├── github.ts          # GitHub-specific schemas (example)
+├── github.ts          # GitHub-specific schemas (auto-generated)
 ├── slack.ts           # Slack-specific schemas (future)
 ├── notion.ts          # Notion-specific schemas (future)
-└── index.ts           # Exports everything
+└── index.ts           # Exports everything (auto-updated)
 ```
 
-### Benefits of This Structure
+### Benefits of Automated Scaffolding
 
-1. **Scalable**: Each server gets its own file (~100-200 lines)
-2. **Maintainable**: Clear ownership and easy to find schemas
-3. **Reusable**: Common patterns shared via `CommonInputSchemas`
-4. **Type Safe**: Centralized types ensure consistency
-5. **DRY**: No duplication of common patterns like `limit`, `sortOrder`
-
-### Step 4: Register with Gateway
-
-Add your server to the gateway configuration in `@mcp/capabilities`.
+1. **Speed**: Create a working server in seconds, not hours
+2. **Consistency**: All servers follow identical patterns
+3. **Validation**: Generated servers build and start successfully
+4. **Integration**: Automatic registration with gateway and capabilities
+5. **Best Practices**: Templates include proper error handling and validation
 
 ## Benefits of This Pattern
 
