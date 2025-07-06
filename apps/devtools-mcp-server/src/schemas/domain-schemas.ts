@@ -82,3 +82,32 @@ export const GetCookiesSchema = z.object({
     .optional()
     .describe("Domain to get cookies for (defaults to current page)"),
 });
+
+// ============================================================================
+// ADVANCED DOM MANIPULATION SCHEMAS
+// ============================================================================
+
+export const SetElementTextSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to set text for"),
+  text: z.string().describe("Text content to set"),
+});
+
+export const SetElementAttributeSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to set attribute for"),
+  name: z.string().describe("Attribute name"),
+  value: z.string().describe("Attribute value"),
+});
+
+export const RemoveElementSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to remove"),
+});
+
+export const GetElementStylesSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to get styles for"),
+});
+
+export const SetElementStyleSchema = z.object({
+  nodeId: z.number().describe("DOM node ID to set style for"),
+  property: z.string().describe("CSS property name"),
+  value: z.string().describe("CSS property value"),
+});

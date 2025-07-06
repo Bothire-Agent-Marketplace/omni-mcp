@@ -323,4 +323,85 @@ export const DevToolsInputSchemas = {
     required: [],
     additionalProperties: false,
   } as ToolInputSchema,
+
+  // Advanced DOM Tools
+  setElementText: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to set text for",
+      },
+      text: {
+        type: "string",
+        description: "Text content to set",
+      },
+    },
+    required: ["nodeId", "text"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  setElementAttribute: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to set attribute for",
+      },
+      name: {
+        type: "string",
+        description: "Attribute name",
+      },
+      value: {
+        type: "string",
+        description: "Attribute value",
+      },
+    },
+    required: ["nodeId", "name", "value"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  removeElement: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to remove",
+      },
+    },
+    required: ["nodeId"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  getElementStyles: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to get styles for",
+      },
+    },
+    required: ["nodeId"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  setElementStyle: {
+    type: "object",
+    properties: {
+      nodeId: {
+        type: "integer",
+        description: "DOM node ID to set style for",
+      },
+      property: {
+        type: "string",
+        description: "CSS property name",
+      },
+      value: {
+        type: "string",
+        description: "CSS property value",
+      },
+    },
+    required: ["nodeId", "property", "value"],
+    additionalProperties: false,
+  } as ToolInputSchema,
 } as const;

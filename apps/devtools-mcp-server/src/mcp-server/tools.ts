@@ -192,6 +192,48 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.getCookies,
     },
   },
+
+  // Advanced DOM Tools
+  dom_set_text: {
+    handler: handlers.handleSetElementText,
+    metadata: {
+      name: "dom_set_text",
+      description: "Set text content of DOM element",
+      inputSchema: DevToolsInputSchemas.setElementText,
+    },
+  },
+  dom_set_attribute: {
+    handler: handlers.handleSetElementAttribute,
+    metadata: {
+      name: "dom_set_attribute",
+      description: "Set attribute of DOM element",
+      inputSchema: DevToolsInputSchemas.setElementAttribute,
+    },
+  },
+  dom_remove: {
+    handler: handlers.handleRemoveElement,
+    metadata: {
+      name: "dom_remove",
+      description: "Remove DOM element",
+      inputSchema: DevToolsInputSchemas.removeElement,
+    },
+  },
+  dom_get_styles: {
+    handler: handlers.handleGetElementStyles,
+    metadata: {
+      name: "dom_get_styles",
+      description: "Get inline styles of DOM element",
+      inputSchema: DevToolsInputSchemas.getElementStyles,
+    },
+  },
+  dom_set_style: {
+    handler: handlers.handleSetElementStyle,
+    metadata: {
+      name: "dom_set_style",
+      description: "Set inline style of DOM element",
+      inputSchema: DevToolsInputSchemas.setElementStyle,
+    },
+  },
 };
 
 // ============================================================================

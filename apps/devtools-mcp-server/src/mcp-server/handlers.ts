@@ -17,6 +17,11 @@ import {
   GetLocalStorageSchema,
   GetSessionStorageSchema,
   GetCookiesSchema,
+  SetElementTextSchema,
+  SetElementAttributeSchema,
+  RemoveElementSchema,
+  GetElementStylesSchema,
+  SetElementStyleSchema,
 } from "../schemas/domain-schemas.js";
 
 // ============================================================================
@@ -889,6 +894,202 @@ export async function handleGetCookies(
               session: cookie.session,
               sameSite: cookie.sameSite,
             })),
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// ADVANCED DOM MANIPULATION HANDLERS
+// ============================================================================
+
+export async function handleSetElementText(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId, text } = SetElementTextSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Set the text content of the element
+  await client.DOM.setNodeValue({ nodeId, value: text });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Set text content for node ${nodeId}`,
+            nodeId,
+            text,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleSetElementAttribute(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId, name, value } = SetElementAttributeSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Set the attribute on the element
+  await client.DOM.setAttributeValue({ nodeId, name, value });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Set attribute ${name}="${value}" for node ${nodeId}`,
+            nodeId,
+            attribute: { name, value },
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleRemoveElement(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId } = RemoveElementSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Remove the element from the DOM
+  await client.DOM.removeNode({ nodeId });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Removed node ${nodeId} from DOM`,
+            nodeId,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleGetElementStyles(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId } = GetElementStylesSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Get inline styles for the element
+  const inlineStyles = await client.CSS.getInlineStylesForNode({ nodeId });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            nodeId,
+            inlineStyle: inlineStyles.inlineStyle,
+            attributesStyle: inlineStyles.attributesStyle,
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleSetElementStyle(
+  chromeClient: ChromeDevToolsClient,
+  params: unknown
+) {
+  const { nodeId, property, value } = SetElementStyleSchema.parse(params);
+
+  const client = chromeClient.getClient();
+  if (!client) {
+    throw new Error("Not connected to Chrome");
+  }
+
+  // Get the current inline styles
+  const inlineStyles = await client.CSS.getInlineStylesForNode({ nodeId });
+
+  if (!inlineStyles.inlineStyle) {
+    throw new Error("Element has no inline styles to modify");
+  }
+
+  // Find the property to update or add it
+  const styleSheetId = inlineStyles.inlineStyle.styleSheetId;
+  const range = inlineStyles.inlineStyle.range;
+
+  if (!styleSheetId || !range) {
+    throw new Error("Cannot modify inline styles for this element");
+  }
+
+  // Set the CSS property
+  await client.CSS.setStyleTexts({
+    edits: [
+      {
+        styleSheetId,
+        range,
+        text: `${property}: ${value}`,
+      },
+    ],
+  });
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Set style ${property}: ${value} for node ${nodeId}`,
+            nodeId,
+            style: { property, value },
             timestamp: Date.now(),
           },
           null,
