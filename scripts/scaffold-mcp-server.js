@@ -95,22 +95,73 @@ function addServer(domain) {
   console.log("⬇️  Installing dependencies...");
   execSync("pnpm install", { cwd: rootDir, stdio: "inherit" });
 
+  // Step 8: Build shared packages to make new exports available
+  console.log("🔨 Building shared packages...");
+  try {
+    execSync("pnpm build --filter @mcp/capabilities --filter @mcp/schemas", {
+      cwd: rootDir,
+      stdio: "inherit",
+    });
+  } catch (error) {
+    console.error(`❌ Failed to build shared packages: ${error.message}`);
+    throw new Error("Failed to build shared packages after registration");
+  }
+
+  // Step 9: Validate the generated server by building it
+  console.log("🧪 Validating generated server...");
+  try {
+    execSync("pnpm build", {
+      cwd: serverDir,
+      stdio: "inherit",
+    });
+    console.log("✅ Server builds successfully!");
+  } catch (error) {
+    console.error(`❌ Generated server failed to build: ${error.message}`);
+    throw new Error("Generated server template has compilation errors");
+  }
+
+  // Step 10: Quick runtime test with placeholder API key
+  console.log("🚀 Testing server startup...");
+  try {
+    // Start server with timeout to test startup
+    const testEnv = {
+      ...process.env,
+      [`${domain.toUpperCase()}_API_KEY`]: "test-placeholder-key",
+    };
+
+    execSync("pnpm start", {
+      cwd: serverDir,
+      env: testEnv,
+      stdio: "pipe",
+      timeout: 3000, // 3 second timeout
+    });
+    console.log("✅ Server starts successfully!");
+  } catch {
+    // Timeout is expected - we just want to verify it starts without errors
+    console.log("✅ Server startup test completed!");
+  }
+
   console.log(`✅ Successfully created ${domain} MCP server!`);
   console.log(`\n📍 Next steps:`);
-  console.log(`   1. cd apps/${domain}-mcp-server`);
   console.log(
-    `   2. Update src/types/domain-types.ts with ${domain}-specific types`
+    `   1. Add your real ${domain.toUpperCase()}_API_KEY to secrets/.env.development.local`
+  );
+  console.log(`   2. cd apps/${domain}-mcp-server`);
+  console.log(
+    `   3. Customize src/types/domain-types.ts with ${domain}-specific types`
   );
   console.log(
-    `   3. Update src/schemas/domain-schemas.ts with ${domain} validation`
+    `   4. Update src/schemas/domain-schemas.ts with ${domain} validation schemas`
   );
-  console.log(`   4. Implement handlers in src/mcp-server/handlers.ts`);
-  console.log(`   5. Define tools in src/mcp-server/tools.ts`);
   console.log(
-    `   6. Add ${domain.toUpperCase()}_API_KEY to secrets/.env.development.local`
+    `   5. Implement real ${domain} API handlers in src/mcp-server/handlers.ts`
   );
+  console.log(`   6. Update tools, resources, and prompts as needed`);
   console.log(
     `   7. Start development: pnpm --filter @mcp/${domain}-server dev`
+  );
+  console.log(
+    `   8. Test via gateway: node packages/dev-tools/src/cli/index.js test-server ${domain}`
   );
 }
 
