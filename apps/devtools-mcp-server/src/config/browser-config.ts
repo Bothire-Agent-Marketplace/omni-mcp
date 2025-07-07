@@ -5,37 +5,11 @@
 
 import { existsSync } from "fs";
 import { platform } from "os";
-
-// ============================================================================
-// BROWSER TYPES AND INTERFACES
-// ============================================================================
-
-export type BrowserType =
-  | "chrome"
-  | "chrome-canary"
-  | "chromium"
-  | "brave"
-  | "edge"
-  | "arc"
-  | "vivaldi"
-  | "opera"
-  | "custom";
-
-interface BrowserInfo {
-  name: string;
-  type: BrowserType;
-  executablePath: string;
-  version?: string;
-  userDataDir?: string;
-  description: string;
-}
-
-interface BrowserConfigOptions {
-  preferredBrowser?: BrowserType;
-  customPath?: string;
-  userDataDir?: string;
-  enableAutoDetection?: boolean;
-}
+import type {
+  BrowserType,
+  BrowserInfo,
+  BrowserConfigOptions,
+} from "../types/domain-types.js";
 
 // ============================================================================
 // BROWSER EXECUTABLE PATHS BY PLATFORM

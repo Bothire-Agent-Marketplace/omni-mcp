@@ -7,8 +7,9 @@ import { spawn, ChildProcess } from "child_process";
 import CDP from "chrome-remote-interface";
 import puppeteer from "puppeteer-core";
 import WebSocket, { WebSocketServer } from "ws";
-import { BrowserConfig, BrowserType } from "../config/browser-config.js";
+import { BrowserConfig } from "../config/browser-config.js";
 import type {
+  BrowserType,
   ChromeConnectionStatus,
   ChromeStartOptions,
   ConsoleLogEntry,

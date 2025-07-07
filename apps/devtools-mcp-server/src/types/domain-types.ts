@@ -15,6 +15,37 @@ export interface ChromeConnectionStatus {
   userAgent?: string;
 }
 
+// ============================================================================
+// BROWSER CONFIGURATION TYPES
+// ============================================================================
+
+export type BrowserType =
+  | "chrome"
+  | "chrome-canary"
+  | "chromium"
+  | "brave"
+  | "edge"
+  | "arc"
+  | "vivaldi"
+  | "opera"
+  | "custom";
+
+export interface BrowserInfo {
+  name: string;
+  type: BrowserType;
+  executablePath: string;
+  version?: string;
+  userDataDir?: string;
+  description: string;
+}
+
+export interface BrowserConfigOptions {
+  preferredBrowser?: BrowserType;
+  customPath?: string;
+  userDataDir?: string;
+  enableAutoDetection?: boolean;
+}
+
 interface ChromeTargetInfo {
   id: string;
   title: string;
