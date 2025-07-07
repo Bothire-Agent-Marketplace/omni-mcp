@@ -210,8 +210,46 @@ export class ChromeDevToolsClient {
 
   async connect(): Promise<ChromeConnectionStatus> {
     try {
-      const targets = await CDP.List({ port: this.connectionStatus.port });
-      const target = targets.find((t) => t.type === "page") || targets[0];
+      // Wait for a page target to be available, with retries
+      let target = null;
+      const maxAttempts = 10;
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const targets = await CDP.List({ port: this.connectionStatus.port });
+
+        // Log discovered targets for debugging
+        console.log(`📋 Discovered ${targets.length} targets:`);
+        targets.forEach((t, index) => {
+          console.log(`  ${index + 1}. [${t.type}] ${t.title} (${t.url})`);
+        });
+
+        // Prefer page targets over service workers
+        const pageTarget = targets.find((t) => t.type === "page");
+        if (pageTarget) {
+          target = pageTarget;
+          console.log(
+            `✅ Found page target: ${pageTarget.title} (${pageTarget.url})`
+          );
+          break;
+        }
+
+        // If no page target found and this is the last attempt, use any available target
+        if (attempt === maxAttempts && targets.length > 0) {
+          target = targets[0];
+          console.log(
+            `⚠️ No page target found, using ${target.type} target: ${target.title}`
+          );
+          break;
+        }
+
+        // Wait before retrying
+        if (attempt < maxAttempts) {
+          console.log(
+            `Waiting for page target... (attempt ${attempt}/${maxAttempts})`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      }
 
       if (!target) {
         throw new Error("No suitable target found");
