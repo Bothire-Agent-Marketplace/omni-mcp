@@ -12,6 +12,9 @@
     "apps/*": {},
     "packages/dev-tools": {
       "entry": ["src/index.ts", "src/cli/index.ts"]
+    },
+    "apps/omni-frontend": {
+      "ignoreDependencies": ["eslint", "eslint-config-next"]
     }
   },
   "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "client-integrations/*/bridge.js"]
