@@ -2,6 +2,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { google } from "@ai-sdk/google";
 import { openai } from "@ai-sdk/openai";
 import { streamText } from "ai";
+import { ollama } from "ollama-ai-provider";
 import { qwen } from "qwen-ai-provider";
 
 // Allow streaming responses up to 30 seconds
@@ -12,12 +13,17 @@ const AI_PROVIDERS = {
   qwen: {
     provider: qwen,
     models: {
-      // Qwen 3 models with proper IDs from documentation
+      // Qwen 3 cloud models (require DASHSCOPE_API_KEY)
       "qwen2.5-14b-instruct": "qwen2.5-14b-instruct-1m",
       "qwen2.5-8b-instruct": "qwen2.5-8b-instruct-1m",
       "qwen2.5-72b-instruct": "qwen2.5-72b-instruct",
       "qwen2.5-7b-instruct": "qwen2.5-7b-instruct",
-      // Local Ollama models (if available)
+    },
+  },
+  ollama: {
+    provider: ollama,
+    models: {
+      // Local Ollama models (no API key needed)
       "qwen2.5-coder-7b": "qwen2.5-coder:7b",
     },
   },
@@ -53,8 +59,8 @@ export async function POST(req: Request) {
   try {
     const {
       messages,
-      provider = "qwen",
-      model = "qwen2.5-14b-instruct",
+      provider = "ollama",
+      model = "qwen2.5-coder-7b",
     } = await req.json();
 
     // Validate provider and model
@@ -85,10 +91,8 @@ export async function POST(req: Request) {
 
     switch (provider) {
       case "qwen": {
-        // Check if DASHSCOPE_API_KEY is available for cloud Qwen models
-        // Local Ollama models contain ':' in their ID (e.g., 'qwen2.5-coder:7b')
-        const isLocalModel = String(modelId).includes(":");
-        if (!process.env.DASHSCOPE_API_KEY && !isLocalModel) {
+        // Cloud Qwen models require DASHSCOPE_API_KEY
+        if (!process.env.DASHSCOPE_API_KEY) {
           return new Response(
             JSON.stringify({
               error: "DASHSCOPE_API_KEY not configured for cloud Qwen models",
@@ -98,6 +102,12 @@ export async function POST(req: Request) {
             { status: 500, headers: { "Content-Type": "application/json" } }
           );
         }
+        aiModel = selectedProvider.provider(modelId);
+        break;
+      }
+
+      case "ollama": {
+        // Local Ollama models (no API key needed)
         aiModel = selectedProvider.provider(modelId);
         break;
       }
@@ -178,7 +188,7 @@ export async function GET() {
     ([key, config]) => ({
       name: key,
       models: Object.keys(config.models),
-      isLocal: key === "qwen",
+      isLocal: key === "ollama",
       description: getProviderDescription(key),
       requiresApiKey: getApiKeyRequirement(key),
     })
@@ -187,10 +197,11 @@ export async function GET() {
   return new Response(
     JSON.stringify({
       providers: availableProviders,
-      defaultProvider: "qwen",
-      defaultModel: "qwen2.5-14b-instruct",
+      defaultProvider: "ollama",
+      defaultModel: "qwen2.5-coder-7b",
       environmentVariables: {
         qwen: "DASHSCOPE_API_KEY (for cloud models)",
+        ollama: "None (local models)",
         google: "GOOGLE_GENERATIVE_AI_API_KEY",
         openai: "OPENAI_API_KEY",
         anthropic: "ANTHROPIC_API_KEY",
@@ -206,7 +217,9 @@ export async function GET() {
 function getProviderDescription(provider: string): string {
   switch (provider) {
     case "qwen":
-      return "Qwen 3 - Advanced reasoning, tool calling, multilingual";
+      return "Qwen 3 Cloud - Advanced reasoning, tool calling, multilingual";
+    case "ollama":
+      return "Local Qwen - Free, private, fast (via Ollama)";
     case "google":
       return "Google Gemini - Advanced multimodal AI";
     case "openai":
@@ -221,7 +234,9 @@ function getProviderDescription(provider: string): string {
 function getApiKeyRequirement(provider: string): string {
   switch (provider) {
     case "qwen":
-      return "DASHSCOPE_API_KEY (cloud) or local Ollama";
+      return "DASHSCOPE_API_KEY";
+    case "ollama":
+      return "None (local)";
     case "google":
       return "GOOGLE_GENERATIVE_AI_API_KEY";
     case "openai":
