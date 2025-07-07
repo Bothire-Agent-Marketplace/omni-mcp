@@ -11,11 +11,12 @@ import { createToolHandlers, getAvailableTools } from "./tools.js";
 export async function createDevtoolsHttpServer(
   config: DevtoolsServerConfig
 ): Promise<FastifyInstance> {
-  // Initialize Chrome DevTools client
+  // Initialize Chrome DevTools client with browser configuration
   const chromeClient = new ChromeDevToolsClient({
-    port: 9222, // Default Chrome debugging port
+    port: config.chromePort || 9222,
     headless: false, // Allow visible browser for debugging
     autoConnect: false, // Don't auto-connect on startup
+    chromePath: config.browserPath, // Custom browser path if specified
   });
 
   const server = createMcpHttpServer({

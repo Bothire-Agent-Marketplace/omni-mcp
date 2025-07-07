@@ -4,12 +4,10 @@
 // Handles Chrome browser automation and CDP communication
 
 import { spawn, ChildProcess } from "child_process";
-import { existsSync } from "fs";
-import { platform } from "os";
-import { join } from "path";
 import CDP from "chrome-remote-interface";
 import puppeteer from "puppeteer-core";
 import WebSocket, { WebSocketServer } from "ws";
+import { BrowserConfig, BrowserType } from "../config/browser-config.js";
 import type {
   ChromeConnectionStatus,
   ChromeStartOptions,
@@ -35,71 +33,75 @@ export class ChromeDevToolsClient {
     onResponse?: (response: NetworkResponse) => void;
   } = {};
   private streamingEnabled = false;
+  private browserConfig: BrowserConfig;
 
   constructor(private options: ChromeStartOptions = {}) {
     this.connectionStatus.port = options.port || 9222;
+
+    // Initialize browser configuration
+    this.browserConfig = new BrowserConfig({
+      customPath: options.chromePath,
+      preferredBrowser: this.getBrowserTypeFromEnv(),
+      enableAutoDetection: true,
+    });
+  }
+
+  /**
+   * Get browser type preference from environment variables
+   */
+  private getBrowserTypeFromEnv(): BrowserType | undefined {
+    const browserPref = process.env.DEVTOOLS_BROWSER?.toLowerCase();
+    const validTypes: BrowserType[] = [
+      "chrome",
+      "chrome-canary",
+      "chromium",
+      "brave",
+      "edge",
+      "arc",
+      "vivaldi",
+      "opera",
+    ];
+    return validTypes.includes(browserPref as BrowserType)
+      ? (browserPref as BrowserType)
+      : undefined;
   }
 
   // ============================================================================
   // CHROME EXECUTABLE DETECTION (Cross-platform)
   // ============================================================================
 
+  /**
+   * Get the browser executable path using the new browser configuration system
+   */
   private findChromeExecutable(): string {
-    if (this.options.chromePath && existsSync(this.options.chromePath)) {
-      return this.options.chromePath;
+    try {
+      return this.browserConfig.getBrowserExecutable();
+    } catch (error) {
+      throw new Error(
+        `Browser executable not found: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
+  }
 
-    const os = platform();
-    const possiblePaths: string[] = [];
+  /**
+   * Get information about the currently configured browser
+   */
+  getBrowserInfo() {
+    return this.browserConfig.getSelectedBrowserInfo();
+  }
 
-    switch (os) {
-      case "darwin": // macOS
-        possiblePaths.push(
-          "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-          "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary",
-          "/Applications/Chromium.app/Contents/MacOS/Chromium"
-        );
-        break;
+  /**
+   * Get all available browsers on the system
+   */
+  getAvailableBrowsers() {
+    return this.browserConfig.getAvailableBrowsers();
+  }
 
-      case "win32": {
-        // Windows
-        const programFiles = process.env["PROGRAMFILES"] || "C:\\Program Files";
-        const programFilesX86 =
-          process.env["PROGRAMFILES(X86)"] || "C:\\Program Files (x86)";
-        possiblePaths.push(
-          join(programFiles, "Google\\Chrome\\Application\\chrome.exe"),
-          join(programFilesX86, "Google\\Chrome\\Application\\chrome.exe"),
-          join(programFiles, "Google\\Chrome SxS\\Application\\chrome.exe"),
-          join(programFilesX86, "Google\\Chrome SxS\\Application\\chrome.exe")
-        );
-        break;
-      }
-
-      case "linux": {
-        // Linux
-        possiblePaths.push(
-          "/usr/bin/google-chrome",
-          "/usr/bin/google-chrome-stable",
-          "/usr/bin/chromium-browser",
-          "/usr/bin/chromium",
-          "/snap/bin/chromium"
-        );
-        break;
-      }
-
-      default:
-        throw new Error(`Unsupported platform: ${os}`);
-    }
-
-    for (const path of possiblePaths) {
-      if (existsSync(path)) {
-        return path;
-      }
-    }
-
-    throw new Error(
-      `Chrome executable not found. Please install Chrome or specify chromePath in options. Searched: ${possiblePaths.join(", ")}`
-    );
+  /**
+   * Get browser configuration summary for debugging
+   */
+  getBrowserConfigSummary() {
+    return this.browserConfig.getConfigSummary();
   }
 
   // ============================================================================
@@ -108,9 +110,35 @@ export class ChromeDevToolsClient {
 
   async startChrome(): Promise<ChromeConnectionStatus> {
     try {
-      const chromePath = this.findChromeExecutable();
+      const browserInfo = this.getBrowserInfo();
       const port = this.connectionStatus.port;
 
+      // For Arc browser, first try to connect to existing instance
+      if (browserInfo.type === "arc") {
+        console.log(
+          `Attempting to connect to existing Arc instance on port ${port}...`
+        );
+
+        try {
+          // Try to connect to existing Arc instance
+          const targets = await CDP.List({ port });
+          if (targets.length > 0) {
+            console.log(
+              `✅ Found existing Arc instance with ${targets.length} targets`
+            );
+            if (this.options.autoConnect) {
+              await this.connect();
+            }
+            return this.connectionStatus;
+          }
+        } catch {
+          console.log(
+            `No existing Arc instance found on port ${port}, will start new instance`
+          );
+        }
+      }
+
+      const chromePath = this.findChromeExecutable();
       const args = [
         `--remote-debugging-port=${port}`,
         "--no-first-run",
@@ -128,7 +156,10 @@ export class ChromeDevToolsClient {
         this.options.url || "about:blank",
       ];
 
-      console.log(`Starting Chrome: ${chromePath} ${args.join(" ")}`);
+      console.log(
+        `Starting ${browserInfo.name} (${browserInfo.type}): ${chromePath}`
+      );
+      console.log(`Browser args: ${args.join(" ")}`);
 
       this.chromeProcess = spawn(chromePath, args, {
         detached: false,
@@ -136,17 +167,17 @@ export class ChromeDevToolsClient {
       });
 
       this.chromeProcess.on("error", (error) => {
-        console.error("Chrome process error:", error);
+        console.error(`${browserInfo.name} process error:`, error);
         this.connectionStatus.connected = false;
       });
 
       this.chromeProcess.on("exit", (code) => {
-        console.log(`Chrome process exited with code: ${code}`);
+        console.log(`${browserInfo.name} process exited with code: ${code}`);
         this.connectionStatus.connected = false;
         this.client = null;
       });
 
-      // Wait for Chrome to start up
+      // Wait for browser to start up
       await this.waitForChromeStartup();
 
       if (this.options.autoConnect) {
@@ -156,7 +187,7 @@ export class ChromeDevToolsClient {
       return this.connectionStatus;
     } catch (error) {
       throw new Error(
-        `Failed to start Chrome: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to start browser: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -187,17 +218,38 @@ export class ChromeDevToolsClient {
 
       this.client = await CDP({ target, port: this.connectionStatus.port });
 
-      // Enable necessary domains
-      await Promise.all([
-        this.client.Console.enable(),
-        this.client.Network.enable(),
-        this.client.DOM.enable(),
-        this.client.Runtime.enable(),
-        this.client.Page.enable(),
-        this.client.CSS.enable(),
-        this.client.DOMStorage.enable(),
-        this.client.Debugger.enable(),
-      ]);
+      // Enable domains based on target type
+      const enablePromises = [];
+
+      if (target.type === "page") {
+        // Full page target - enable all domains
+        enablePromises.push(
+          this.client.Console.enable(),
+          this.client.Network.enable(),
+          this.client.DOM.enable(),
+          this.client.Runtime.enable(),
+          this.client.Page.enable(),
+          this.client.CSS.enable(),
+          this.client.DOMStorage.enable(),
+          this.client.Debugger.enable()
+        );
+      } else {
+        // Service worker or other target - only enable basic domains
+        console.log(
+          `Connecting to ${target.type} target, enabling limited domains`
+        );
+        enablePromises.push(this.client.Runtime.enable());
+
+        // Try to enable Console if available
+        try {
+          await this.client.Console.enable();
+          enablePromises.push(Promise.resolve());
+        } catch {
+          console.log("Console domain not available for this target type");
+        }
+      }
+
+      await Promise.all(enablePromises);
 
       // Set up event listeners
       this.setupEventListeners();
@@ -405,6 +457,9 @@ export class ChromeDevToolsClient {
   async startWithPuppeteer(): Promise<ChromeConnectionStatus> {
     try {
       const chromePath = this.findChromeExecutable();
+      const browserInfo = this.getBrowserInfo();
+
+      console.log(`Starting ${browserInfo.name} with Puppeteer: ${chromePath}`);
 
       this.browser = await puppeteer.launch({
         executablePath: chromePath,
@@ -440,7 +495,7 @@ export class ChromeDevToolsClient {
       return this.connectionStatus;
     } catch (error) {
       throw new Error(
-        `Failed to start Chrome with Puppeteer: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to start ${this.getBrowserInfo().name} with Puppeteer: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }

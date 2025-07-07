@@ -223,6 +223,8 @@ export async function handleGetBrowserStatus(
   _params: unknown
 ) {
   const status = chromeClient.getConnectionStatus();
+  const browserInfo = chromeClient.getBrowserInfo();
+  const availableBrowsers = chromeClient.getAvailableBrowsers();
 
   return {
     content: [
@@ -232,6 +234,17 @@ export async function handleGetBrowserStatus(
           {
             success: true,
             status,
+            browser: {
+              name: browserInfo.name,
+              type: browserInfo.type,
+              executablePath: browserInfo.executablePath,
+              description: browserInfo.description,
+            },
+            availableBrowsers: availableBrowsers.map((b) => ({
+              name: b.name,
+              type: b.type,
+              description: b.description,
+            })),
             timestamp: Date.now(),
           },
           null,
