@@ -12,10 +12,13 @@ const AI_PROVIDERS = {
   qwen: {
     provider: qwen,
     models: {
+      // Qwen 3 models with proper IDs from documentation
+      "qwen2.5-14b-instruct": "qwen2.5-14b-instruct-1m",
+      "qwen2.5-8b-instruct": "qwen2.5-8b-instruct-1m",
+      "qwen2.5-72b-instruct": "qwen2.5-72b-instruct",
+      "qwen2.5-7b-instruct": "qwen2.5-7b-instruct",
+      // Local Ollama models (if available)
       "qwen2.5-coder-7b": "qwen2.5-coder:7b",
-      qwen3: "qwen3",
-      "qwen2.5-14b": "qwen2.5-14b-instruct-1m",
-      "qwen2.5-7b": "qwen2.5-7b-instruct",
     },
   },
   google: {
@@ -51,7 +54,7 @@ export async function POST(req: Request) {
     const {
       messages,
       provider = "qwen",
-      model = "qwen2.5-coder-7b",
+      model = "qwen2.5-14b-instruct",
     } = await req.json();
 
     // Validate provider and model
@@ -81,9 +84,23 @@ export async function POST(req: Request) {
     let aiModel;
 
     switch (provider) {
-      case "qwen":
+      case "qwen": {
+        // Check if DASHSCOPE_API_KEY is available for cloud Qwen models
+        // Local Ollama models contain ':' in their ID (e.g., 'qwen2.5-coder:7b')
+        const isLocalModel = String(modelId).includes(":");
+        if (!process.env.DASHSCOPE_API_KEY && !isLocalModel) {
+          return new Response(
+            JSON.stringify({
+              error: "DASHSCOPE_API_KEY not configured for cloud Qwen models",
+              suggestion:
+                "Set DASHSCOPE_API_KEY environment variable or use local Ollama models",
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+          );
+        }
         aiModel = selectedProvider.provider(modelId);
         break;
+      }
 
       case "google":
         if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
@@ -128,7 +145,12 @@ export async function POST(req: Request) {
       messages,
       system: `You are a helpful AI assistant integrated with the Omni MCP (Model Context Protocol) system. 
                You can help users interact with various MCP servers and tools.
-               Current provider: ${provider}, Model: ${model}`,
+               Current provider: ${provider}, Model: ${model}
+               
+               Available MCP capabilities:
+               - Linear: Issue management, team coordination (5 tools)
+               - Perplexity: Web search, research automation (4 tools)  
+               - DevTools: Browser automation, debugging (40 tools)`,
       maxTokens: 1000,
       temperature: 0.7,
     });
@@ -158,6 +180,7 @@ export async function GET() {
       models: Object.keys(config.models),
       isLocal: key === "qwen",
       description: getProviderDescription(key),
+      requiresApiKey: getApiKeyRequirement(key),
     })
   );
 
@@ -165,7 +188,13 @@ export async function GET() {
     JSON.stringify({
       providers: availableProviders,
       defaultProvider: "qwen",
-      defaultModel: "qwen2.5-coder-7b",
+      defaultModel: "qwen2.5-14b-instruct",
+      environmentVariables: {
+        qwen: "DASHSCOPE_API_KEY (for cloud models)",
+        google: "GOOGLE_GENERATIVE_AI_API_KEY",
+        openai: "OPENAI_API_KEY",
+        anthropic: "ANTHROPIC_API_KEY",
+      },
     }),
     {
       status: 200,
@@ -177,7 +206,7 @@ export async function GET() {
 function getProviderDescription(provider: string): string {
   switch (provider) {
     case "qwen":
-      return "Local LLM - Free, private, fast";
+      return "Qwen 3 - Advanced reasoning, tool calling, multilingual";
     case "google":
       return "Google Gemini - Advanced multimodal AI";
     case "openai":
@@ -186,5 +215,20 @@ function getProviderDescription(provider: string): string {
       return "Anthropic Claude - Excellent reasoning";
     default:
       return "AI Provider";
+  }
+}
+
+function getApiKeyRequirement(provider: string): string {
+  switch (provider) {
+    case "qwen":
+      return "DASHSCOPE_API_KEY (cloud) or local Ollama";
+    case "google":
+      return "GOOGLE_GENERATIVE_AI_API_KEY";
+    case "openai":
+      return "OPENAI_API_KEY";
+    case "anthropic":
+      return "ANTHROPIC_API_KEY";
+    default:
+      return "Unknown";
   }
 }

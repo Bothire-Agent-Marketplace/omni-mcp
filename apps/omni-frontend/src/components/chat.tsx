@@ -19,7 +19,7 @@ interface ProvidersResponse {
 export default function Chat() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState("qwen");
-  const [selectedModel, setSelectedModel] = useState("qwen2.5-coder-7b");
+  const [selectedModel, setSelectedModel] = useState("qwen2.5-14b-instruct");
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch available providers on component mount

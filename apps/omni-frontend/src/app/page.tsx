@@ -43,7 +43,7 @@ export default function Home() {
             Context Protocol) servers.
           </p>
           <p className="mt-1">
-            Default: Qwen 2.5 Coder 7B (local) • Switch providers in the chat
+            Default: Qwen 2.5 14B Instruct • Switch providers in the chat
             interface above
           </p>
         </div>
