@@ -15,9 +15,6 @@
     },
     "packages/eslint-config": {
       "ignoreDependencies": ["eslint-config-next"]
-    },
-    "apps/omni-frontend": {
-      "ignoreDependencies": ["eslint", "eslint-config-next"]
     }
   },
   "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "client-integrations/*/bridge.js"]
