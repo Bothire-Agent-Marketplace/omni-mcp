@@ -1,0 +1,52 @@
+{
+  "name": "@mcp/client-bridge",
+  "version": "0.1.0",
+  "description": "TypeScript bridge for connecting MCP clients to local and remote MCP servers",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-client-bridge": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "mcp-remote": "^0.1.18",
+    "zod": "^3.25.74"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.1",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.30.1",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.35.1"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "client-bridge",
+    "cursor",
+    "claude-desktop"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-org/omni.git",
+    "directory": "packages/mcp-client-bridge"
+  },
+  "author": "Your Name",
+  "license": "MIT"
+}

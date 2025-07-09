@@ -2,11 +2,7 @@
   "$schema": "https://unpkg.com/knip@latest/schema.json",
   "workspaces": {
     ".": {
-      "entry": [
-        "client-integrations/shared/mcp-bridge-core.js",
-        "client-integrations/shared/config.js",
-        "scripts/scaffold-mcp-server.js"
-      ]
+      "entry": ["scripts/scaffold-mcp-server.js"]
     },
     "packages/*": {},
     "apps/*": {},
@@ -15,7 +11,10 @@
     },
     "packages/eslint-config": {
       "ignoreDependencies": ["eslint-config-next"]
+    },
+    "packages/mcp-client-bridge": {
+      "ignoreDependencies": ["mcp-remote"]
     }
   },
-  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "client-integrations/*/bridge.js"]
+  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
 }

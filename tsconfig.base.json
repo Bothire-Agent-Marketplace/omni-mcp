@@ -24,6 +24,7 @@
     { "path": "./apps/gateway" },
     { "path": "./apps/linear-mcp-server" },
     { "path": "./packages/capabilities" },
+    { "path": "./packages/mcp-client-bridge" },
     { "path": "./packages/schemas" },
     { "path": "./packages/utils" }
   ],
