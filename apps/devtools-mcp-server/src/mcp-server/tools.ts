@@ -105,6 +105,23 @@ const chromeToolDefinitions: Record<
       inputSchema: DevToolsInputSchemas.getNetworkRequests,
     },
   },
+  network_set_domain_filter: {
+    handler: handlers.handleSetNetworkDomainFilter,
+    metadata: {
+      name: "network_set_domain_filter",
+      description:
+        "Set a domain to filter network requests by. Clears filter if no domain is provided.",
+      inputSchema: DevToolsInputSchemas.setNetworkDomainFilter,
+    },
+  },
+  network_clear_domain_filter: {
+    handler: handlers.handleClearNetworkDomainFilter,
+    metadata: {
+      name: "network_clear_domain_filter",
+      description: "Clear the network domain filter.",
+      inputSchema: DevToolsInputSchemas.clearNetworkDomainFilter,
+    },
+  },
   network_response: {
     handler: handlers.handleGetNetworkResponse,
     metadata: {

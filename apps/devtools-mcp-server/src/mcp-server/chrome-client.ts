@@ -35,6 +35,7 @@ export class ChromeDevToolsClient {
   } = {};
   private streamingEnabled = false;
   private browserConfig: BrowserConfig;
+  private domainFilter: string | null = null;
 
   constructor(private options: ChromeStartOptions = {}) {
     this.connectionStatus.port = options.port || 9222;
@@ -66,6 +67,71 @@ export class ChromeDevToolsClient {
       : undefined;
   }
 
+  setDomainFilter(domain: string | null): void {
+    this.domainFilter = domain;
+  }
+
+  getDomainFilter(): string | null {
+    return this.domainFilter;
+  }
+
+  /**
+   * Setup debug profile with bookmarks from main Chrome profile
+   */
+  private async setupDebugProfileWithBookmarks(
+    debugProfilePath: string
+  ): Promise<void> {
+    const fs = await import("fs");
+    const path = await import("path");
+
+    try {
+      // Main Chrome profile path on macOS
+      const mainProfilePath = `${process.env.HOME}/Library/Application Support/Google/Chrome/Default`;
+      const mainBookmarksFile = path.join(mainProfilePath, "Bookmarks");
+      const debugBookmarksFile = path.join(
+        debugProfilePath,
+        "Default",
+        "Bookmarks"
+      );
+
+      // Check if main profile bookmarks exist
+      if (!fs.existsSync(mainBookmarksFile)) {
+        console.log("📚 No main Chrome bookmarks found to copy");
+        return;
+      }
+
+      // Create debug profile directory structure if it doesn't exist
+      const debugDefaultDir = path.join(debugProfilePath, "Default");
+      if (!fs.existsSync(debugDefaultDir)) {
+        fs.mkdirSync(debugDefaultDir, { recursive: true });
+        console.log("📁 Created debug profile directory");
+      }
+
+      // Copy bookmarks if they don't exist in debug profile or are older
+      if (!fs.existsSync(debugBookmarksFile)) {
+        fs.copyFileSync(mainBookmarksFile, debugBookmarksFile);
+        console.log(
+          "📚 Copied bookmarks from main Chrome profile to debug profile"
+        );
+      } else {
+        // Check if main bookmarks are newer
+        const mainStats = fs.statSync(mainBookmarksFile);
+        const debugStats = fs.statSync(debugBookmarksFile);
+
+        if (mainStats.mtime > debugStats.mtime) {
+          fs.copyFileSync(mainBookmarksFile, debugBookmarksFile);
+          console.log("📚 Updated debug profile bookmarks from main profile");
+        }
+      }
+    } catch (error) {
+      console.warn(
+        "⚠️ Failed to copy bookmarks:",
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      // Don't throw - this is non-critical
+    }
+  }
+
   /**
    * Ensure Chrome is running with debugging enabled
    * This implements "Always Start with Debugging" by auto-starting Chrome with debugging flags
@@ -92,11 +158,20 @@ export class ChromeDevToolsClient {
     );
 
     const chromePath = this.findChromeExecutable();
-    const debugUserDataDir = `/tmp/chrome-debug-${Date.now()}`;
+
+    // Use persistent debug profile for reliable debugging with bookmarks/logins
+    // This creates a stable debug profile you can set up once and reuse
+    const debugProfilePath =
+      this.options.userDataDir ||
+      process.env.DEVTOOLS_USER_DATA_DIR ||
+      `${process.env.HOME || "/tmp"}/.chrome-debug-profile`;
+
+    // Copy bookmarks from main Chrome profile to debug profile if needed
+    await this.setupDebugProfileWithBookmarks(debugProfilePath);
 
     const args = [
       `--remote-debugging-port=${port}`,
-      `--user-data-dir=${debugUserDataDir}`,
+      `--user-data-dir=${debugProfilePath}`,
       "--no-first-run",
       "--no-default-browser-check",
       "--disable-background-timer-throttling",
@@ -352,13 +427,19 @@ export class ChromeDevToolsClient {
 
       const chromePath = this.findChromeExecutable();
 
-      // Use dedicated debug user data directory for consistent debugging experience
-      const debugUserDataDir =
-        this.options.userDataDir || `/tmp/chrome-debug-${Date.now()}`;
+      // Use persistent debug profile for reliable debugging with bookmarks/logins
+      // This creates a stable debug profile you can set up once and reuse
+      const debugProfilePath =
+        this.options.userDataDir ||
+        process.env.DEVTOOLS_USER_DATA_DIR ||
+        `${process.env.HOME || "/tmp"}/.chrome-debug-profile`;
+
+      // Copy bookmarks from main Chrome profile to debug profile if needed
+      await this.setupDebugProfileWithBookmarks(debugProfilePath);
 
       const args = [
         `--remote-debugging-port=${port}`,
-        `--user-data-dir=${debugUserDataDir}`,
+        `--user-data-dir=${debugProfilePath}`,
         "--no-first-run",
         "--no-default-browser-check",
         "--disable-background-timer-throttling",
@@ -689,16 +770,22 @@ export class ChromeDevToolsClient {
 
       console.log(`Starting ${browserInfo.name} with Puppeteer: ${chromePath}`);
 
-      // Use dedicated debug user data directory for consistent debugging experience
-      const debugUserDataDir =
-        this.options.userDataDir || `/tmp/chrome-debug-puppeteer-${Date.now()}`;
+      // Use persistent debug profile for reliable debugging with bookmarks/logins
+      // This creates a stable debug profile you can set up once and reuse
+      const debugProfilePath =
+        this.options.userDataDir ||
+        process.env.DEVTOOLS_USER_DATA_DIR ||
+        `${process.env.HOME || "/tmp"}/.chrome-debug-profile`;
+
+      // Copy bookmarks from main Chrome profile to debug profile if needed
+      await this.setupDebugProfileWithBookmarks(debugProfilePath);
 
       this.browser = await puppeteer.launch({
         executablePath: chromePath,
         headless: this.options.headless || false,
         args: [
           `--remote-debugging-port=${this.connectionStatus.port}`,
-          `--user-data-dir=${debugUserDataDir}`,
+          `--user-data-dir=${debugProfilePath}`,
           "--no-first-run",
           "--no-default-browser-check",
           "--disable-background-timer-throttling",

@@ -336,11 +336,82 @@ export async function handleClearConsole(
 const networkRequests: NetworkRequest[] = [];
 const networkResponses: NetworkResponse[] = [];
 
+// Blocklist of tracking/marketing domains to filter out
+const TRACKING_DOMAINS_BLOCKLIST = [
+  "bat.bing.com",
+  "api.hubspot.com",
+  "track.hubspot.com",
+  "cta-service-cms2.hubspot.com",
+  "forms.hubspot.com",
+  "js.hsleadflows.net",
+  "js.usemessages.com",
+  "connect.facebook.net",
+  "www.facebook.com",
+  "analytics.google.com",
+  "googleads.g.doubleclick.net",
+  "td.doubleclick.net",
+  "www.google.com",
+  "www.google.ca",
+  "www.googletagmanager.com",
+  "px4.ads.linkedin.com",
+  "static.cloudflareinsights.com",
+  "cdn.intake-lr.com", // LogRocket tracking
+  "r.intake-lr.com", // LogRocket tracking endpoint
+];
+
+export async function handleSetNetworkDomainFilter(
+  chromeClient: ChromeDevToolsClient,
+  _params: unknown
+) {
+  const { domain } = _params as { domain: string };
+  chromeClient.setDomainFilter(domain);
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: `Network domain filter set to: ${domain}`,
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
+export async function handleClearNetworkDomainFilter(
+  chromeClient: ChromeDevToolsClient,
+  _params: unknown
+) {
+  // No need to parse params for this function
+  chromeClient.setDomainFilter(null);
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          {
+            success: true,
+            message: "Network domain filter cleared",
+            timestamp: Date.now(),
+          },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
+
 export async function handleGetNetworkRequests(
   chromeClient: ChromeDevToolsClient,
   params: unknown
 ) {
   const { filter, limit } = GetNetworkRequestsSchema.parse(params);
+  const forcedDomain = chromeClient.getDomainFilter();
 
   // Set up network listeners if not already done
   chromeClient.setNetworkListeners({
@@ -361,16 +432,23 @@ export async function handleGetNetworkRequests(
   });
 
   let filteredRequests = networkRequests;
+  const domainToFilter = forcedDomain || filter?.domain;
 
-  if (filter) {
-    filteredRequests = networkRequests.filter((req) => {
-      if (filter.domain && !req.url.includes(filter.domain)) return false;
-      if (filter.method && req.method !== filter.method) return false;
-      if (filter.resourceType && req.resourceType !== filter.resourceType)
-        return false;
-      return true;
-    });
-  }
+  // Apply filters
+  filteredRequests = networkRequests.filter((req) => {
+    // First check blocklist - exclude tracking/marketing domains
+    const requestUrl = new URL(req.url);
+    if (TRACKING_DOMAINS_BLOCKLIST.includes(requestUrl.hostname)) {
+      return false;
+    }
+
+    // Then apply other filters
+    if (domainToFilter && !req.url.includes(domainToFilter)) return false;
+    if (filter?.method && req.method !== filter.method) return false;
+    if (filter?.resourceType && req.resourceType !== filter.resourceType)
+      return false;
+    return true;
+  });
 
   const recentRequests = filteredRequests.slice(-limit);
 

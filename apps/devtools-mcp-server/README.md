@@ -54,7 +54,7 @@ const status = await chrome_connect_existing();
 
 - Chrome is automatically launched with debugging flags
 - No need to manually start Chrome with `--remote-debugging-port=9222`
-- Uses dedicated debug user data directory for clean sessions
+- **Uses your main Chrome profile by default** (keeps bookmarks, logins, extensions)
 - Includes helpful debugging flags like `--disable-web-security`
 
 **Manual Chrome debugging (optional):** If you prefer to manually control Chrome:
@@ -120,6 +120,27 @@ The server requires no API keys and runs entirely locally. Chrome must be instal
 - **macOS**: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
 - **Windows**: `C:\Program Files\Google\Chrome\Application\chrome.exe`
 - **Linux**: `/usr/bin/google-chrome` or `/usr/bin/chromium-browser`
+
+### Profile Management
+
+**Default Behavior (Recommended):**
+
+- Uses your **main Chrome profile** with bookmarks, logins, and extensions
+- Perfect for debugging your actual browsing environment
+
+**Isolated Profile Mode:**
+
+```bash
+# Use clean, isolated debug profile
+DEVTOOLS_USE_ISOLATED_PROFILE=true
+```
+
+**Custom Profile Directory:**
+
+```bash
+# Use specific profile directory
+DEVTOOLS_USER_DATA_DIR=/path/to/custom/profile
+```
 
 ## 🎯 Why Streamlined?
 

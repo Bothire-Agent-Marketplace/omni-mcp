@@ -178,6 +178,25 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
+  setNetworkDomainFilter: {
+    type: "object",
+    properties: {
+      domain: {
+        type: "string",
+        description: "Domain to filter network requests by.",
+      },
+    },
+    required: ["domain"],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
+  clearNetworkDomainFilter: {
+    type: "object",
+    properties: {},
+    required: [],
+    additionalProperties: false,
+  } as ToolInputSchema,
+
   // DOM Tools
   getDocument: {
     type: "object",

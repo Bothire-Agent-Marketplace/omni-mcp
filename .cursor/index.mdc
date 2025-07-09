@@ -8,3 +8,4 @@ alwaysApply: true
 - Don’t introduce breaking changes unless explicitly requested. Ask when in doubt.
 - Don't create scripts without asking
 - Assume all servers are always running with hot reloading during development
+- use pnpm not npm
