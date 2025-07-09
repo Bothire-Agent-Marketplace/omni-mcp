@@ -195,7 +195,7 @@ export async function handleCloseBrowser(
   params: unknown
 ) {
   CloseBrowserSchema.parse(params);
-  await chromeClient.closeBrowser();
+  await chromeClient.closeBrowserEnhanced();
 
   return {
     content: [

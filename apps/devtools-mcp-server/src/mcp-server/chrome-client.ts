@@ -5,7 +5,7 @@
 
 import { spawn, ChildProcess } from "child_process";
 import CDP from "chrome-remote-interface";
-import puppeteer from "puppeteer-core";
+import { chromium, Browser, Page, CDPSession } from "playwright";
 import WebSocket, { WebSocketServer } from "ws";
 import { BrowserConfig } from "../config/browser-config.js";
 import type {
@@ -21,8 +21,9 @@ import type {
 export class ChromeDevToolsClient {
   private client: CDP.Client | null = null;
   private chromeProcess: ChildProcess | null = null;
-  private browser: puppeteer.Browser | null = null;
-  private page: puppeteer.Page | null = null;
+  private browser: Browser | null = null;
+  private page: Page | null = null;
+  private cdpSession: CDPSession | null = null;
   private streamingWs: WebSocket | null = null;
   private connectionStatus: ChromeConnectionStatus = {
     connected: false,
@@ -374,7 +375,7 @@ export class ChromeDevToolsClient {
     if (target.type === "page") {
       // Full page target - enable essential domains only
       enablePromises.push(
-        this.client.Console.enable(),
+        this.client.Log.enable(),
         this.client.Network.enable(),
         this.client.Runtime.enable(),
         this.client.Page.enable()
@@ -388,7 +389,7 @@ export class ChromeDevToolsClient {
 
       // Try to enable Console if available
       try {
-        await this.client.Console.enable();
+        await this.client.Log.enable();
         enablePromises.push(Promise.resolve());
       } catch {
         console.log("Console domain not available for this target type");
@@ -760,61 +761,55 @@ export class ChromeDevToolsClient {
   }
 
   // ============================================================================
-  // ENHANCED BROWSER MANAGEMENT WITH PUPPETEER
+  // ENHANCED BROWSER MANAGEMENT WITH PLAYWRIGHT
   // ============================================================================
 
-  async startWithPuppeteer(): Promise<ChromeConnectionStatus> {
+  async startWithPlaywright(): Promise<ChromeConnectionStatus> {
     try {
-      const chromePath = this.findChromeExecutable();
       const browserInfo = this.getBrowserInfo();
+      const port = this.connectionStatus.port;
 
-      console.log(`Starting ${browserInfo.name} with Puppeteer: ${chromePath}`);
+      console.log(`Starting ${browserInfo.name} with Playwright over CDP`);
 
-      // Use persistent debug profile for reliable debugging with bookmarks/logins
-      // This creates a stable debug profile you can set up once and reuse
-      const debugProfilePath =
-        this.options.userDataDir ||
-        process.env.DEVTOOLS_USER_DATA_DIR ||
-        `${process.env.HOME || "/tmp"}/.chrome-debug-profile`;
+      // Ensure Chrome is running with debugging enabled first
+      await this.ensureDebuggingEnabled();
 
-      // Copy bookmarks from main Chrome profile to debug profile if needed
-      await this.setupDebugProfileWithBookmarks(debugProfilePath);
+      // Connect to Chrome via CDP using Playwright
+      const cdpEndpoint = `http://localhost:${port}`;
+      this.browser = await chromium.connectOverCDP(cdpEndpoint);
 
-      this.browser = await puppeteer.launch({
-        executablePath: chromePath,
-        headless: this.options.headless || false,
-        args: [
-          `--remote-debugging-port=${this.connectionStatus.port}`,
-          `--user-data-dir=${debugProfilePath}`,
-          "--no-first-run",
-          "--no-default-browser-check",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-features=TranslateUI",
-          "--disable-ipc-flooding-protection",
-          "--disable-web-security", // Helpful for debugging
-          "--disable-features=VizDisplayCompositor",
-          ...(this.options.args || []),
-        ],
-      });
+      // Get the first page or create one
+      const pages = this.browser.contexts()[0]?.pages() || [];
+      if (pages.length > 0) {
+        this.page = pages[0];
+      } else {
+        // Create a new page if none exist
+        const context = await this.browser.newContext();
+        this.page = await context.newPage();
+      }
 
-      this.page = await this.browser.newPage();
-
+      // Navigate to URL if specified
       if (this.options.url) {
         await this.page.goto(this.options.url);
       }
 
-      // Connect CDP for advanced debugging
+      // Get CDP session for advanced debugging if needed
+      this.cdpSession = await this.page.context().newCDPSession(this.page);
+
+      // Connect traditional CDP client for existing functionality
       if (this.options.autoConnect) {
         await this.connect();
       }
 
       this.connectionStatus.connected = true;
+      console.log(
+        `✅ Successfully connected to ${browserInfo.name} via Playwright CDP`
+      );
+
       return this.connectionStatus;
     } catch (error) {
       throw new Error(
-        `Failed to start ${this.getBrowserInfo().name} with Puppeteer: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to start ${this.getBrowserInfo().name} with Playwright: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     }
   }
@@ -914,12 +909,13 @@ export class ChromeDevToolsClient {
     quality?: number;
   }): Promise<string> {
     if (this.page) {
-      // Use Puppeteer for better screenshot capabilities
-      return (await this.page.screenshot({
+      // Use Playwright for screenshot capabilities
+      const screenshotBuffer = await this.page.screenshot({
         fullPage: options?.fullPage || false,
         quality: options?.quality || 90,
-        encoding: "base64",
-      })) as string;
+        type: "png",
+      });
+      return screenshotBuffer.toString("base64");
     } else if (this.client) {
       // Fallback to CDP
       const screenshot = await this.client.Page.captureScreenshot({
@@ -934,7 +930,7 @@ export class ChromeDevToolsClient {
 
   async evaluateInPage(expression: string): Promise<unknown> {
     if (this.page) {
-      // Use Puppeteer for better evaluation
+      // Use Playwright for better evaluation
       return await this.page.evaluate(expression);
     } else if (this.client) {
       // Fallback to CDP
@@ -954,6 +950,11 @@ export class ChromeDevToolsClient {
       this.streamingWs = null;
     }
 
+    if (this.cdpSession) {
+      await this.cdpSession.detach();
+      this.cdpSession = null;
+    }
+
     if (this.page) {
       await this.page.close();
       this.page = null;
@@ -965,5 +966,64 @@ export class ChromeDevToolsClient {
     }
 
     await this.closeBrowser(); // Call original method for CDP cleanup
+
+    // Force kill Chrome processes if they're still running
+    await this.forceKillChromeProcesses();
+  }
+
+  /**
+   * Force kill Chrome processes by finding them in the process list
+   */
+  private async forceKillChromeProcesses(): Promise<void> {
+    try {
+      const { spawn } = await import("child_process");
+      const port = this.connectionStatus.port;
+
+      // Find Chrome processes with our debug port
+      const findProcess = spawn("ps", ["aux"]);
+      let output = "";
+
+      findProcess.stdout.on("data", (data) => {
+        output += data.toString();
+      });
+
+      await new Promise<void>((resolve) => {
+        findProcess.on("close", () => {
+          const lines = output.split("\n");
+          const chromeProcesses = lines.filter(
+            (line) =>
+              line.includes("Google Chrome") &&
+              line.includes(`--remote-debugging-port=${port}`)
+          );
+
+          // Extract PIDs and kill them
+          chromeProcesses.forEach((line) => {
+            const parts = line.trim().split(/\s+/);
+            if (parts.length > 1) {
+              const pid = parts[1];
+              try {
+                console.log(`Killing Chrome process PID: ${pid}`);
+                process.kill(parseInt(pid), "SIGTERM");
+
+                // Force kill after 3 seconds if still running
+                setTimeout(() => {
+                  try {
+                    process.kill(parseInt(pid), "SIGKILL");
+                  } catch {
+                    // Process may already be dead
+                  }
+                }, 3000);
+              } catch (error) {
+                console.log(`Failed to kill Chrome process ${pid}:`, error);
+              }
+            }
+          });
+
+          resolve();
+        });
+      });
+    } catch (error) {
+      console.log("Failed to force kill Chrome processes:", error);
+    }
   }
 }
