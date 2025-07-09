@@ -12,9 +12,9 @@ export type BrowserType =
   | "chromium"
   | "brave"
   | "edge"
-  | "arc"
   | "vivaldi"
   | "opera"
+  | "arc"
   | "custom";
 
 export interface BrowserInfo {

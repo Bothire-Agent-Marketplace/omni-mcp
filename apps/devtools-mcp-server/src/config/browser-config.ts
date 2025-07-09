@@ -35,7 +35,7 @@ const BROWSER_PATHS: Record<BrowserType, string[]> = {
 // ============================================================================
 
 const BROWSER_DESCRIPTIONS: Record<BrowserType, string> = {
-  chrome: "Google Chrome - Most common Chromium browser",
+  chrome: "Google Chrome - Default and most common Chromium browser",
   "chrome-canary": "Google Chrome Canary - Bleeding edge Chrome builds",
   chromium: "Chromium - Open source base for Chrome",
   brave: "Brave Browser - Privacy-focused browser with ad blocking",
@@ -211,12 +211,11 @@ export class BrowserConfig {
     return `No Chromium-based browser found on macOS.
 
 Environment Variables:
-  DEVTOOLS_BROWSER=arc|brave|chrome|edge|vivaldi|opera
-  DEVTOOLS_BROWSER_PATH=/Applications/Arc.app/Contents/MacOS/Arc
+  DEVTOOLS_BROWSER=chrome|brave|edge|vivaldi|opera
+  DEVTOOLS_BROWSER_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
 Popular macOS Browsers:
-  - Install Arc: https://arc.net/ (Recommended for developers!)
-  - Install Chrome: https://www.google.com/chrome/
+  - Install Chrome: https://www.google.com/chrome/ (Default)
   - Install Brave: https://brave.com/
   - Install Edge: https://www.microsoft.com/edge
 

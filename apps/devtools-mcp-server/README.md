@@ -22,7 +22,7 @@ The server runs on **port 3004** by default.
 
 - `chrome_start` - Launch Chrome with debugging enabled
 - `chrome_connect` - Connect to existing Chrome instance
-- `chrome_connect_existing` - Connect to existing browser (Arc/Chrome) and find active tab
+- `chrome_connect_existing` - Connect to existing browser (Chrome/Chromium) and find active tab
 - `chrome_navigate` - Navigate to URLs
 - `chrome_status` - Get browser connection status
 - `chrome_close` - Close browser session
@@ -42,23 +42,11 @@ The server runs on **port 3004** by default.
 
 ### Connecting to Your Existing Browser
 
-The easiest way to use the devtools server is to connect to your existing Arc or Chrome browser:
+The easiest way to use the devtools server is to connect to your existing Chrome browser:
 
 ```javascript
-// Connect to your existing Arc browser (recommended)
+// Connect to your existing Chrome browser
 const status = await chrome_connect_existing();
-```
-
-**To enable debugging in Arc:**
-
-```bash
-# Option 1: Start Arc with debugging from terminal
-/Applications/Arc.app/Contents/MacOS/Arc --remote-debugging-port=9222
-
-# Option 2: Use Arc's built-in developer tools
-# 1. Open Arc
-# 2. Go to Arc → Preferences → Advanced → Developer Tools
-# 3. Enable "Remote Debugging" on port 9222
 ```
 
 **To enable debugging in Chrome:**
@@ -66,6 +54,16 @@ const status = await chrome_connect_existing();
 ```bash
 # Start Chrome with debugging enabled
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
+```
+
+**For other Chromium-based browsers:**
+
+```bash
+# Brave Browser
+/Applications/Brave\ Browser.app/Contents/MacOS/Brave\ Browser --remote-debugging-port=9222
+
+# Microsoft Edge
+/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --remote-debugging-port=9222
 ```
 
 ### Basic Browser Control

@@ -185,10 +185,10 @@ curl -X PUT "http://localhost:9222/json/new?https://example.com"
 **Problem**: Server couldn't read `.env` file **Solution**: Fixed `SERVICE_PATH` in config.ts from
 `join(__dirname, "..")` to `join(__dirname, "..", "..")`
 
-### 2. Arc Browser Single-Instance Handling
+### 2. Browser Instance Handling
 
-**Problem**: "Only one instance of arc can be open at a time" errors **Solution**: Enhanced
-`startChrome()` to detect existing Arc debugging sessions before starting new ones
+**Problem**: Browser connection errors with existing instances **Solution**: Enhanced
+`startChrome()` to detect existing browser debugging sessions before starting new ones
 
 ### 3. Service Worker vs Page Target Issue
 

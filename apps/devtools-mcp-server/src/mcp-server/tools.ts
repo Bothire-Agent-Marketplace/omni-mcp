@@ -41,7 +41,7 @@ const chromeToolDefinitions: Record<
     metadata: {
       name: "chrome_connect_existing",
       description:
-        "Connect to existing browser instance (Arc/Chrome) and find active tab",
+        "Connect to existing browser instance (Chrome/Chromium) and find active tab",
       inputSchema: DevToolsInputSchemas.connectToBrowser,
     },
   },

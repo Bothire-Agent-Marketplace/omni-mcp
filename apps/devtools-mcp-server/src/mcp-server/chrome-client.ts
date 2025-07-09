@@ -110,7 +110,7 @@ export class ChromeDevToolsClient {
   // ============================================================================
 
   /**
-   * Connect to an existing browser instance (Arc/Chrome) without starting a new one
+   * Connect to an existing browser instance (Chrome/Chromium) without starting a new one
    */
   async connectToExistingBrowser(): Promise<ChromeConnectionStatus> {
     try {
@@ -263,29 +263,26 @@ export class ChromeDevToolsClient {
       const browserInfo = this.getBrowserInfo();
       const port = this.connectionStatus.port;
 
-      // For Arc browser, first try to connect to existing instance
-      if (browserInfo.type === "arc") {
-        console.log(
-          `Attempting to connect to existing Arc instance on port ${port}...`
-        );
+      // Try to connect to existing browser instance first
+      console.log(
+        `Checking for existing ${browserInfo.name} instance on port ${port}...`
+      );
 
-        try {
-          // Try to connect to existing Arc instance
-          const targets = await CDP.List({ port });
-          if (targets.length > 0) {
-            console.log(
-              `✅ Found existing Arc instance with ${targets.length} targets`
-            );
-            if (this.options.autoConnect) {
-              await this.connectToExistingBrowser();
-            }
-            return this.connectionStatus;
-          }
-        } catch {
+      try {
+        const targets = await CDP.List({ port });
+        if (targets.length > 0) {
           console.log(
-            `No existing Arc instance found on port ${port}, will start new instance`
+            `✅ Found existing ${browserInfo.name} instance with ${targets.length} targets`
           );
+          if (this.options.autoConnect) {
+            await this.connectToExistingBrowser();
+          }
+          return this.connectionStatus;
         }
+      } catch {
+        console.log(
+          `No existing ${browserInfo.name} instance found on port ${port}, will start new instance`
+        );
       }
 
       const chromePath = this.findChromeExecutable();
