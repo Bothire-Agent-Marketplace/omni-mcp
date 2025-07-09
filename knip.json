@@ -16,5 +16,5 @@
       "ignoreDependencies": ["mcp-remote"]
     }
   },
-  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"]
+  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "dev-servers.config.js.example"]
 }

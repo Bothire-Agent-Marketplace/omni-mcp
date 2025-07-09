@@ -109,6 +109,155 @@ export class ChromeDevToolsClient {
   // BROWSER STARTUP AND CONNECTION
   // ============================================================================
 
+  /**
+   * Connect to an existing browser instance (Arc/Chrome) without starting a new one
+   */
+  async connectToExistingBrowser(): Promise<ChromeConnectionStatus> {
+    try {
+      const port = this.connectionStatus.port;
+      const browserInfo = this.getBrowserInfo();
+
+      console.log(
+        `🔍 Attempting to connect to existing ${browserInfo.name} instance on port ${port}...`
+      );
+
+      // Try to get available targets
+      const targets = await CDP.List({ port });
+
+      if (targets.length === 0) {
+        throw new Error(
+          `No targets found. Make sure ${browserInfo.name} is running with debugging enabled:\n` +
+            `  ${browserInfo.executablePath} --remote-debugging-port=${port}`
+        );
+      }
+
+      console.log(`📋 Found ${targets.length} targets:`);
+      targets.forEach((t, index) => {
+        console.log(`  ${index + 1}. [${t.type}] ${t.title} (${t.url})`);
+      });
+
+      // Find the most likely "active" tab using heuristics
+      const activeTarget = this.findActiveTarget(targets);
+
+      if (!activeTarget) {
+        throw new Error("No suitable page target found");
+      }
+
+      console.log(
+        `✅ Connecting to most likely active tab: ${activeTarget.title} (${activeTarget.url})`
+      );
+
+      // Connect to the selected target
+      this.client = await CDP({ target: activeTarget, port });
+
+      // Enable essential domains for streamlined debugging
+      await this.enableEssentialDomains(activeTarget);
+
+      // Set up event listeners
+      this.setupEventListeners();
+
+      this.connectionStatus = {
+        connected: true,
+        port,
+        targetInfo: {
+          id: activeTarget.id,
+          title: activeTarget.title,
+          type: activeTarget.type,
+          url: activeTarget.url,
+          webSocketDebuggerUrl: activeTarget.webSocketDebuggerUrl,
+        },
+      };
+
+      return this.connectionStatus;
+    } catch (error) {
+      throw new Error(
+        `Failed to connect to existing browser: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    }
+  }
+
+  /**
+   * Find the most likely "active" tab using heuristics
+   */
+  private findActiveTarget(targets: CDP.Target[]): CDP.Target | null {
+    // Filter to only page targets (not extensions, service workers, etc.)
+    const pageTargets = targets.filter((t) => t.type === "page");
+
+    if (pageTargets.length === 0) {
+      return null;
+    }
+
+    // If only one page target, use it
+    if (pageTargets.length === 1) {
+      return pageTargets[0];
+    }
+
+    // Heuristics to find the most likely active tab:
+
+    // 1. Prefer tabs that are not "about:blank" or empty
+    const nonBlankTargets = pageTargets.filter(
+      (t) =>
+        t.url && !t.url.startsWith("about:") && !t.url.startsWith("chrome:")
+    );
+
+    if (nonBlankTargets.length === 1) {
+      return nonBlankTargets[0];
+    }
+
+    // 2. If we have multiple real pages, prefer the one with the most recent activity
+    // Since CDP doesn't provide last activity time, we'll use URL patterns and title as hints
+    const activeTargets =
+      nonBlankTargets.length > 0 ? nonBlankTargets : pageTargets;
+
+    // 3. Prefer tabs with actual content (have a meaningful title)
+    const titledTargets = activeTargets.filter(
+      (t) => t.title && t.title !== "about:blank" && t.title !== ""
+    );
+
+    if (titledTargets.length > 0) {
+      // Return the first one with a meaningful title
+      return titledTargets[0];
+    }
+
+    // 4. Fall back to the first available page target
+    return pageTargets[0];
+  }
+
+  /**
+   * Enable essential domains based on target type
+   */
+  private async enableEssentialDomains(target: CDP.Target): Promise<void> {
+    if (!this.client) return;
+
+    const enablePromises = [];
+
+    if (target.type === "page") {
+      // Full page target - enable essential domains only
+      enablePromises.push(
+        this.client.Console.enable(),
+        this.client.Network.enable(),
+        this.client.Runtime.enable(),
+        this.client.Page.enable()
+      );
+    } else {
+      // Service worker or other target - only enable basic domains
+      console.log(
+        `Connecting to ${target.type} target, enabling limited domains`
+      );
+      enablePromises.push(this.client.Runtime.enable());
+
+      // Try to enable Console if available
+      try {
+        await this.client.Console.enable();
+        enablePromises.push(Promise.resolve());
+      } catch {
+        console.log("Console domain not available for this target type");
+      }
+    }
+
+    await Promise.all(enablePromises);
+  }
+
   async startChrome(): Promise<ChromeConnectionStatus> {
     try {
       const browserInfo = this.getBrowserInfo();
@@ -128,7 +277,7 @@ export class ChromeDevToolsClient {
               `✅ Found existing Arc instance with ${targets.length} targets`
             );
             if (this.options.autoConnect) {
-              await this.connect();
+              await this.connectToExistingBrowser();
             }
             return this.connectionStatus;
           }
@@ -223,29 +372,32 @@ export class ChromeDevToolsClient {
           console.log(`  ${index + 1}. [${t.type}] ${t.title} (${t.url})`);
         });
 
-        // Prefer page targets over service workers
-        const pageTarget = targets.find((t) => t.type === "page");
-        if (pageTarget) {
-          target = pageTarget;
+        // Use the improved target selection logic
+        target = this.findActiveTarget(targets);
+
+        if (target) {
           console.log(
-            `✅ Found page target: ${pageTarget.title} (${pageTarget.url})`
+            `✅ Found active target: ${target.title} (${target.url})`
           );
           break;
         }
 
-        // If no page target found and this is the last attempt, use any available target
+        // If no suitable target found and this is the last attempt, use any available page target
         if (attempt === maxAttempts && targets.length > 0) {
-          target = targets[0];
-          console.log(
-            `⚠️ No page target found, using ${target.type} target: ${target.title}`
-          );
-          break;
+          const pageTarget = targets.find((t) => t.type === "page");
+          if (pageTarget) {
+            target = pageTarget;
+            console.log(
+              `⚠️ No ideal target found, using page target: ${target.title}`
+            );
+            break;
+          }
         }
 
         // Wait before retrying
         if (attempt < maxAttempts) {
           console.log(
-            `Waiting for page target... (attempt ${attempt}/${maxAttempts})`
+            `Waiting for suitable target... (attempt ${attempt}/${maxAttempts})`
           );
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
@@ -257,38 +409,8 @@ export class ChromeDevToolsClient {
 
       this.client = await CDP({ target, port: this.connectionStatus.port });
 
-      // Enable domains based on target type
-      const enablePromises = [];
-
-      if (target.type === "page") {
-        // Full page target - enable all domains
-        enablePromises.push(
-          this.client.Console.enable(),
-          this.client.Network.enable(),
-          this.client.DOM.enable(),
-          this.client.Runtime.enable(),
-          this.client.Page.enable(),
-          this.client.CSS.enable(),
-          this.client.DOMStorage.enable(),
-          this.client.Debugger.enable()
-        );
-      } else {
-        // Service worker or other target - only enable basic domains
-        console.log(
-          `Connecting to ${target.type} target, enabling limited domains`
-        );
-        enablePromises.push(this.client.Runtime.enable());
-
-        // Try to enable Console if available
-        try {
-          await this.client.Console.enable();
-          enablePromises.push(Promise.resolve());
-        } catch {
-          console.log("Console domain not available for this target type");
-        }
-      }
-
-      await Promise.all(enablePromises);
+      // Enable essential domains using the new method
+      await this.enableEssentialDomains(target);
 
       // Set up event listeners
       this.setupEventListeners();
@@ -622,16 +744,7 @@ export class ChromeDevToolsClient {
       );
     });
 
-    // Stream debugger events
-    this.client.Debugger.paused((params) => {
-      ws.send(
-        JSON.stringify({
-          type: "debugger_paused",
-          data: params,
-          timestamp: Date.now(),
-        })
-      );
-    });
+    // Note: Debugger events removed in streamlined version
   }
 
   // ============================================================================
