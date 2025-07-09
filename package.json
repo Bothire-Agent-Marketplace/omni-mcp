@@ -25,6 +25,7 @@
     "mcp:generate-configs": "pnpm mcp:client-bridge generate --servers '{\"gateway\":\"http://localhost:37373\"}'",
     "mcp:deploy-configs": "pnpm mcp:client-bridge deploy --servers '{\"gateway\":\"http://localhost:37373\"}'",
     "omni-mcp": "pnpm --filter @mcp/dev-tools build && node packages/dev-tools/dist/src/cli/index.js",
+    "arc": "pnpm omni-mcp call chrome_start --args '{\"autoConnect\": true}'",
     "prepare": "husky",
     "sync": "syncpack fix-mismatches && syncpack format"
   },
