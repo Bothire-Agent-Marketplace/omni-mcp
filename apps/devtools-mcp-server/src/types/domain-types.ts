@@ -11,7 +11,6 @@ export type BrowserType =
   | "chrome-canary"
   | "chromium"
   | "brave"
-  | "edge"
   | "vivaldi"
   | "opera"
   | "arc"

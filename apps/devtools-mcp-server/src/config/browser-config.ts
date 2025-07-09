@@ -23,7 +23,6 @@ const BROWSER_PATHS: Record<BrowserType, string[]> = {
   ],
   chromium: ["/Applications/Chromium.app/Contents/MacOS/Chromium"],
   brave: ["/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"],
-  edge: ["/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"],
   arc: ["/Applications/Arc.app/Contents/MacOS/Arc"],
   vivaldi: ["/Applications/Vivaldi.app/Contents/MacOS/Vivaldi"],
   opera: ["/Applications/Opera.app/Contents/MacOS/Opera"],
@@ -39,7 +38,6 @@ const BROWSER_DESCRIPTIONS: Record<BrowserType, string> = {
   "chrome-canary": "Google Chrome Canary - Bleeding edge Chrome builds",
   chromium: "Chromium - Open source base for Chrome",
   brave: "Brave Browser - Privacy-focused browser with ad blocking",
-  edge: "Microsoft Edge - Microsoft's Chromium-based browser",
   arc: "Arc Browser - Modern browser with unique UI and features",
   vivaldi: "Vivaldi - Feature-rich browser for power users",
   opera: "Opera - Browser with built-in VPN and tools",
@@ -195,7 +193,6 @@ export class BrowserConfig {
       "chrome-canary": "Chrome Canary",
       chromium: "Chromium",
       brave: "Brave",
-      edge: "Microsoft Edge",
       arc: "Arc",
       vivaldi: "Vivaldi",
       opera: "Opera",
@@ -211,13 +208,12 @@ export class BrowserConfig {
     return `No Chromium-based browser found on macOS.
 
 Environment Variables:
-  DEVTOOLS_BROWSER=chrome|brave|edge|vivaldi|opera
+  DEVTOOLS_BROWSER=chrome|brave|vivaldi|opera
   DEVTOOLS_BROWSER_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 
 Popular macOS Browsers:
   - Install Chrome: https://www.google.com/chrome/ (Default)
   - Install Brave: https://brave.com/
-  - Install Edge: https://www.microsoft.com/edge
 
 Or specify a custom path using the chromePath option.`;
   }

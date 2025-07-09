@@ -57,7 +57,6 @@ export class ChromeDevToolsClient {
       "chrome-canary",
       "chromium",
       "brave",
-      "edge",
       "arc",
       "vivaldi",
       "opera",
@@ -65,6 +64,69 @@ export class ChromeDevToolsClient {
     return validTypes.includes(browserPref as BrowserType)
       ? (browserPref as BrowserType)
       : undefined;
+  }
+
+  /**
+   * Ensure Chrome is running with debugging enabled
+   * This implements "Always Start with Debugging" by auto-starting Chrome with debugging flags
+   */
+  private async ensureDebuggingEnabled(): Promise<void> {
+    const port = this.connectionStatus.port;
+    const browserInfo = this.getBrowserInfo();
+
+    try {
+      // Check if Chrome is already running with debugging enabled
+      const targets = await CDP.List({ port });
+      if (targets.length > 0) {
+        console.log(
+          `✅ ${browserInfo.name} is already running with debugging on port ${port}`
+        );
+        return;
+      }
+    } catch {
+      // No debugging session found, need to start Chrome with debugging
+    }
+
+    console.log(
+      `🔧 Starting ${browserInfo.name} with debugging enabled (Always Debug Mode)`
+    );
+
+    const chromePath = this.findChromeExecutable();
+    const debugUserDataDir = `/tmp/chrome-debug-${Date.now()}`;
+
+    const args = [
+      `--remote-debugging-port=${port}`,
+      `--user-data-dir=${debugUserDataDir}`,
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-background-timer-throttling",
+      "--disable-backgrounding-occluded-windows",
+      "--disable-renderer-backgrounding",
+      "--disable-features=TranslateUI",
+      "--disable-ipc-flooding-protection",
+      "--disable-web-security", // Helpful for debugging
+      "--disable-features=VizDisplayCompositor",
+      "about:blank",
+    ];
+
+    console.log(`🚀 Launching: ${chromePath}`);
+    console.log(`📋 Debug args: ${args.join(" ")}`);
+
+    this.chromeProcess = spawn(chromePath, args, {
+      detached: true,
+      stdio: "ignore",
+    });
+
+    this.chromeProcess.on("error", (error) => {
+      console.error(`${browserInfo.name} debug process error:`, error);
+    });
+
+    // Wait for Chrome to start with debugging
+    await this.waitForChromeStartup();
+
+    console.log(
+      `✅ ${browserInfo.name} is now running with debugging on port ${port}`
+    );
   }
 
   // ============================================================================
@@ -111,6 +173,7 @@ export class ChromeDevToolsClient {
 
   /**
    * Connect to an existing browser instance (Chrome/Chromium) without starting a new one
+   * Now with "Always Start with Debugging" - automatically starts Chrome with debugging if needed
    */
   async connectToExistingBrowser(): Promise<ChromeConnectionStatus> {
     try {
@@ -118,16 +181,18 @@ export class ChromeDevToolsClient {
       const browserInfo = this.getBrowserInfo();
 
       console.log(
-        `🔍 Attempting to connect to existing ${browserInfo.name} instance on port ${port}...`
+        `🔍 Connecting to ${browserInfo.name} with debugging enabled...`
       );
+
+      // Ensure Chrome is running with debugging enabled (Always Debug Mode)
+      await this.ensureDebuggingEnabled();
 
       // Try to get available targets
       const targets = await CDP.List({ port });
 
       if (targets.length === 0) {
         throw new Error(
-          `No targets found. Make sure ${browserInfo.name} is running with debugging enabled:\n` +
-            `  ${browserInfo.executablePath} --remote-debugging-port=${port}`
+          `No targets found even after ensuring debugging is enabled. This should not happen.`
         );
       }
 
@@ -286,8 +351,14 @@ export class ChromeDevToolsClient {
       }
 
       const chromePath = this.findChromeExecutable();
+
+      // Use dedicated debug user data directory for consistent debugging experience
+      const debugUserDataDir =
+        this.options.userDataDir || `/tmp/chrome-debug-${Date.now()}`;
+
       const args = [
         `--remote-debugging-port=${port}`,
+        `--user-data-dir=${debugUserDataDir}`,
         "--no-first-run",
         "--no-default-browser-check",
         "--disable-background-timer-throttling",
@@ -295,10 +366,9 @@ export class ChromeDevToolsClient {
         "--disable-renderer-backgrounding",
         "--disable-features=TranslateUI",
         "--disable-ipc-flooding-protection",
+        "--disable-web-security", // Helpful for debugging
+        "--disable-features=VizDisplayCompositor",
         ...(this.options.headless ? ["--headless", "--disable-gpu"] : []),
-        ...(this.options.userDataDir
-          ? [`--user-data-dir=${this.options.userDataDir}`]
-          : ["--no-sandbox"]),
         ...(this.options.args || []),
         this.options.url || "about:blank",
       ];
@@ -619,11 +689,16 @@ export class ChromeDevToolsClient {
 
       console.log(`Starting ${browserInfo.name} with Puppeteer: ${chromePath}`);
 
+      // Use dedicated debug user data directory for consistent debugging experience
+      const debugUserDataDir =
+        this.options.userDataDir || `/tmp/chrome-debug-puppeteer-${Date.now()}`;
+
       this.browser = await puppeteer.launch({
         executablePath: chromePath,
         headless: this.options.headless || false,
         args: [
           `--remote-debugging-port=${this.connectionStatus.port}`,
+          `--user-data-dir=${debugUserDataDir}`,
           "--no-first-run",
           "--no-default-browser-check",
           "--disable-background-timer-throttling",
@@ -631,9 +706,8 @@ export class ChromeDevToolsClient {
           "--disable-renderer-backgrounding",
           "--disable-features=TranslateUI",
           "--disable-ipc-flooding-protection",
-          ...(this.options.userDataDir
-            ? [`--user-data-dir=${this.options.userDataDir}`]
-            : ["--no-sandbox"]),
+          "--disable-web-security", // Helpful for debugging
+          "--disable-features=VizDisplayCompositor",
           ...(this.options.args || []),
         ],
       });

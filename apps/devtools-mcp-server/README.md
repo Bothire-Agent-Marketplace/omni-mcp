@@ -40,30 +40,31 @@ The server runs on **port 3004** by default.
 
 ## 📋 Usage Examples
 
-### Connecting to Your Existing Browser
+### Connecting to Your Browser
 
-The easiest way to use the devtools server is to connect to your existing Chrome browser:
+The devtools server now **automatically starts Chrome with debugging enabled** - no manual setup
+required!
 
 ```javascript
-// Connect to your existing Chrome browser
+// Connect to Chrome - automatically starts with debugging if needed
 const status = await chrome_connect_existing();
 ```
 
-**To enable debugging in Chrome:**
+**🚀 Always Start with Debugging Mode:**
+
+- Chrome is automatically launched with debugging flags
+- No need to manually start Chrome with `--remote-debugging-port=9222`
+- Uses dedicated debug user data directory for clean sessions
+- Includes helpful debugging flags like `--disable-web-security`
+
+**Manual Chrome debugging (optional):** If you prefer to manually control Chrome:
 
 ```bash
 # Start Chrome with debugging enabled
 /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --remote-debugging-port=9222
-```
 
-**For other Chromium-based browsers:**
-
-```bash
-# Brave Browser
+# For other Chromium-based browsers:
 /Applications/Brave\ Browser.app/Contents/MacOS/Brave\ Browser --remote-debugging-port=9222
-
-# Microsoft Edge
-/Applications/Microsoft\ Edge.app/Contents/MacOS/Microsoft\ Edge --remote-debugging-port=9222
 ```
 
 ### Basic Browser Control
