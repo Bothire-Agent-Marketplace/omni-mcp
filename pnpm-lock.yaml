@@ -279,12 +279,6 @@ importers:
 
   packages/mcp-client-bridge:
     dependencies:
-      '@mcp/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@mcp/utils':
-        specifier: workspace:*
-        version: link:../utils
       mcp-remote:
         specifier: ^0.1.18
         version: 0.1.18
