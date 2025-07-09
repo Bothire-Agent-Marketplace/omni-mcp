@@ -11,6 +11,7 @@ export const PERPLEXITY_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "Perplexity MCP Server for AI-powered search, research, comparison, and summarization",
   productionUrl: "https://perplexity-mcp.vercel.app",
   envVar: "PERPLEXITY_SERVER_URL",
+  isEnabled: true,
   tools: [
     "perplexity_search",
     "perplexity_research",

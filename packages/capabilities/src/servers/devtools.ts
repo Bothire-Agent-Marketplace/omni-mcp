@@ -11,6 +11,7 @@ export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "Chrome DevTools MCP Server for browser automation, debugging, and testing with multi-browser support",
   productionUrl: "https://devtools-mcp.vercel.app",
   envVar: "DEVTOOLS_SERVER_URL",
+  isEnabled: true,
   tools: [
     // Chrome Management (5 tools)
     "chrome_start",

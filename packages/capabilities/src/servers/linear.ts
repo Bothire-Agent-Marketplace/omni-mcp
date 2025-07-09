@@ -10,6 +10,7 @@ export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   description: "Linear MCP Server for issue tracking",
   productionUrl: "https://linear-mcp.vercel.app",
   envVar: "LINEAR_SERVER_URL",
+  isEnabled: true,
   tools: [
     "linear_search_issues",
     "linear_get_teams",

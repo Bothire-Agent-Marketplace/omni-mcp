@@ -1,6 +1,8 @@
 // Centralized MCP Server Configuration in TypeScript
 // This replaces mcp-servers.json with auto-imported capabilities
 
+import { existsSync } from "fs";
+import { join } from "path";
 import type { MCPServerDefinition } from "@mcp/capabilities";
 import type { Environment } from "./validation.js";
 
@@ -20,17 +22,58 @@ export interface MCPServersRuntimeConfig {
 }
 
 /**
+ * Load development server configuration if it exists
+ */
+async function loadDevServerConfig(): Promise<Record<string, boolean> | null> {
+  try {
+    // Look for dev-servers.config.js in multiple locations
+    const possiblePaths = [
+      join(process.cwd(), "dev-servers.config.js"),
+      join(process.cwd(), "..", "..", "dev-servers.config.js"), // From apps/gateway
+      join(process.cwd(), "..", "dev-servers.config.js"), // From apps level
+    ];
+
+    for (const configPath of possiblePaths) {
+      if (existsSync(configPath)) {
+        console.log(`[DEV CONFIG] Loading from: ${configPath}`);
+        const config = await import(`file://${configPath}`);
+        console.log(`[DEV CONFIG] Loaded config:`, config.DEV_SERVER_CONFIG);
+        return config.DEV_SERVER_CONFIG || null;
+      }
+    }
+    console.log(
+      `[DEV CONFIG] No config file found in any of these paths:`,
+      possiblePaths
+    );
+  } catch (error) {
+    console.log(`[DEV CONFIG] Error loading config:`, error);
+  }
+  return null;
+}
+
+/**
  * Builds the complete runtime configuration for all MCP servers,
  * which is primarily used by the Gateway to manage its connections.
  */
-export function buildMCPServersConfig(
+export async function buildMCPServersConfig(
   allMcpServers: Record<string, MCPServerDefinition>,
   env: Environment
-): MCPServersRuntimeConfig {
+): Promise<MCPServersRuntimeConfig> {
   const result: MCPServersRuntimeConfig = {};
+
+  // Load development configuration if available
+  const devConfig = env !== "production" ? await loadDevServerConfig() : null;
 
   for (const [key, serverDef] of Object.entries(allMcpServers)) {
     const isProduction = env === "production";
+
+    // Check if server is enabled (respecting both server definition and dev config)
+    const isServerEnabled = serverDef.isEnabled && devConfig?.[key] !== false;
+
+    // Skip disabled servers
+    if (!isServerEnabled) {
+      continue;
+    }
 
     // In production, the URL is read from an environment variable for flexibility.
     // In development, we construct it from the defined port.

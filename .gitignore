@@ -131,7 +131,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+
 lib64/
 parts/
 sdist/
@@ -238,6 +238,9 @@ gateway/coverage
 .env.development.local
 .env.production.local
 .env.test.local
+
+# Development server configuration (allow local customization)
+dev-servers.config.js
 
 # Service-specific environment files
 .env.gateway.local

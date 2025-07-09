@@ -23,7 +23,7 @@ loadEnvironment(SERVICE_PATH);
 
 // Gateway configuration removed - now using shared type from @mcp/schemas
 
-function createGatewayConfig(): GatewayConfig {
+async function createGatewayConfig(): Promise<GatewayConfig> {
   const env: Environment = detectEnvironment();
   const isProduction = env === "production";
 
@@ -33,7 +33,7 @@ function createGatewayConfig(): GatewayConfig {
     host: process.env.GATEWAY_HOST || "0.0.0.0",
     allowedOrigins: parseOrigins(
       process.env.ALLOWED_ORIGINS ||
-        (isProduction ? "" : "http://localhost:3000,http://localhost:8080")
+        (isProduction ? "" : "http://localhost:8080")
     ),
     jwtSecret: validateSecret(process.env.JWT_SECRET, env, "JWT_SECRET"),
     mcpApiKey: validateSecret(process.env.MCP_API_KEY, env, "MCP_API_KEY"),
@@ -49,10 +49,7 @@ function createGatewayConfig(): GatewayConfig {
     maxRequestSizeMb: parseInt(process.env.MAX_REQUEST_SIZE || "1"),
     corsCredentials: process.env.CORS_CREDENTIALS !== "false",
     securityHeaders: isProduction,
-    mcpServers: buildMCPServersConfig(
-      ALL_MCP_SERVERS,
-      env
-    ) as import("@mcp/schemas").MCPServersRuntimeConfig,
+    mcpServers: await buildMCPServersConfig(ALL_MCP_SERVERS, env),
   };
 
   // Final validation for production
@@ -65,4 +62,6 @@ function createGatewayConfig(): GatewayConfig {
   return config;
 }
 
-export const gatewayConfig = createGatewayConfig();
+export async function getGatewayConfig(): Promise<GatewayConfig> {
+  return await createGatewayConfig();
+}

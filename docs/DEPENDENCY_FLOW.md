@@ -9,23 +9,24 @@ and efficient builds.
 ```
 monorepo-root/
   apps/
-    frontend/
-    server-a/
-    server-b/
+    gateway/
+    devtools-mcp-server/
+    linear-mcp-server/
+    perplexity-mcp-server/
     ...
   packages/
     shared-types/
-    ui/
     utils/
-    api-client/
+    capabilities/
+    schemas/
     ...
   package.json
   pnpm-workspace.yaml
   tsconfig.base.json
 ```
 
-- **apps/**: Deployable applications (front end, servers, etc.).
-- **packages/**: Reusable libraries, shared types, UI components, utilities, API clients, etc.
+- **apps/**: Deployable applications (MCP gateway, MCP servers, etc.).
+- **packages/**: Reusable libraries, shared types, utilities, MCP capabilities, schemas, etc.
 
 ### 2. Dependency Flow Diagram
 
@@ -40,10 +41,11 @@ Dependencies should always point "down" the stack, never "up" or "sideways" (to 
 
 **Example:**
 
-- `apps/frontend` can depend on `packages/ui`, `packages/api-client`, `packages/shared-types`.
-- `apps/server-a` can depend on `packages/api-client`, `packages/shared-types`, `packages/utils`.
-- `packages/ui` can depend on `packages/shared-types`, `packages/utils`.
-- `packages/shared-types` should not depend on any app or feature package.
+- `apps/gateway` can depend on `packages/schemas`, `packages/utils`, `packages/capabilities`.
+- `apps/linear-mcp-server` can depend on `packages/server-core`, `packages/schemas`,
+  `packages/utils`.
+- `packages/capabilities` can depend on `packages/schemas`, `packages/utils`.
+- `packages/schemas` should not depend on any app or feature package.
 
 ### 3. Dependency Declaration
 
@@ -68,13 +70,13 @@ Dependencies should always point "down" the stack, never "up" or "sideways" (to 
 
 ### 5. Dependency Flow Table
 
-| Consumer        | Allowed Dependencies                  | Example Import                                  |
-| --------------- | ------------------------------------- | ----------------------------------------------- |
-| `apps/frontend` | `ui`, `api-client`, `shared-types`    | `import { Button } from '@yourorg/ui'`          |
-| `apps/server-a` | `api-client`, `shared-types`, `utils` | `import { getUser } from '@yourorg/api-client'` |
-| `ui`            | `shared-types`, `utils`               | `import { User } from '@yourorg/shared-types'`  |
-| `api-client`    | `shared-types`, `utils`               | `import { fetcher } from '@yourorg/utils'`      |
-| `shared-types`  | (none, or utility-only)               | (no imports from other packages)                |
+| Consumer                 | Allowed Dependencies               | Example Import                                       |
+| ------------------------ | ---------------------------------- | ---------------------------------------------------- |
+| `apps/gateway`           | `schemas`, `utils`, `capabilities` | `import { GatewayConfig } from '@mcp/schemas'`       |
+| `apps/linear-mcp-server` | `server-core`, `schemas`, `utils`  | `import { createServer } from '@mcp/server-core'`    |
+| `capabilities`           | `schemas`, `utils`                 | `import { MCPServerDefinition } from '@mcp/schemas'` |
+| `server-core`            | `schemas`, `utils`                 | `import { createMcpLogger } from '@mcp/utils'`       |
+| `schemas`                | (none, or utility-only)            | (no imports from other packages)                     |
 
 ### 6. Best Practices
 
@@ -96,18 +98,18 @@ Dependencies should always point "down" the stack, never "up" or "sideways" (to 
 ### 7. Example Dependency Flow
 
 ```
-apps/frontend
-  ├── packages/ui
-  │     └── packages/shared-types
-  ├── packages/api-client
-  │     └── packages/shared-types
-  └── packages/shared-types
-
-apps/server-a
-  ├── packages/api-client
-  │     └── packages/shared-types
+apps/gateway
+  ├── packages/schemas
   ├── packages/utils
-  └── packages/shared-types
+  └── packages/capabilities
+        └── packages/schemas
+
+apps/linear-mcp-server
+  ├── packages/server-core
+  │     ├── packages/schemas
+  │     └── packages/utils
+  ├── packages/schemas
+  └── packages/utils
 ```
 
 ### 8. Anti-Patterns to Avoid

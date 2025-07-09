@@ -18,7 +18,7 @@ import {
   HTTPHeaders,
 } from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
-import { gatewayConfig } from "./config.js";
+import { getGatewayConfig } from "./config.js";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
 import {
   registerSecurityMiddleware,
@@ -43,16 +43,6 @@ function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
   return headers;
 }
 
-// Initialize logger
-const logger = createMcpLogger({
-  serverName: "mcp-gateway",
-  logLevel: gatewayConfig.env === "production" ? "info" : "debug",
-  environment: gatewayConfig.env,
-});
-
-// Setup global error handlers
-setupGlobalErrorHandlers(logger);
-
 let serverInstance: FastifyInstance | null = null;
 
 // Store SSE connections
@@ -62,6 +52,19 @@ async function createServer(): Promise<FastifyInstance> {
   if (serverInstance) {
     return serverInstance;
   }
+
+  // Load gateway configuration
+  const gatewayConfig = await getGatewayConfig();
+
+  // Initialize logger
+  const logger = createMcpLogger({
+    serverName: "mcp-gateway",
+    logLevel: gatewayConfig.env === "production" ? "info" : "debug",
+    environment: gatewayConfig.env,
+  });
+
+  // Setup global error handlers
+  setupGlobalErrorHandlers(logger);
 
   logger.serverStartup(gatewayConfig.port, {
     service: "mcp-gateway",
@@ -318,6 +321,16 @@ async function createServer(): Promise<FastifyInstance> {
 
 async function start() {
   try {
+    // Load gateway configuration
+    const gatewayConfig = await getGatewayConfig();
+
+    // Initialize logger for startup
+    const logger = createMcpLogger({
+      serverName: "mcp-gateway",
+      logLevel: gatewayConfig.env === "production" ? "info" : "debug",
+      environment: gatewayConfig.env,
+    });
+
     const server = await createServer();
     await server.listen({
       port: gatewayConfig.port,
@@ -347,6 +360,12 @@ async function start() {
       logger.info(`🔑 Development API key: ${generateSecureApiKey()}`);
     }
   } catch (error) {
+    // Create a basic logger for error reporting if config loading fails
+    const logger = createMcpLogger({
+      serverName: "mcp-gateway",
+      logLevel: "error",
+      environment: "development",
+    });
     logger.error("Failed to start MCP Gateway", error as Error);
     process.exit(1);
   }
