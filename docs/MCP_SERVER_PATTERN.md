@@ -4,6 +4,65 @@
 
 This document describes the standardized pattern for creating MCP servers in this monorepo.
 
+## Fundamental Differences: Tools, Resources, and Prompts in MCP Servers
+
+MCP (Model Context Protocol) servers expose three core concepts—**tools**, **resources**, and
+**prompts**—each serving a distinct role in enabling AI agents to interact with external systems and
+data.
+
+### 1. Tools
+
+- **Definition:** Executable functions or actions that an MCP server exposes to clients
+- **Purpose:** Enable automation, integration, and active manipulation of data or systems
+- **Type:** Action-oriented - for **doing things**
+- **Usage:** Invoked with arguments, returns result after execution
+- **Mutability:** Changes state or triggers effects
+- **Examples:**
+  - `calculate_sum` - Performs mathematical operations
+  - `send_email` - Triggers email delivery
+  - `create_issue` - Creates new Linear/GitHub issues
+  - `deploy_app` - Triggers deployment workflows
+
+### 2. Resources
+
+- **Definition:** Data objects or content that an MCP server makes available for read-only access
+- **Purpose:** Supply passive information that can be referenced, analyzed, or summarized by AI
+- **Type:** Data-oriented - for **knowing things**
+- **Usage:** Fetched/listed by client, not executed
+- **Mutability:** Passive, no side effects
+- **Examples:**
+  - File contents from repositories
+  - Database records and query results
+  - API responses and cached data
+  - Documentation and knowledge bases
+
+### 3. Prompts
+
+- **Definition:** Structured, reusable message templates designed to guide interactions between AI
+  agents and users
+- **Purpose:** Standardize and streamline common interactions with dynamic arguments and context
+- **Type:** Communication-oriented - for **saying things** in a structured way
+- **Usage:** Requested by name with arguments, returns formatted message(s)
+- **Mutability:** Declarative, no direct side effects
+- **Examples:**
+  - `explain-code` - Template for code explanation requests
+  - `generate-summary` - Template for summarizing content
+  - `create-commit-message` - Template for git commit formatting
+  - `review-pull-request` - Template for code review guidance
+
+### Quick Reference Table
+
+| Feature          | Tools                  | Resources           | Prompts                    |
+| ---------------- | ---------------------- | ------------------- | -------------------------- |
+| **Purpose**      | Perform operations     | Provide context     | Guide interactions         |
+| **Action**       | Execute with arguments | Fetch/list data     | Request formatted messages |
+| **Nature**       | Active (doing)         | Passive (knowing)   | Structured (saying)        |
+| **Side Effects** | Yes - changes state    | No - read-only      | No - declarative           |
+| **Example Use**  | "Create a new issue"   | "Get file contents" | "Format commit message"    |
+
+**In summary:** Tools are for doing things, Resources are for knowing things, and Prompts are for
+saying things in a structured way.
+
 ## File Structure Template
 
 When creating a new MCP server, follow this structure:
