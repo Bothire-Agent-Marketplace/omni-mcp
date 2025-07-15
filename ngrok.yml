@@ -1,0 +1,8 @@
+version: "3"
+agent:
+  authtoken: 1bIHAemIolSFGh2TD4PFRVIKUCD_6m958mL78erdMCE3ppDj1
+endpoints:
+  - name: mcp-admin-webhook
+    url: bothire.ngrok.app
+    upstream:
+      url: http://localhost:3000
