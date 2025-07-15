@@ -48,8 +48,7 @@
     "mcp:deploy-configs": "pnpm mcp:client-bridge deploy --servers '{\"gateway\":\"http://localhost:37373\"}'",
     "omni-mcp": "pnpm --filter @mcp/dev-tools build && node packages/dev-tools/dist/src/cli/index.js",
     "arc": "pnpm omni-mcp call chrome_start --args '{\"autoConnect\": true}'",
-    "prepare": "husky",
-    "sync": "syncpack fix-mismatches && syncpack format"
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
@@ -64,7 +63,6 @@
     "knip": "^5.61.3",
     "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
-    "syncpack": "^13.0.4",
     "turbo": "^2.5.4",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
