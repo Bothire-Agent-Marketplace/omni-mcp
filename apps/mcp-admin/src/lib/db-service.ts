@@ -4,13 +4,25 @@ import {
   OrganizationMembershipJSON,
   DeletedObjectJSON,
 } from "@clerk/nextjs/server";
-import { AuditAction, MembershipRole } from "@prisma/client";
+import { AuditAction, MembershipRole, Prisma } from "@prisma/client";
 import { prisma } from "./db";
 
 /**
  * Database service for handling Clerk webhook events
  */
 export class DatabaseService {
+  /**
+   * Sanitize object for Prisma JSON fields by removing undefined values
+   * This is the recommended approach from Prisma documentation
+   */
+  private static sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
+    if (obj === null || obj === undefined) {
+      return {};
+    }
+    // JSON.parse(JSON.stringify()) removes undefined values and ensures Prisma compatibility
+    return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
+  }
+
   /**
    * Create audit log entry
    */
@@ -20,8 +32,8 @@ export class DatabaseService {
     entityType: string,
     entityId: string,
     action: AuditAction,
-    oldValues?: object,
-    newValues?: object,
+    oldValues?: Prisma.InputJsonValue | null,
+    newValues?: Prisma.InputJsonValue | null,
     source: string = "webhook"
   ) {
     try {
@@ -32,8 +44,8 @@ export class DatabaseService {
           entityType,
           entityId,
           action,
-          oldValues: oldValues || null,
-          newValues: newValues || null,
+          oldValues: oldValues || undefined,
+          newValues: newValues || undefined,
           source,
         },
       });
@@ -83,7 +95,7 @@ export class DatabaseService {
       firstName: userData.first_name || null,
       lastName: userData.last_name || null,
       imageUrl: userData.image_url || null,
-      metadata: userData.public_metadata || {},
+      metadata: this.sanitizeForPrisma(userData.public_metadata),
     };
 
     if (existingUser) {
@@ -102,13 +114,13 @@ export class DatabaseService {
         "user",
         existingUser.id,
         AuditAction.UPDATED,
-        {
+        this.sanitizeForPrisma({
           email: existingUser.email,
           firstName: existingUser.firstName,
           lastName: existingUser.lastName,
           imageUrl: existingUser.imageUrl,
-        },
-        userPayload
+        }),
+        this.sanitizeForPrisma(userPayload)
       );
     } else {
       // Create new user
@@ -123,7 +135,7 @@ export class DatabaseService {
         newUser.id,
         AuditAction.CREATED,
         null,
-        userPayload
+        this.sanitizeForPrisma(userPayload)
       );
     }
   }
@@ -158,7 +170,7 @@ export class DatabaseService {
       "user",
       user.id,
       AuditAction.DELETED,
-      { email: user.email },
+      this.sanitizeForPrisma({ email: user.email }),
       null
     );
   }
@@ -177,7 +189,7 @@ export class DatabaseService {
       clerkId: orgData.id,
       name: orgData.name,
       slug: this.generateSlug(orgData.name),
-      metadata: orgData.public_metadata || {},
+      metadata: this.sanitizeForPrisma(orgData.public_metadata),
     };
 
     if (existingOrg) {
@@ -196,11 +208,11 @@ export class DatabaseService {
         "organization",
         existingOrg.id,
         AuditAction.UPDATED,
-        {
+        this.sanitizeForPrisma({
           name: existingOrg.name,
           slug: existingOrg.slug,
-        },
-        orgPayload
+        }),
+        this.sanitizeForPrisma(orgPayload)
       );
     } else {
       // Create new organization
@@ -215,7 +227,7 @@ export class DatabaseService {
         newOrg.id,
         AuditAction.CREATED,
         null,
-        orgPayload
+        this.sanitizeForPrisma(orgPayload)
       );
 
       // Create default service enablements for new organization
@@ -255,7 +267,7 @@ export class DatabaseService {
       "organization",
       org.id,
       AuditAction.DELETED,
-      { name: org.name, slug: org.slug },
+      this.sanitizeForPrisma({ name: org.name, slug: org.slug }),
       null
     );
   }
@@ -295,7 +307,7 @@ export class DatabaseService {
       userId: user.id,
       clerkMembershipId: membershipData.id,
       role: this.mapClerkRoleToDbRole(membershipData.role),
-      permissions: membershipData.private_metadata || {},
+      permissions: this.sanitizeForPrisma(membershipData.private_metadata),
     };
 
     if (existingMembership) {
@@ -314,8 +326,8 @@ export class DatabaseService {
         "organization_membership",
         existingMembership.id,
         AuditAction.UPDATED,
-        { role: existingMembership.role },
-        { role: membershipPayload.role }
+        this.sanitizeForPrisma({ role: existingMembership.role }),
+        this.sanitizeForPrisma({ role: membershipPayload.role })
       );
     } else {
       // Create new membership
@@ -330,7 +342,7 @@ export class DatabaseService {
         newMembership.id,
         AuditAction.CREATED,
         null,
-        membershipPayload
+        this.sanitizeForPrisma(membershipPayload)
       );
     }
   }
@@ -366,7 +378,7 @@ export class DatabaseService {
       "organization_membership",
       membership.id,
       AuditAction.DELETED,
-      { role: membership.role },
+      this.sanitizeForPrisma({ role: membership.role }),
       null
     );
   }
@@ -418,13 +430,12 @@ export class DatabaseService {
       where: {
         userId,
         deletedAt: null,
+        organization: {
+          deletedAt: null,
+        },
       },
       include: {
-        organization: {
-          where: {
-            deletedAt: null,
-          },
-        },
+        organization: true,
       },
     });
   }
