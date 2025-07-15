@@ -13,7 +13,7 @@ export default tseslint.config(
       "**/*.d.ts",
       ".prettierrc.js",
       "vitest.config.mts",
-      ".syncpackrc.js",
+
       "**/*.cjs",
       ".eslintrc.js",
     ],
