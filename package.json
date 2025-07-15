@@ -1,7 +1,29 @@
 {
-  "name": "mcp-servers",
-  "private": true,
+  "name": "omni-mcp-platform",
+  "version": "1.0.0",
+  "description": "Enterprise-grade platform for hosting and managing multiple MCP (Model Context Protocol) servers",
+  "private": false,
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/omni.git"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/omni#readme",
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/omni/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "automation",
+    "enterprise",
+    "microservices",
+    "typescript",
+    "monorepo"
+  ],
+  "author": "Your Name <your.email@example.com>",
   "scripts": {
     "audit": "echo '🔍 Scanning for dead code and unused dependencies...' && knip",
     "audit:fix": "echo '🧹 Cleaning up dead code and unused dependencies...' && knip --fix",

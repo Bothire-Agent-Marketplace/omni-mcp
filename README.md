@@ -1,8 +1,25 @@
-# Omni: Enterprise MCP Platform
+# 🚀 Omni: Enterprise MCP Platform
 
-Omni is a scalable, enterprise-grade platform for hosting and managing multiple MCP (Model Context
-Protocol) servers. It features a central gateway for routing, a standardized microservice pattern,
-and a suite of developer tools to streamline development and ensure consistency.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/pnpm-F69220?logo=pnpm&logoColor=white)](https://pnpm.io/)
+
+Omni is a **scalable, enterprise-grade platform** for hosting and managing multiple **MCP (Model
+Context Protocol) servers**. It features a central gateway for routing, a standardized microservice
+pattern, and a comprehensive suite of developer tools to streamline development and ensure
+consistency.
+
+## ✨ Key Features
+
+- 🏗️ **Modular Architecture**: Clean separation of concerns with dedicated MCP servers
+- 🌐 **Central Gateway**: Intelligent routing and load balancing across services
+- 🔧 **Developer Tools**: Comprehensive CLI tools for testing and debugging
+- 📊 **Enterprise Ready**: Production-grade logging, monitoring, and error handling
+- 🔄 **Hot Reloading**: Fast development workflow with automatic restarts
+- 🧪 **Quality Assurance**: Automated testing, linting, and dead code detection
+- 📦 **Monorepo Structure**: Organized with pnpm workspaces and Turborepo
+- 🔒 **Type Safety**: Full TypeScript coverage with strict validation
 
 ## 🚀 Getting Started
 
@@ -154,15 +171,40 @@ Each MCP server follows a consistent pattern:
 3. **HTTP Server**: Fastify-based server with error handling
 4. **Dependency Injection**: Clean architecture with injected dependencies
 
-## Contributing
+## 🤝 Contributing
 
-1. Run `pnpm run audit` before committing to ensure no dead code
-2. Follow existing patterns for new servers
-3. Add comprehensive Zod validation for all inputs
-4. Use the shared utilities from `@mcp/utils`
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-### Management
+### Quick Contribution Steps
 
-For detailed CLI usage, see the workspace documentation.
+1. **Fork and clone** the repository
+2. **Install dependencies**: `pnpm install`
+3. **Create feature branch**: `git checkout -b feat/your-feature`
+4. **Make changes** following our patterns
+5. **Run quality checks**: `pnpm lint && pnpm test && pnpm audit`
+6. **Submit pull request** with clear description
 
-### Available Servers
+### Development Standards
+
+- ✅ Run `pnpm audit` before committing to ensure no dead code
+- ✅ Follow existing patterns for new MCP servers
+- ✅ Add comprehensive Zod validation for all inputs
+- ✅ Use shared utilities from `@mcp/utils`
+- ✅ Maintain TypeScript strict mode (no `any` types)
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE) - see the LICENSE file for details.
+
+## 🔒 Security
+
+For security concerns, please review our [Security Policy](SECURITY.md) and report vulnerabilities
+privately.
+
+## 📞 Support
+
+- **Documentation**: Check the `docs/` directory
+- **Issues**: [GitHub Issues](https://github.com/YOUR_USERNAME/omni/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/omni/discussions)
+
+## 🏷️ Available MCP Servers
