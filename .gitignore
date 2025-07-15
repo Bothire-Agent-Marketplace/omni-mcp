@@ -265,6 +265,12 @@ coverage/
 *.tsbuildinfo
 tsconfig.tsbuildinfo
 
+# TypeScript build artifacts in src directories (should not be committed)
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+src/**/*.d.ts.map
+
 # OS generated files
 .DS_Store
 .DS_Store?
@@ -302,6 +308,11 @@ temp/
 .turbo
 .vercel
 apps/linear-mcp-server/src/schemas/linear.ts
+
+# Prisma generated files (should not be committed)
+**/generated/
+**/node_modules/.prisma/
+packages/database/generated/
 
 # Claude Integration Certificates
 *.crt

@@ -1,32 +1,10 @@
-import { PrismaClient } from "@prisma/client";
-
-// Global is used here to maintain a cache of the Prisma Client across hot reloads
-// during development. This prevents connections growing exponentially
-// during API Route usage.
-declare global {
-  var __prisma: PrismaClient | undefined;
-}
-
-// Initialize Prisma Client
-export const prisma =
-  global.__prisma ||
-  new PrismaClient({
-    log:
-      process.env.NODE_ENV === "development"
-        ? ["query", "error", "warn"]
-        : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  global.__prisma = prisma;
-}
-
-// Database connection and disconnection are handled automatically by Prisma
-// For manual connection management, use prisma.$connect() and prisma.$disconnect()
+// Re-export the database client from the shared package
+export { db as prisma } from "@mcp/database";
 
 // Health check function
 export async function checkDbHealth(): Promise<boolean> {
   try {
+    const { prisma } = await import("./db");
     await prisma.$queryRaw`SELECT 1`;
     return true;
   } catch (error) {

@@ -7,16 +7,16 @@
     "dev": "next dev",
     "lint": "next lint",
     "start": "next start",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:generate": "pnpm --filter @mcp/database db:generate",
+    "db:push": "pnpm --filter @mcp/database db:push",
+    "db:migrate": "pnpm --filter @mcp/database db:migrate",
+    "db:studio": "pnpm --filter @mcp/database db:studio",
+    "db:seed": "pnpm --filter @mcp/database db:seed"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.0",
     "@hookform/resolvers": "^5.1.1",
-    "@prisma/client": "^6.2.0",
+    "@mcp/database": "workspace:*",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -72,9 +72,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.1",
-    "prisma": "^6.2.0",
     "tailwindcss": "^4",
-    "tsx": "^4.7.0",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
   }

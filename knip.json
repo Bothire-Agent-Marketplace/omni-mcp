@@ -15,6 +15,9 @@
     "packages/mcp-client-bridge": {
       "ignoreDependencies": ["mcp-remote"]
     },
+    "packages/database": {
+      "ignoreDependencies": ["@prisma/client"]
+    },
     "apps/mcp-admin": {
       "ignore": ["src/components/ui/**", "src/hooks/**", "src/lib/utils.ts"],
       "ignoreDependencies": [

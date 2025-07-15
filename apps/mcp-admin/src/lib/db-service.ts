@@ -4,7 +4,7 @@ import {
   OrganizationMembershipJSON,
   DeletedObjectJSON,
 } from "@clerk/nextjs/server";
-import { AuditAction, MembershipRole, Prisma } from "@prisma/client";
+import { AuditAction, MembershipRole, Prisma } from "@mcp/database";
 import { prisma } from "./db";
 
 /**

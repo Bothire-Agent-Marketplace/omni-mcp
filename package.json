@@ -52,6 +52,13 @@
     "mcp:deploy-configs": "pnpm mcp:client-bridge deploy --servers '{\"gateway\":\"http://localhost:37373\"}'",
     "omni-mcp": "pnpm --filter @mcp/dev-tools build && node packages/dev-tools/dist/src/cli/index.js",
     "arc": "pnpm omni-mcp call chrome_start --args '{\"autoConnect\": true}'",
+    "db:generate": "pnpm --filter @mcp/database db:generate",
+    "db:push": "pnpm --filter @mcp/database db:push",
+    "db:migrate": "pnpm --filter @mcp/database db:migrate",
+    "db:studio": "pnpm --filter @mcp/database db:studio",
+    "db:seed": "pnpm --filter @mcp/database db:seed",
+    "db:reset": "pnpm --filter @mcp/database db:reset",
+    "db:deploy": "pnpm --filter @mcp/database db:deploy",
     "prepare": "husky"
   },
   "devDependencies": {
