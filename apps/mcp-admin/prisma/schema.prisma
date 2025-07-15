@@ -1,0 +1,183 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Core Tables
+
+model Organization {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId   String   @unique @map("clerk_id")
+  name      String
+  slug      String   @unique
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relationships
+  memberships          OrganizationMembership[]
+  services             OrganizationService[]
+  auditLogs            AuditLog[]
+  apiKeys              ApiKey[]
+  sessions             Session[]
+
+  @@map("organizations")
+}
+
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId   String   @unique @map("clerk_id")
+  email     String   @unique
+  firstName String?  @map("first_name")
+  lastName  String?  @map("last_name")
+  imageUrl  String?  @map("image_url")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  // Relationships
+  memberships     OrganizationMembership[]
+  auditLogs       AuditLog[]
+  createdApiKeys  ApiKey[]
+  sessions        Session[]
+
+  @@map("users")
+}
+
+model OrganizationMembership {
+  id                String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String         @map("organization_id") @db.Uuid
+  userId            String         @map("user_id") @db.Uuid
+  clerkMembershipId String         @unique @map("clerk_membership_id")
+  role              MembershipRole @default(MEMBER)
+  permissions       Json           @default("{}")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+  deletedAt         DateTime?      @map("deleted_at")
+
+  // Relationships
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId, deletedAt])
+  @@map("organization_memberships")
+}
+
+model McpServer {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  serverKey    String   @unique @map("server_key")
+  name         String
+  description  String?
+  capabilities Json     @default("[]")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  organizationServices OrganizationService[]
+
+  @@map("mcp_servers")
+}
+
+model OrganizationService {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  mcpServerId    String   @map("mcp_server_id") @db.Uuid
+  enabled        Boolean  @default(true)
+  configuration  Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  mcpServer    McpServer    @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, mcpServerId])
+  @@map("organization_services")
+}
+
+// Audit and Management Tables
+
+model AuditLog {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String?      @map("organization_id") @db.Uuid
+  userId         String?      @map("user_id") @db.Uuid
+  entityType     String       @map("entity_type")
+  entityId       String       @map("entity_id") @db.Uuid
+  action         AuditAction
+  oldValues      Json?        @map("old_values")
+  newValues      Json?        @map("new_values")
+  source         String       @default("system")
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  // Relationships
+  organization Organization? @relation(fields: [organizationId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model ApiKey {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String    @map("organization_id") @db.Uuid
+  createdBy      String    @map("created_by") @db.Uuid
+  keyHash        String    @unique @map("key_hash")
+  name           String
+  scopes         Json      @default("[]")
+  expiresAt      DateTime? @map("expires_at")
+  lastUsedAt     DateTime? @map("last_used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  // Relationships
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  creator      User         @relation(fields: [createdBy], references: [id])
+
+  @@map("api_keys")
+}
+
+model Session {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String   @map("user_id") @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  sessionToken   String   @unique @map("session_token")
+  metadata       Json     @default("{}")
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relationships
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// Enums
+
+enum MembershipRole {
+  ADMIN
+  MEMBER
+  VIEWER
+
+  @@map("membership_role")
+}
+
+enum AuditAction {
+  CREATED
+  UPDATED
+  DELETED
+  ACCESSED
+
+  @@map("audit_action")
+} 
