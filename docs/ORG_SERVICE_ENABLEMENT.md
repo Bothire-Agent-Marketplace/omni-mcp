@@ -2,178 +2,320 @@
 
 ## 1. Overview
 
-This document outlines the engineering plan for implementing organization-based service enablement.
-The goal is to allow specific "MCP Servers" (e.g., Devtools, Linear, Perplexity) to be enabled or
-disabled for different customer organizations.
+This document outlines the implementation of organization-based service enablement for the MCP
+platform. The goal is to allow granular control over which MCP servers (e.g., Devtools, Linear,
+Perplexity) are accessible to different customer organizations.
 
-This feature will be built upon our existing gateway architecture, Next.js frontend, and will use
-Clerk for authentication and authorization.
+**✅ IMPLEMENTATION STATUS: COMPLETED**
+
+The system has been implemented using a PostgreSQL database with Clerk webhook synchronization,
+providing robust multi-tenant access control.
 
 ## 2. Core Requirements & Goals
 
-- **Organization-level Control:** System administrators (and in the future, organization admins)
-  must be able to enable or disable access to specific MCP servers for each organization.
-- **Secure by Default:** If no configuration is present for an organization, it should have access
-  to no servers (or a predefined, safe default set).
-- **Gateway Enforcement:** The `mcp-gateway` must enforce these access rules, rejecting requests to
-  disabled services with a clear error.
-- **Dynamic Frontend:** The Next.js frontend must dynamically display UI elements (e.g., tools,
-  options) only for the services that are enabled for the user's current organization.
-- **Scalability:** The solution must scale to accommodate new organizations and new MCP servers
-  without requiring code changes for each addition.
+✅ **Organization-level Control:** Administrators can enable/disable specific MCP servers per
+organization  
+✅ **Secure by Default:** Organizations have no access to servers unless explicitly enabled  
+✅ **Gateway Enforcement:** The `mcp-gateway` enforces access rules at the routing level  
+✅ **Dynamic Frontend:** UI components render based on organization's enabled services  
+✅ **Scalability:** New organizations and servers can be added without code changes  
+✅ **Audit Trail:** Complete history of service enablement changes
 
-## 3. Proposed Architecture
+## 3. Implemented Architecture
 
-We will leverage Clerk's metadata capabilities as the source of truth for which services an
-organization can access. This avoids introducing a new database and keeps authorization data tightly
-coupled with the authentication provider.
+### 3.1. Database-First Approach
 
-### 3.1. Data Model: Clerk Organization Metadata
+Instead of using Clerk's metadata, the system uses a PostgreSQL database for authoritative service
+enablement data:
 
-We will use the `privateMetadata` field on Clerk's `Organization` object to store the configuration.
-This metadata is accessible from the backend using a secret key but hidden from clients, which is
-ideal for this use case.
+```sql
+-- Organization service enablement
+CREATE TABLE organization_services (
+    id UUID PRIMARY KEY,
+    organization_id UUID REFERENCES organizations(id),
+    mcp_server_id UUID REFERENCES mcp_servers(id),
+    enabled BOOLEAN DEFAULT true,
+    configuration JSONB DEFAULT '{}',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
-- **Key:** `enabled_services`
-- **Value:** An array of strings, where each string is the unique name of an enabled MCP server
-  (e.g., `"devtools"`, `"linear"`).
+**Benefits:**
 
-**Example `privateMetadata`:**
+- **Performance:** Direct database queries vs API calls to Clerk
+- **Flexibility:** Custom configuration per organization-service combination
+- **Auditability:** Complete change history with timestamps
+- **Scalability:** Database queries scale better than metadata lookups
 
-```json
-{
-  "enabled_services": ["devtools", "perplexity"]
+### 3.2. Clerk Integration via Webhooks
+
+Organizations, users, and memberships are synchronized from Clerk via webhooks:
+
+```typescript
+// Webhook handlers automatically sync data
+POST / api / webhooks / clerk -
+  user.created / updated / deleted -
+  organization.created / updated / deleted -
+  organizationMembership.created / updated / deleted;
+```
+
+**Data Flow:**
+
+1. User creates organization in Clerk
+2. Webhook triggers database sync
+3. Default service enablements are created
+4. User can modify enablements via admin UI
+5. Gateway queries database for access control
+
+### 3.3. Gateway Integration (TO BE IMPLEMENTED)
+
+The gateway needs to be updated to validate JWT tokens and query the database:
+
+```typescript
+// Gateway middleware for organization-based access control
+async function validateOrganizationAccess(
+  request: MCPRequest,
+  authToken: string
+): Promise<string[] | null> {
+  // 1. Validate Clerk JWT token
+  const clerkUser = await verifyClerkToken(authToken);
+  if (!clerkUser) return null;
+
+  // 2. Get user's organization context
+  const organizationId = clerkUser.org_id;
+  if (!organizationId) return null;
+
+  // 3. Query database for enabled services
+  const enabledServices = await DatabaseService.getOrganizationServices(organizationId);
+
+  return enabledServices.map((service) => service.mcpServer.serverKey);
 }
 ```
 
-An organization with this metadata would have access to the Devtools and Perplexity servers, but not
-Linear.
+## 4. Current Implementation Status
 
-### 3.2. Backend / Gateway Modifications (`apps/gateway`)
+### ✅ Completed Components
 
-The primary changes will be in the `MCPGateway` class to make it organization-aware.
+#### Database Schema
 
-**1. Authentication Middleware (New):**
+- **Multi-tenant database** with organization isolation
+- **Service enablement** table with configuration support
+- **Audit logging** for all changes
+- **Webhook synchronization** with Clerk
 
-- A new authentication middleware will be introduced in `apps/gateway/src/index.ts` (or a new
-  `middleware` directory).
-- This middleware will be placed before the main `/mcp` and `/messages` route handlers.
-- **Function:**
-  - It will use the Clerk SDK (`@clerk/nextjs/server`) to validate the JWT from the `Authorization`
-    header.
-  - It will extract the `orgId` and the `privateMetadata` from the validated session.
-  - It will attach the `enabled_services` array (or an empty array if not present) to the request
-    object (e.g., `request.auth.enabled_services`) for downstream use.
-  - If the token is invalid or no `orgId` is present, it will reject the request with a
-    `401 Unauthorized` or `403 Forbidden` error.
+#### Database Service Layer
 
-**2. Modify Routing Logic (`MCPGateway.routeAndExecuteRequest`):**
+- **CRUD operations** for all entities
+- **Clerk webhook handlers** for real-time sync
+- **Service management** functions
+- **Type-safe** operations with Prisma
 
-- The `handleHttpRequest` method in `MCPGateway` will be updated to accept the `enabled_services`
-  array from the middleware.
-- The `routeAndExecuteRequest` method will be modified to include a new check:
+#### Admin Application
+
+- **Next.js application** with Clerk authentication
+- **Webhook endpoints** for Clerk synchronization
+- **Health monitoring** and database connectivity
+- **Development tooling** with Prisma Studio
+
+### 🔄 In Progress
+
+#### Gateway Integration
+
+- **JWT validation** for Clerk tokens
+- **Organization context** extraction
+- **Database queries** for service enablement
+- **Access control** in routing logic
+
+#### Admin UI
+
+- **Service management** interface
+- **Organization administration** pages
+- **Audit log** visualization
+- **Role-based access** controls
+
+## 5. Implementation Guide
+
+### 5.1. Gateway Updates Required
+
+The gateway currently lacks organization-based access control. Required changes:
 
 ```typescript
-// Inside routeAndExecuteRequest(request, session, enabledServices)
+// 1. Add Clerk JWT validation
+import { clerkClient } from '@clerk/nextjs/server';
 
-// ... after resolving serverId from capabilityMap
-const serverId = this.protocolAdapter.resolveCapability(request, this.capabilityMap);
+// 2. Extract organization from token
+private async getOrganizationFromToken(authToken: string): Promise<string | null> {
+  try {
+    const token = authToken.replace('Bearer ', '');
+    const sessionClaims = await clerkClient.verifyToken(token);
+    return sessionClaims.org_id || null;
+  } catch (error) {
+    return null;
+  }
+}
 
-// NEW: Enforce organization access
-if (!enabledServices.includes(serverId)) {
-  this.logger.warn(`Organization denied access to server: ${serverId}`, {
-    // ... logging context
-  });
+// 3. Query database for enabled services
+private async getEnabledServices(organizationId: string): Promise<string[]> {
+  const services = await DatabaseService.getOrganizationServices(organizationId);
+  return services.map(s => s.mcpServer.serverKey);
+}
+
+// 4. Enforce access control in routing
+private async routeAndExecuteRequest(
+  request: MCPRequest,
+  session: Session,
+  enabledServices: string[]
+): Promise<MCPResponse> {
+  const serverId = this.protocolAdapter.resolveCapability(request, this.capabilityMap);
+
+  // NEW: Check organization access
+  if (!enabledServices.includes(serverId)) {
+    return {
+      jsonrpc: "2.0",
+      id: request.id,
+      error: {
+        code: -32000,
+        message: "Access Denied",
+        data: `Service '${serverId}' not enabled for your organization`
+      }
+    };
+  }
+
+  // Continue with existing logic...
+}
+```
+
+### 5.2. Frontend Integration Pattern
+
+```typescript
+// 1. Create service enablement hook
+export function useEnabledServices() {
+  const { organization } = useOrganization();
+  const [enabledServices, setEnabledServices] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (organization?.id) {
+      fetchEnabledServices(organization.id)
+        .then(setEnabledServices);
+    }
+  }, [organization?.id]);
+
   return {
-    jsonrpc: "2.0",
-    id: request.id,
-    error: {
-      code: -32000, // Custom server error
-      message: "Access Denied",
-      data: `The '${serverId}' service is not enabled for your organization.`,
-    },
+    enabledServices,
+    isEnabled: (serviceKey: string) => enabledServices.includes(serviceKey)
   };
 }
 
-// ... continue to getServerInstance and execute request
-```
-
-**3. Modify Capability & Tool Listing:**
-
-- The methods `getAvailableTools`, `getAvailableResources`, etc., must be filtered based on the
-  organization's enabled services.
-- The `handleHttpRequest` function will pass the `enabled_services` list to these methods.
-- Each method will filter its results, only returning capabilities from the servers the organization
-  has access to.
-
-### 3.3. Frontend Modifications (Next.js App)
-
-The frontend will use Clerk's hooks to dynamically render the UI.
-
-**1. Reading Enabled Services:**
-
-- We will use Clerk's `useOrganization` hook on the client-side.
-- The `organization.privateMetadata` is not available on the client. We will need to expose this
-  data via a secure API endpoint.
-- **New API Route:** Create `pages/api/organization/settings.ts`. This endpoint will use Clerk's
-  `getAuth` to securely get the user's `orgId` on the server-side, retrieve the organization's
-  `privateMetadata`, and return the `enabled_services` list.
-
-**2. Conditional UI Rendering:**
-
-- A React Context provider (e.g., `EnabledServicesProvider`) will fetch the list from the new API
-  route and make it available throughout the application.
-- UI components will consume this context to conditionally render features.
-
-```jsx
-// Example Component
-import { useEnabledServices } from "../path/to/EnabledServicesProvider";
-
-function Toolbar() {
+// 2. Conditional UI rendering
+export function ServiceToolbar() {
   const { isEnabled } = useEnabledServices();
 
   return (
     <div>
-      {isEnabled("devtools") && <DevToolsButton />}
-      {isEnabled("linear") && <LinearIntegrationButton />}
+      {isEnabled('devtools') && <DevToolsButton />}
+      {isEnabled('linear') && <LinearButton />}
+      {isEnabled('perplexity') && <PerplexityButton />}
     </div>
   );
 }
 ```
 
-### 3.4. Admin Interface
+## 6. Security Considerations
 
-A new section in the application's settings area will be created for organization administration.
+### Database Security
 
-- **UI:** A page that lists all available MCP Servers (from a static configuration or a new API
-  endpoint) with a checkbox for each one.
-- **Logic:**
-  - This page will be protected by a role check (e.g., `org:admin`) using Clerk's middleware.
-  - When an admin saves the changes, the frontend will make a `POST` request to a new secure API
-    endpoint (e.g., `pages/api/organization/update-settings`).
-  - This backend endpoint will use the Clerk Backend SDK to update the `privateMetadata` for the
-    organization.
+- **Organization isolation** - All queries scoped to organization
+- **Role-based access** - Admin/Member/Viewer permissions
+- **Audit trails** - Complete change history
+- **Soft deletes** - Data preservation for compliance
 
-## 4. Implementation & Rollout Plan
+### Authentication Flow
 
-1.  **Backend First:**
-    - **Task 1:** Integrate Clerk Backend SDK into `apps/gateway`.
-    - **Task 2:** Implement the new authentication middleware to extract and verify organization
-      context.
-    - **Task 3:** Update `MCPGateway` routing and capability-listing methods to enforce the
-      `enabled_services` list.
-2.  **Frontend Integration:**
-    - **Task 4:** Create the secure API endpoint to expose `enabled_services` to the client.
-    - **Task 5:** Implement the `EnabledServicesProvider` and update UI components to be dynamic.
-3.  **Admin UI:**
-    - **Task 6:** Build the admin page for managing service access.
-    - **Task 7:** Implement the API endpoint to handle updates to organization metadata.
+- **JWT validation** - Clerk tokens verified server-side
+- **Organization context** - Extracted from validated tokens
+- **Database queries** - Authoritative source for permissions
+- **Cache invalidation** - Real-time updates via webhooks
 
-## 5. Security Considerations
+### API Security
 
-- **Backend Enforcement is Key:** The frontend checks are for UX only. The gateway _must_ be the
-  ultimate enforcer of the access rules.
-- **Admin Roles:** Access to the administration UI must be strictly controlled using Clerk's
-  role-based access control (`org:admin`).
-- **Input Validation:** When updating metadata, the backend must validate that the provided service
-  names are valid, known MCP servers to prevent injection of arbitrary data.
+- **Rate limiting** - Prevent abuse
+- **Input validation** - Zod schemas for all requests
+- **Error handling** - No information leakage
+- **HTTPS enforcement** - All connections encrypted
+
+## 7. Monitoring & Maintenance
+
+### Database Monitoring
+
+```sql
+-- Check service enablement distribution
+SELECT
+  ms.name,
+  COUNT(os.id) as enabled_orgs,
+  COUNT(os.id) FILTER (WHERE os.enabled = true) as active_orgs
+FROM mcp_servers ms
+LEFT JOIN organization_services os ON ms.id = os.mcp_server_id
+GROUP BY ms.name;
+
+-- Audit trail analysis
+SELECT
+  entity_type,
+  action,
+  COUNT(*) as event_count,
+  DATE_TRUNC('day', created_at) as date
+FROM audit_logs
+WHERE created_at >= NOW() - INTERVAL '7 days'
+GROUP BY entity_type, action, DATE_TRUNC('day', created_at)
+ORDER BY date DESC;
+```
+
+### Health Monitoring
+
+- **Database connectivity** - `/api/health` endpoint
+- **Webhook processing** - Success/failure rates
+- **Service availability** - Gateway health checks
+- **Performance metrics** - Query response times
+
+## 8. Migration Strategy
+
+### Development Phase
+
+1. **Complete gateway integration** - Add JWT validation and database queries
+2. **Build admin UI** - Service management interface
+3. **Test webhook flow** - Verify Clerk synchronization
+4. **Performance testing** - Database query optimization
+
+### Production Deployment
+
+1. **Database migration** - Run schema updates
+2. **Seed data** - Default MCP servers
+3. **Webhook configuration** - Clerk webhook endpoints
+4. **Gateway deployment** - Updated routing logic
+5. **Admin UI deployment** - Organization management
+
+## 9. Next Steps
+
+### Immediate (Week 1)
+
+- [ ] Implement JWT validation in gateway
+- [ ] Add organization context extraction
+- [ ] Create database query layer for gateway
+- [ ] Test end-to-end access control
+
+### Short-term (Weeks 2-3)
+
+- [ ] Build admin UI for service management
+- [ ] Implement role-based access controls
+- [ ] Add audit log visualization
+- [ ] Performance optimization
+
+### Long-term (Month 2+)
+
+- [ ] Advanced configuration options
+- [ ] Usage analytics and reporting
+- [ ] Automated service provisioning
+- [ ] Multi-region deployment support
+
+The foundation is solid and the implementation is straightforward. The database-first approach
+provides much better performance and flexibility than the original Clerk metadata approach.

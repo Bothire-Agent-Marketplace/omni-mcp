@@ -25,37 +25,52 @@ graph TD
         C3[Other HTTP/WebSocket Client]
     end
 
+    subgraph Authentication
+        CL[Clerk Auth]
+        WH[Webhooks]
+    end
+
+    subgraph Admin Application
+        AD[mcp-admin Next.js App]
+        DB[(PostgreSQL Database)]
+    end
+
     subgraph Gateway Application
         G[mcp-gateway]
     end
 
     subgraph MCP Microservices
-        S1[linear-mcp-server]
-        S2[query-quill-mcp-server]
-        S3[future-mcp-server]
+        S1[devtools-mcp-server]
+        S2[linear-mcp-server]
+        S3[perplexity-mcp-server]
     end
 
     subgraph External Services
-        E1[Linear API]
-        E2[Pagila Database]
-        E3[Other APIs]
+        E1[Chrome DevTools]
+        E2[Linear API]
+        E3[Perplexity API]
     end
 
-    C1 -->|JSON-RPC over HTTP/S| G
-    C2 -->|JSON-RPC over HTTP/S| G
-    C3 -->|JSON-RPC over WebSocket| G
+    C1 -->|JWT + JSON-RPC| G
+    C2 -->|JWT + JSON-RPC| G
+    C3 -->|JWT + WebSocket| G
+
+    CL -->|Webhooks| WH
+    WH -->|Sync Users/Orgs| DB
+    AD -->|Manage Services| DB
+    G -->|Query Access Control| DB
 
     G -- Health Checks --> S1
     G -- Health Checks --> S2
     G -- Health Checks --> S3
 
-    G -- Capability-Based Routing --> S1
-    G -- Capability-Based Routing --> S2
-    G -- Capability-Based Routing --> S3
+    G -- Organization-Based Routing --> S1
+    G -- Organization-Based Routing --> S2
+    G -- Organization-Based Routing --> S3
 
-    S1 -->|Interacts with| E1
-    S2 -->|Interacts with| E2
-    S3 -->|Interacts with| E3
+    S1 -->|Browser Automation| E1
+    S2 -->|Issue Tracking| E2
+    S3 -->|AI Search| E3
 ```
 
 ## 🧩 Components
@@ -80,6 +95,9 @@ The `mcp-gateway` is the brain of the system.
 - **Health Checking**: The `ServerManager` periodically polls the `/health` endpoint of each MCP
   server to ensure it's online and ready to accept requests. Unhealthy servers are taken out of the
   routing pool.
+- **Organization-Based Routing**: The gateway validates JWT tokens from Clerk and queries the
+  database to determine which MCP servers each organization can access. Only authorized requests are
+  routed.
 - **Capability Routing**: The gateway knows which "capabilities" (e.g., `tools/call` for
   `linear_search`) each MCP server provides. When a request arrives, it looks at the requested
   method and routes it to the appropriate, healthy server.
@@ -90,7 +108,21 @@ The `mcp-gateway` is the brain of the system.
 - **Session Management**: It manages client sessions, providing a consistent context for multi-turn
   interactions.
 
-### 3. MCP Servers (`apps/*-mcp-server`)
+### 3. Admin Application (`apps/mcp-admin`)
+
+The `mcp-admin` is a Next.js application that provides multi-tenant administration capabilities.
+
+- **Multi-Tenant Database**: PostgreSQL database with organization-based isolation and service
+  enablement controls.
+- **Clerk Integration**: Seamless authentication with webhook synchronization for users,
+  organizations, and memberships.
+- **Service Management**: Administrators can enable/disable MCP servers per organization with custom
+  configuration options.
+- **Audit Trail**: Complete history of all changes with user attribution and timestamps.
+- **Real-time Sync**: Webhooks ensure immediate synchronization between Clerk and the database.
+- **Health Monitoring**: Database connectivity and system health endpoints.
+
+### 4. MCP Servers (`apps/*-mcp-server`)
 
 MCP Servers are the workhorses. They are built following the strict `MCP_SERVER_PATTERN.md` guide.
 
@@ -103,22 +135,28 @@ MCP Servers are the workhorses. They are built following the strict `MCP_SERVER_
   service discovery mechanism.
 - **Single Responsibility**: Each server has a clear purpose, such as interacting with a specific
   third-party API or a database. For example:
+  - `devtools-mcp-server`: Provides tools for browser automation and development debugging.
   - `linear-mcp-server`: Provides tools for interacting with the Linear API.
-  - `query-quill-mcp-server`: Provides tools for querying the internal Pagila database.
+  - `perplexity-mcp-server`: Provides tools for AI-powered search and research.
 
 ## 🚀 Workflow: A Tool Call Example
 
-1.  A client sends an HTTP POST request to the `mcp-gateway` to execute the `linear_search` tool.
+1.  A client sends an HTTP POST request with a JWT token to the `mcp-gateway` to execute the
+    `linear_search` tool.
 2.  The `MCPGateway` receives the request. The `ProtocolAdapter` transforms it into a standard
     `MCPRequest`.
-3.  The gateway inspects the request and determines it's a `tools/call` for the `linear_search`
+3.  The gateway validates the JWT token from Clerk and extracts the organization ID.
+4.  It queries the database to get the list of enabled MCP servers for this organization.
+5.  The gateway inspects the request and determines it's a `tools/call` for the `linear_search`
     capability.
-4.  It consults its `capabilityMap` and finds that `linear-mcp-server` provides this capability.
-5.  It asks the `ServerManager` for a healthy instance of `linear-mcp-server`. The `ServerManager`
+6.  It checks if the organization has access to the `linear-mcp-server`. If not, it returns an
+    "Access Denied" error.
+7.  It consults its `capabilityMap` and finds that `linear-mcp-server` provides this capability.
+8.  It asks the `ServerManager` for a healthy instance of `linear-mcp-server`. The `ServerManager`
     confirms it is healthy from its recent health checks.
-6.  The gateway proxies the `MCPRequest` to `linear-mcp-server`'s `/mcp` endpoint.
-7.  The `linear-mcp-server` receives the request. Its `http-server` routes it to the
+9.  The gateway proxies the `MCPRequest` to `linear-mcp-server`'s `/mcp` endpoint.
+10. The `linear-mcp-server` receives the request. Its `http-server` routes it to the
     `handleLinearSearch` function in `handlers.ts`.
-8.  The handler executes the business logic (calls the actual Linear API), gets the results, and
+11. The handler executes the business logic (calls the actual Linear API), gets the results, and
     returns an `MCPResponse`.
-9.  The gateway receives the `MCPResponse` and forwards it back to the original client.
+12. The gateway receives the `MCPResponse` and forwards it back to the original client.

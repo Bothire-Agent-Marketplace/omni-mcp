@@ -14,6 +14,8 @@ consistency.
 
 - 🏗️ **Modular Architecture**: Clean separation of concerns with dedicated MCP servers
 - 🌐 **Central Gateway**: Intelligent routing and load balancing across services
+- 🏢 **Multi-Tenant Database**: Organization-based access control with PostgreSQL
+- 🔐 **Clerk Integration**: Seamless authentication with webhook synchronization
 - 🔧 **Developer Tools**: Comprehensive CLI tools for testing and debugging
 - 📊 **Enterprise Ready**: Production-grade logging, monitoring, and error handling
 - 🔄 **Hot Reloading**: Fast development workflow with automatic restarts
@@ -41,23 +43,61 @@ This project is a `pnpm` workspace monorepo, managed with `turborepo`.
 
 2.  **Install dependencies:** This command installs dependencies for all packages and apps in the
     monorepo.
+
     ```bash
     pnpm install
     ```
+
+3.  **Set up the database:** Follow the database setup guide for the multi-tenant system.
+
+    ```bash
+    cd apps/mcp-admin
+    cp .env.example .env.local
+    # Edit .env.local with your database and Clerk configuration
+    pnpm db:migrate
+    pnpm db:seed
+    ```
+
+4.  **Start development:** The main dev command automatically starts all services with webhook sync.
+
+    ```bash
+    # Start all services + webhook endpoint (recommended)
+    pnpm dev
+
+    # Alternative: Start without webhook endpoint
+    pnpm dev:no-webhook
+    ```
+
+For detailed development workflow, see
+[`docs/DEVELOPMENT_WORKFLOW.md`](docs/DEVELOPMENT_WORKFLOW.md).
 
 ## 🛠️ Core Commands
 
 These commands should be run from the root of the project.
 
-| Command      | Description                                                         |
-| ------------ | ------------------------------------------------------------------- |
-| `pnpm dev`   | Start all services in development mode with hot-reloading.          |
-| `pnpm build` | Build all packages and applications for production.                 |
-| `pnpm test`  | Run all tests using Vitest.                                         |
-| `pnpm lint`  | Automatically fix linting issues and format all code.               |
-| `pnpm audit` | Find unused dependencies and dead code (unused exports).            |
-| `pnpm clean` | Remove all build artifacts (`dist` folders) and `node_modules`.     |
-| `pnpm sync`  | Ensure `package.json` files are consistent and formatted correctly. |
+| Command               | Description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
+| `pnpm dev`            | Start all services + webhook endpoint with hot-reloading.           |
+| `pnpm dev:no-webhook` | Start all services without webhook endpoint.                        |
+| `pnpm build`          | Build all packages and applications for production.                 |
+| `pnpm test`           | Run all tests using Vitest.                                         |
+| `pnpm lint`           | Automatically fix linting issues and format all code.               |
+| `pnpm audit`          | Find unused dependencies and dead code (unused exports).            |
+| `pnpm clean`          | Remove all build artifacts (`dist` folders) and `node_modules`.     |
+| `pnpm sync`           | Ensure `package.json` files are consistent and formatted correctly. |
+
+### Multi-Tenant Development
+
+| Command                              | Description                                          |
+| ------------------------------------ | ---------------------------------------------------- |
+| `pnpm dev:with-ngrok`                | Start only admin app with ngrok for webhook testing. |
+| `pnpm --filter mcp-admin db:migrate` | Run database migrations.                             |
+| `pnpm --filter mcp-admin db:seed`    | Seed database with default MCP servers.              |
+| `pnpm --filter mcp-admin db:studio`  | Open Prisma Studio for database management.          |
+
+> **Note:** The main `pnpm dev` command automatically starts the webhook endpoint at
+> `https://bothire.ngrok.app/api/webhooks/clerk` to ensure Clerk stays in sync with the database
+> during development.
 
 ## ✨ Developer Experience
 
@@ -149,12 +189,21 @@ pnpm clean
 
 ### Gateway
 
-The central MCP gateway that routes requests to appropriate servers based on capability mapping.
+The central MCP gateway that routes requests to appropriate servers based on capability mapping and
+organization-based access control.
+
+### Multi-Tenant Admin System
+
+- **Database**: PostgreSQL with organization-based isolation
+- **Authentication**: Clerk integration with webhook synchronization
+- **Access Control**: Organization-level service enablement
+- **Audit Trail**: Complete change history tracking
 
 ### MCP Servers
 
+- **Devtools Server**: Browser automation and testing tools
 - **Linear Server**: Integration with Linear for issue tracking
-- **Query Quill Server**: Database query interface (removed for simplification)
+- **Perplexity Server**: AI-powered search and research
 
 ### Packages
 

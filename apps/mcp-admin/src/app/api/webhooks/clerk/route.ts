@@ -7,6 +7,7 @@ import {
 } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
+import { DatabaseService } from "@/lib/db-service";
 
 export async function POST(req: Request) {
   // Get the webhook secret from environment variables
@@ -85,54 +86,63 @@ export async function POST(req: Request) {
   return new Response("OK", { status: 200 });
 }
 
-// Event handlers - these will be implemented once we have the database schema
+// Event handlers - now implemented with database operations
 async function handleUserCreated(data: UserJSON) {
   console.log("User created:", data);
-  // TODO: Insert user into database
+  await DatabaseService.upsertUser(data);
+  console.log("✅ User created in database");
 }
 
 async function handleUserUpdated(data: UserJSON) {
   console.log("User updated:", data);
-  // TODO: Update user in database
+  await DatabaseService.upsertUser(data);
+  console.log("✅ User updated in database");
 }
 
 async function handleUserDeleted(data: DeletedObjectJSON) {
   console.log("User deleted:", data);
-  // TODO: Delete user from database
+  await DatabaseService.deleteUser(data);
+  console.log("✅ User deleted from database");
 }
 
 async function handleOrganizationCreated(data: OrganizationJSON) {
   console.log("Organization created:", data);
-  // TODO: Insert organization into database
+  await DatabaseService.upsertOrganization(data);
+  console.log("✅ Organization created in database");
 }
 
 async function handleOrganizationUpdated(data: OrganizationJSON) {
   console.log("Organization updated:", data);
-  // TODO: Update organization in database
+  await DatabaseService.upsertOrganization(data);
+  console.log("✅ Organization updated in database");
 }
 
 async function handleOrganizationDeleted(data: DeletedObjectJSON) {
   console.log("Organization deleted:", data);
-  // TODO: Delete organization from database
+  await DatabaseService.deleteOrganization(data);
+  console.log("✅ Organization deleted from database");
 }
 
 async function handleOrganizationMembershipCreated(
   data: OrganizationMembershipJSON
 ) {
   console.log("Organization membership created:", data);
-  // TODO: Insert membership into database
+  await DatabaseService.upsertOrganizationMembership(data);
+  console.log("✅ Organization membership created in database");
 }
 
 async function handleOrganizationMembershipUpdated(
   data: OrganizationMembershipJSON
 ) {
   console.log("Organization membership updated:", data);
-  // TODO: Update membership in database
+  await DatabaseService.upsertOrganizationMembership(data);
+  console.log("✅ Organization membership updated in database");
 }
 
 async function handleOrganizationMembershipDeleted(
   data: OrganizationMembershipJSON | DeletedObjectJSON
 ) {
   console.log("Organization membership deleted:", data);
-  // TODO: Delete membership from database
+  await DatabaseService.deleteOrganizationMembership(data);
+  console.log("✅ Organization membership deleted from database");
 }
