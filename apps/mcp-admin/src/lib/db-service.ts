@@ -215,9 +215,14 @@ export class DatabaseService {
         this.sanitizeForPrisma(orgPayload)
       );
     } else {
-      // Create new organization
-      const newOrg = await prisma.organization.create({
-        data: orgPayload,
+      // Use upsert to handle both clerkId and slug uniqueness
+      const newOrg = await prisma.organization.upsert({
+        where: { clerkId: orgData.id },
+        update: {
+          ...orgPayload,
+          updatedAt: new Date(),
+        },
+        create: orgPayload,
       });
 
       await this.createAuditLog(
