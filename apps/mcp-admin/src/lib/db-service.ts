@@ -285,20 +285,49 @@ export class DatabaseService {
   static async upsertOrganizationMembership(
     membershipData: OrganizationMembershipJSON
   ): Promise<void> {
-    // Get organization and user
-    const [organization, user] = await Promise.all([
-      prisma.organization.findUnique({
-        where: { clerkId: membershipData.organization.id },
-      }),
-      prisma.user.findUnique({
-        where: { clerkId: membershipData.public_user_data.user_id },
-      }),
-    ]);
+    // First, ensure the organization and user exist by creating them if needed
+    // This handles the race condition where membership webhook comes before org/user webhooks
 
+    // Create/update organization if it doesn't exist
+    let organization = await prisma.organization.findUnique({
+      where: { clerkId: membershipData.organization.id },
+    });
+
+    if (!organization) {
+      console.log("Organization not found, creating from membership data...");
+      await this.upsertOrganization(membershipData.organization);
+      organization = await prisma.organization.findUnique({
+        where: { clerkId: membershipData.organization.id },
+      });
+    }
+
+    // Create/update user if it doesn't exist
+    let user = await prisma.user.findUnique({
+      where: { clerkId: membershipData.public_user_data.user_id },
+    });
+
+    if (!user) {
+      console.log("User not found, creating from membership data...");
+      // Create user record directly in the database to avoid complex UserJSON typing
+      user = await prisma.user.create({
+        data: {
+          clerkId: membershipData.public_user_data.user_id,
+          email: membershipData.public_user_data.identifier,
+          firstName: membershipData.public_user_data.first_name,
+          lastName: membershipData.public_user_data.last_name,
+          imageUrl: membershipData.public_user_data.image_url,
+          metadata: {},
+        },
+      });
+    }
+
+    // Double-check that both exist now
     if (!organization || !user) {
-      console.error("Organization or user not found for membership:", {
+      console.error("Failed to create organization or user for membership:", {
         orgId: membershipData.organization.id,
         userId: membershipData.public_user_data.user_id,
+        hasOrg: !!organization,
+        hasUser: !!user,
       });
       return;
     }
