@@ -231,3 +231,89 @@ Create UI for:
 
 **Phase 3 Complete!** The server core now fully supports organization-specific prompts and resources
 with dynamic loading. Ready for Phase 4 (Gateway Integration).
+
+## ✅ **MILESTONE: Database-Driven Configuration System COMPLETE** 🎉
+
+### **Successfully Merged to Main** (Branch: `refactor/mcp-prompts-resources`)
+
+All foundational phases have been completed and merged:
+
+#### **✅ Phase 1: Database Schema & Migration**
+
+- Database tables: `DefaultPrompt`, `DefaultResource`, `OrganizationPrompt`, `OrganizationResource`
+- Seed scripts: 7 prompts and 6 resources successfully migrated
+- Migration scripts and backup/restore utilities
+
+#### **✅ Phase 2: Config Service Architecture**
+
+- `@mcp/config-service` package with multi-layer caching
+- `ConfigLoader` as main entry point
+- L1 cache (in-memory LRU) with 5-minute TTL
+- Database-driven prompt/resource loading
+
+#### **✅ Phase 3: Server Core Integration**
+
+- `DefaultDynamicHandlerRegistry` implementation
+- Organization context support in handlers
+- Dynamic prompt/resource loading from database
+- Template processing with variable substitution
+
+### **Manual Testing Results - All Systems Working:**
+
+✅ **Gateway Health**: `http://localhost:37373/health` - Healthy  
+✅ **Tools Discovery**: 21 tools from all servers (Linear: 5, Perplexity: 4, DevTools: 12)  
+✅ **Resources Access**: 6 resources from database, returning real data  
+✅ **Prompts Access**: 7 prompts from database, properly formatted  
+✅ **MCP Protocol**: All endpoints (`tools/list`, `resources/list`, `prompts/list`) working  
+✅ **Database Integration**: All prompts/resources loading from database
+
+### **Current System Status:**
+
+The system is **fully functional** with database-driven configuration!
+
+**Working Features:**
+
+- All MCP servers communicate through gateway
+- Database as single source of truth
+- Gateway aggregates all capabilities
+- Real-time data access (Linear teams, etc.)
+- No configuration drift
+
+---
+
+## 🚀 **Phase 4: Gateway Organization Context** (Branch: `feature/gateway-organization-context`)
+
+### **The Missing Piece:**
+
+The gateway currently **does not extract organization context** from JWT/session tokens and **does
+not pass it** to MCP servers. This means:
+
+- ❌ No organization-specific prompts/resources
+- ❌ Template variables not processed (e.g., `{{#if teamId}}`)
+- ❌ All users get same default configuration
+
+### **Phase 4 Goals:**
+
+1. **Extract Organization Context**:
+   - Parse JWT tokens in gateway middleware
+   - Extract organization ID from authenticated requests
+   - Handle unauthenticated requests gracefully
+
+2. **Pass Context to MCP Servers**:
+   - Add organization context to request headers
+   - Update MCP server requests to include context
+   - Ensure context propagation through entire pipeline
+
+3. **Enable Organization-Specific Configuration**:
+   - Allow different organizations to have custom prompts
+   - Process template variables with organization context
+   - Test multi-tenant functionality
+
+### **Implementation Plan:**
+
+- Update gateway middleware to extract JWT organization context
+- Modify MCP server communication to pass context headers
+- Update MCP servers to receive and use organization context
+- Test with multiple organizations
+
+**Ready to implement organization-specific configuration!** 🎯
