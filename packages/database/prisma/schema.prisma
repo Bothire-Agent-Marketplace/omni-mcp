@@ -91,8 +91,45 @@ model McpServer {
   organizationServices  OrganizationService[]
   organizationPrompts   OrganizationPrompt[]
   organizationResources OrganizationResource[]
+  defaultPrompts        DefaultPrompt[]
+  defaultResources      DefaultResource[]
 
   @@map("mcp_servers")
+}
+
+model DefaultPrompt {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mcpServerId String   @map("mcp_server_id") @db.Uuid
+  name        String   // e.g., "create_issue_workflow"
+  description String
+  template    Json     // The actual prompt template
+  arguments   Json     // Expected arguments schema
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  mcpServer McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  
+  @@unique([mcpServerId, name])
+  @@map("default_prompts")
+}
+
+model DefaultResource {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mcpServerId String   @map("mcp_server_id") @db.Uuid
+  uri         String   // e.g., "linear://teams"
+  name        String
+  description String
+  mimeType    String?  @map("mime_type")
+  metadata    Json?    // Additional resource metadata
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  mcpServer McpServer @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  
+  @@unique([mcpServerId, uri])
+  @@map("default_resources")
 }
 
 model OrganizationService {
