@@ -2,7 +2,7 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import { config } from "dotenv";
-import { PrismaClient } from "../generated";
+import { PrismaClient } from "../generated/index.js";
 
 // Load environment variables
 function loadEnvFiles() {
