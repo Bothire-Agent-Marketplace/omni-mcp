@@ -1,6 +1,36 @@
 import type { Environment } from "@mcp/utils";
 
 // ============================================================================
+// ORGANIZATION CONTEXT TYPES
+// ============================================================================
+
+/**
+ * Organization context passed to handlers
+ */
+export interface OrganizationContext {
+  /** Organization ID from the database */
+  organizationId: string;
+  /** Organization Clerk ID */
+  clerkId: string;
+  /** Organization name */
+  name: string;
+  /** Organization slug */
+  slug: string;
+}
+
+/**
+ * Request context containing organization and user information
+ */
+export interface RequestContext {
+  /** Organization context (optional for backward compatibility) */
+  organization?: OrganizationContext;
+  /** User ID making the request (optional) */
+  userId?: string;
+  /** Request ID for tracing */
+  requestId?: string;
+}
+
+// ============================================================================
 // BASE MCP SERVER CONFIGURATION
 // ============================================================================
 
@@ -62,9 +92,12 @@ export interface ServerStartupOptions {
 // ============================================================================
 
 /**
- * Generic tool handler function signature
+ * Generic tool handler function signature with organization context
  */
-export type ToolHandler = (params: Record<string, unknown>) => Promise<{
+export type ToolHandler = (
+  params: Record<string, unknown>,
+  context?: RequestContext
+) => Promise<{
   content: Array<{
     type: "text";
     text: string;
@@ -72,9 +105,12 @@ export type ToolHandler = (params: Record<string, unknown>) => Promise<{
 }>;
 
 /**
- * Generic resource handler function signature
+ * Generic resource handler function signature with organization context
  */
-export type ResourceHandler = (uri: string) => Promise<{
+export type ResourceHandler = (
+  uri: string,
+  context?: RequestContext
+) => Promise<{
   contents: Array<{
     uri: string;
     text: string;
@@ -82,9 +118,12 @@ export type ResourceHandler = (uri: string) => Promise<{
 }>;
 
 /**
- * Generic prompt handler function signature
+ * Generic prompt handler function signature with organization context
  */
-export type PromptHandler = (args: Record<string, unknown>) => Promise<{
+export type PromptHandler = (
+  args: Record<string, unknown>,
+  context?: RequestContext
+) => Promise<{
   messages: Array<{
     role: "user" | "assistant";
     content: {
@@ -102,22 +141,113 @@ export type PromptHandler = (args: Record<string, unknown>) => Promise<{
  * Registry functions that servers must provide
  */
 export interface HandlerRegistries {
-  /** Get all available tools */
-  getAvailableTools: () => Array<{
-    name: string;
-    description: string;
-    inputSchema: unknown;
-  }>;
-  /** Get all available resources */
-  getAvailableResources: () => Array<{
-    uri: string;
-    name: string;
-    description: string;
-    mimeType?: string;
-  }>;
-  /** Get all available prompts */
-  getAvailablePrompts: () => Array<{
-    name: string;
-    description: string;
-  }>;
+  /** Get all available tools (with optional organization context) */
+  getAvailableTools: (context?: RequestContext) =>
+    | Array<{
+        name: string;
+        description: string;
+        inputSchema: unknown;
+      }>
+    | Promise<
+        Array<{
+          name: string;
+          description: string;
+          inputSchema: unknown;
+        }>
+      >;
+  /** Get all available resources (with optional organization context) */
+  getAvailableResources: (context?: RequestContext) =>
+    | Array<{
+        uri: string;
+        name: string;
+        description: string;
+        mimeType?: string;
+      }>
+    | Promise<
+        Array<{
+          uri: string;
+          name: string;
+          description: string;
+          mimeType?: string;
+        }>
+      >;
+  /** Get all available prompts (with optional organization context) */
+  getAvailablePrompts: (context?: RequestContext) =>
+    | Array<{
+        name: string;
+        description: string;
+      }>
+    | Promise<
+        Array<{
+          name: string;
+          description: string;
+        }>
+      >;
+}
+
+// ============================================================================
+// DYNAMIC HANDLER TYPES
+// ============================================================================
+
+/**
+ * Dynamic handler registry that can load handlers based on organization context
+ */
+export interface DynamicHandlerRegistry {
+  /** Get tool handler for a specific tool name and organization context */
+  getToolHandler: (
+    toolName: string,
+    context?: RequestContext
+  ) => Promise<ToolHandler | undefined>;
+  /** Get resource handler for a specific URI and organization context */
+  getResourceHandler: (
+    uri: string,
+    context?: RequestContext
+  ) => Promise<ResourceHandler | undefined>;
+  /** Get prompt handler for a specific prompt name and organization context */
+  getPromptHandler: (
+    promptName: string,
+    context?: RequestContext
+  ) => Promise<PromptHandler | undefined>;
+  /** Get all available tools for a given context */
+  getAvailableTools: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+      inputSchema: unknown;
+    }>
+  >;
+  /** Get all available resources for a given context */
+  getAvailableResources: (context?: RequestContext) => Promise<
+    Array<{
+      uri: string;
+      name: string;
+      description: string;
+      mimeType?: string;
+    }>
+  >;
+  /** Get all available prompts for a given context */
+  getAvailablePrompts: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+    }>
+  >;
+}
+
+/**
+ * Enhanced server creation options with dynamic handler support
+ */
+export interface EnhancedServerCreationOptions<TClient = unknown>
+  extends Omit<
+    ServerCreationOptions<TClient>,
+    "toolHandlers" | "resourceHandlers" | "promptHandlers"
+  > {
+  /** Dynamic handler registry for organization-specific handlers */
+  dynamicHandlers?: DynamicHandlerRegistry;
+  /** Fallback static handlers for backward compatibility */
+  fallbackHandlers?: {
+    toolHandlers: Record<string, ToolHandler>;
+    resourceHandlers: Record<string, ResourceHandler>;
+    promptHandlers: Record<string, PromptHandler>;
+  };
 }

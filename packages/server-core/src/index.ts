@@ -7,16 +7,30 @@ export type {
   BaseMcpServerConfig,
   McpServerConfig,
   ServerCreationOptions,
+  EnhancedServerCreationOptions,
   ServerStartupOptions,
   ToolHandler,
   ResourceHandler,
   PromptHandler,
   HandlerRegistries,
+  DynamicHandlerRegistry,
+  OrganizationContext,
+  RequestContext,
 } from "./config.js";
 
 // HTTP server factory
-export { createMcpHttpServer } from "./http-server.js";
+export {
+  createMcpHttpServer,
+  createEnhancedMcpHttpServer,
+} from "./http-server.js";
 export type { FastifyInstance } from "fastify";
+
+// Dynamic handler registry
+export {
+  DefaultDynamicHandlerRegistry,
+  createDynamicHandlerRegistry,
+  createEnhancedHandlerRegistries,
+} from "./dynamic-handlers.js";
 
 // Server startup utilities
 export { startMcpServer, createServerStarter } from "./server-startup.js";

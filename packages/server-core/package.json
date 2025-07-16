@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@fastify/cors": "^9.0.1",
+    "@mcp/config-service": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",
     "fastify": "^4.28.1",

@@ -47,7 +47,8 @@ cd /Users/vince/Projects/omni/packages/mcp-config-service && pnpm build
 ```
 
 ```bash
-cd /Users/vince/Projects/omni && gaa && git commit -m "feat: implement database-driven prompts/resources with proper caching
+cd /Users/vince/Projects/omni && gaa && git commit -m "feat: implement database-driven prompts/resources wi
+th proper caching
 
 - Add DefaultPrompt and DefaultResource tables for system defaults
 - Create seed script to migrate all static configs to database
@@ -151,3 +152,82 @@ Created comprehensive guide at `docs/PROMPTS_RESOURCES_MIGRATION.md` with:
 The foundation is solid! Ready to proceed with Phase 3 (Server Core Updates) when you're ready. This
 will complete the integration and allow organizations to start customizing their prompts and
 resources.
+
+## ✅ Phase 3 Complete: Server Core Updates 🎉
+
+### What We've Accomplished:
+
+#### 1. **Organization Context Support**
+
+- ✅ Added `OrganizationContext` and `RequestContext` types
+- ✅ Enhanced handler signatures to accept organization context
+- ✅ Created organization context extraction from request headers and JWT tokens
+- ✅ Added fallback support for missing organization context
+
+#### 2. **Dynamic Handler Registry**
+
+- ✅ Built `DynamicHandlerRegistry` that integrates with ConfigLoader
+- ✅ Created `DefaultDynamicHandlerRegistry` implementation
+- ✅ Added dynamic prompt and resource loading from database
+- ✅ Implemented template processing with variable substitution
+- ✅ Added fallback to static handlers for backward compatibility
+
+#### 3. **Enhanced HTTP Server**
+
+- ✅ Created `createEnhancedMcpHttpServer` with dynamic handler support
+- ✅ Updated routing logic to pass organization context to handlers
+- ✅ Added capability to combine dynamic and static handlers
+- ✅ Implemented proper error handling for missing handlers
+
+#### 4. **Proper Prisma Type Integration**
+
+- ✅ Added transformation utilities between Prisma and service types
+- ✅ Created proper type mapping for `DefaultPrompt` and `DefaultResource`
+- ✅ Added MCP protocol response format types
+- ✅ Ensured type safety throughout the pipeline
+
+#### 5. **MCP Client Discovery Research**
+
+- ✅ Researched MCP client discovery mechanisms
+- ✅ Documented `tools/list`, `resources/list`, `prompts/list` protocol
+- ✅ Understanding of capability negotiation and enumeration
+- ✅ Foundation for future MCP client/chatbot implementation
+
+### What's Next (Phase 4: Gateway Integration):
+
+#### **Phase 4: Gateway Integration** 🚧
+
+Update the gateway to:
+
+- Extract organization ID from JWT/session
+- Pass context to MCP servers
+- Handle context propagation
+- Route requests to appropriate servers
+
+#### **Phase 5: MCP Server Refactoring** 🚧
+
+Update each server to:
+
+- Remove static prompts.ts/resources.ts
+- Use ConfigLoader from config-service
+- Handle missing organization context gracefully
+
+#### **Phase 6: Admin UI** 🚧
+
+Create UI for:
+
+- Managing organization prompts/resources
+- Version history and rollback
+- Testing prompt templates
+- Bulk import/export
+
+### Key Benefits Achieved:
+
+1. **Organization-Specific Handlers**: Each organization can now have custom prompts/resources
+2. **Dynamic Loading**: Changes take effect without server restarts
+3. **Type Safety**: Proper Prisma type integration throughout
+4. **Backward Compatibility**: Static handlers still work as fallbacks
+5. **MCP Protocol Compliance**: Ready for standard MCP client integration
+
+**Phase 3 Complete!** The server core now fully supports organization-specific prompts and resources
+with dynamic loading. Ready for Phase 4 (Gateway Integration).

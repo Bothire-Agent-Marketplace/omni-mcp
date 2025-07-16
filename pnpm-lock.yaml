@@ -548,6 +548,9 @@ importers:
       '@fastify/cors':
         specifier: ^9.0.1
         version: 9.0.1
+      '@mcp/config-service':
+        specifier: workspace:*
+        version: link:../mcp-config-service
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../schemas
