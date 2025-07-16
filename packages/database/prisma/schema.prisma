@@ -14,42 +14,46 @@ datasource db {
 // Core Tables
 
 model Organization {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clerkId   String   @unique @map("clerk_id")
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId   String    @unique @map("clerk_id")
   name      String
-  slug      String   @unique
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  slug      String    @unique
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   // Relationships
-  memberships          OrganizationMembership[]
-  services             OrganizationService[]
-  auditLogs            AuditLog[]
-  apiKeys              ApiKey[]
-  sessions             Session[]
+  memberships OrganizationMembership[]
+  services    OrganizationService[]
+  prompts     OrganizationPrompt[]
+  resources   OrganizationResource[]
+  auditLogs   AuditLog[]
+  apiKeys     ApiKey[]
+  sessions    Session[]
 
   @@map("organizations")
 }
 
 model User {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clerkId   String   @unique @map("clerk_id")
-  email     String   @unique
-  firstName String?  @map("first_name")
-  lastName  String?  @map("last_name")
-  imageUrl  String?  @map("image_url")
-  metadata  Json     @default("{}")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkId   String    @unique @map("clerk_id")
+  email     String    @unique
+  firstName String?   @map("first_name")
+  lastName  String?   @map("last_name")
+  imageUrl  String?   @map("image_url")
+  metadata  Json      @default("{}")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
   // Relationships
-  memberships     OrganizationMembership[]
-  auditLogs       AuditLog[]
-  createdApiKeys  ApiKey[]
-  sessions        Session[]
+  memberships      OrganizationMembership[]
+  createdPrompts   OrganizationPrompt[]
+  createdResources OrganizationResource[]
+  auditLogs        AuditLog[]
+  apiKeys          ApiKey[]
+  sessions         Session[]
 
   @@map("users")
 }
@@ -84,7 +88,9 @@ model McpServer {
   updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relationships
-  organizationServices OrganizationService[]
+  organizationServices  OrganizationService[]
+  organizationPrompts   OrganizationPrompt[]
+  organizationResources OrganizationResource[]
 
   @@map("mcp_servers")
 }
@@ -106,19 +112,67 @@ model OrganizationService {
   @@map("organization_services")
 }
 
+model OrganizationPrompt {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  mcpServerId    String   @map("mcp_server_id") @db.Uuid
+  name           String // e.g., "explain-code", "generate-summary"
+  description    String
+  template       Json // The actual prompt template with placeholders
+  arguments      Json // Expected arguments schema (Zod-like)
+  isActive       Boolean  @default(true) @map("is_active")
+  version        Int      @default(1)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+
+  // Relationships
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  mcpServer     McpServer    @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  createdByUser User?        @relation(fields: [createdBy], references: [id])
+
+  @@unique([organizationId, mcpServerId, name, version])
+  @@index([organizationId, mcpServerId, isActive])
+  @@map("organization_prompts")
+}
+
+model OrganizationResource {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  mcpServerId    String   @map("mcp_server_id") @db.Uuid
+  uri            String // Resource URI (e.g., "file://docs/guide.md")
+  name           String
+  description    String
+  mimeType       String?  @map("mime_type")
+  metadata       Json? // Additional resource metadata
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  createdBy      String?  @map("created_by") @db.Uuid
+
+  // Relationships
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  mcpServer     McpServer    @relation(fields: [mcpServerId], references: [id], onDelete: Cascade)
+  createdByUser User?        @relation(fields: [createdBy], references: [id])
+
+  @@unique([organizationId, mcpServerId, uri])
+  @@index([organizationId, mcpServerId, isActive])
+  @@map("organization_resources")
+}
+
 // Audit and Management Tables
 
 model AuditLog {
-  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  organizationId String?      @map("organization_id") @db.Uuid
-  userId         String?      @map("user_id") @db.Uuid
-  entityType     String       @map("entity_type")
-  entityId       String       @map("entity_id") @db.Uuid
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String?     @map("organization_id") @db.Uuid
+  userId         String?     @map("user_id") @db.Uuid
+  entityType     String      @map("entity_type")
+  entityId       String      @map("entity_id") @db.Uuid
   action         AuditAction
-  oldValues      Json?        @map("old_values")
-  newValues      Json?        @map("new_values")
-  source         String       @default("system")
-  createdAt      DateTime     @default(now()) @map("created_at")
+  oldValues      Json?       @map("old_values")
+  newValues      Json?       @map("new_values")
+  source         String      @default("system")
+  createdAt      DateTime    @default(now()) @map("created_at")
 
   // Relationships
   organization Organization? @relation(fields: [organizationId], references: [id])
@@ -181,4 +235,4 @@ enum AuditAction {
   ACCESSED
 
   @@map("audit_action")
-} 
+}
