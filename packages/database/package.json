@@ -15,7 +15,10 @@
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:prompts": "tsx prisma/seed-prompts-resources.ts",
-    "db:reset": "prisma migrate reset",
+    "db:reset": "tsx prisma/smart-reset.ts",
+    "db:reset:force": "prisma migrate reset --force",
+    "db:backup": "tsx prisma/backup-restore.ts backup",
+    "db:restore": "tsx prisma/backup-restore.ts restore",
     "db:deploy": "prisma migrate deploy",
     "postinstall": "prisma generate"
   },

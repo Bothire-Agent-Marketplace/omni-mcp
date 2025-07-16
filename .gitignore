@@ -18,6 +18,12 @@ secrets/*.staging
 !.env.production.local.example
 !.env.test.local.example
 
+# Database backups (contain sensitive user data)
+# =============================================================================
+backups/
+*.backup
+*.backup.json
+packages/database/backups/
 
 # Database Data and Backups
 # =============================================================================
