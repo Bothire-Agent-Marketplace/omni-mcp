@@ -1,0 +1,43 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+
+const settingsNavigation = [
+  { name: "General", href: "/organization/settings/general", value: "general" },
+  { name: "Users", href: "/organization/settings/users", value: "users" },
+  { name: "Roles", href: "/organization/settings/roles", value: "roles" },
+];
+
+export default function SettingsLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  const currentTab = pathname.split('/').pop() || 'general';
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={currentTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          {settingsNavigation.map((item) => (
+            <TabsTrigger key={item.value} value={item.value} asChild>
+              <Link href={item.href}>
+                {item.name}
+              </Link>
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      
+      <Card>
+        <CardContent className="p-6">
+          {children}
+        </CardContent>
+      </Card>
+    </div>
+  );
+} 
