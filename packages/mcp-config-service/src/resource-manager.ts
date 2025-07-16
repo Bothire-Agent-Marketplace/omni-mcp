@@ -5,24 +5,14 @@ import type {
   ResourceRegistry,
   ConfigContext,
   IResourceManager,
-  DefaultConfig,
   CacheOptions,
 } from "./types.js";
 
 export class ResourceManager implements IResourceManager {
   private cache: ConfigCache<ResourceRegistry>;
-  private defaultResources: DefaultConfig<
-    Omit<ResourceDefinition, "id" | "isActive">
-  >;
 
-  constructor(
-    defaultResources: DefaultConfig<
-      Omit<ResourceDefinition, "id" | "isActive">
-    > = {},
-    cacheOptions?: CacheOptions
-  ) {
+  constructor(cacheOptions?: CacheOptions) {
     this.cache = new ConfigCache<ResourceRegistry>(cacheOptions);
-    this.defaultResources = defaultResources;
   }
 
   /**
@@ -35,11 +25,16 @@ export class ResourceManager implements IResourceManager {
       return cached;
     }
 
-    // Load from database
+    // Load defaults from database
+    const defaultResources = await this.loadDefaultResources(
+      context.mcpServerId
+    );
+
+    // Load custom resources from database
     const customResources = await this.loadCustomResources(context);
 
-    // Merge with defaults
-    const registry = this.mergeWithDefaults(customResources);
+    // Merge with defaults (custom overrides default)
+    const registry = { ...defaultResources, ...customResources };
 
     // Cache the result
     this.cache.set(context.organizationId, context.mcpServerId, registry);
@@ -63,6 +58,37 @@ export class ResourceManager implements IResourceManager {
    */
   invalidateCache(context: ConfigContext): void {
     this.cache.delete(context.organizationId, context.mcpServerId);
+  }
+
+  /**
+   * Load default resources from database
+   */
+  private async loadDefaultResources(
+    mcpServerId: string
+  ): Promise<ResourceRegistry> {
+    const defaultResources = await db.defaultResource.findMany({
+      where: {
+        mcpServerId: mcpServerId,
+      },
+    });
+
+    const registry: ResourceRegistry = {};
+
+    for (const resource of defaultResources) {
+      registry[resource.uri] = {
+        id: resource.id,
+        uri: resource.uri,
+        name: resource.name,
+        description: resource.description,
+        mimeType: resource.mimeType || undefined,
+        metadata: resource.metadata
+          ? (resource.metadata as Record<string, unknown>)
+          : undefined,
+        isActive: true,
+      };
+    }
+
+    return registry;
   }
 
   /**
@@ -93,33 +119,6 @@ export class ResourceManager implements IResourceManager {
           : undefined,
         isActive: resource.isActive,
       };
-    }
-
-    return registry;
-  }
-
-  /**
-   * Merge custom resources with defaults
-   */
-  private mergeWithDefaults(
-    customResources: ResourceRegistry
-  ): ResourceRegistry {
-    const registry: ResourceRegistry = {};
-
-    // Add defaults first
-    for (const [uri, defaultResource] of Object.entries(
-      this.defaultResources
-    )) {
-      registry[uri] = {
-        ...defaultResource,
-        id: `default-${uri.replace(/[^a-zA-Z0-9]/g, "-")}`,
-        isActive: true,
-      };
-    }
-
-    // Override with custom resources or add new ones
-    for (const [uri, customResource] of Object.entries(customResources)) {
-      registry[uri] = customResource;
     }
 
     return registry;

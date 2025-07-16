@@ -6,24 +6,14 @@ import type {
   PromptRegistry,
   ConfigContext,
   IPromptManager,
-  DefaultConfig,
   CacheOptions,
 } from "./types.js";
 
 export class PromptManager implements IPromptManager {
   private cache: ConfigCache<PromptRegistry>;
-  private defaultPrompts: DefaultConfig<
-    Omit<PromptTemplate, "id" | "version" | "isActive">
-  >;
 
-  constructor(
-    defaultPrompts: DefaultConfig<
-      Omit<PromptTemplate, "id" | "version" | "isActive">
-    > = {},
-    cacheOptions?: CacheOptions
-  ) {
+  constructor(cacheOptions?: CacheOptions) {
     this.cache = new ConfigCache<PromptRegistry>(cacheOptions);
-    this.defaultPrompts = defaultPrompts;
   }
 
   /**
@@ -36,11 +26,14 @@ export class PromptManager implements IPromptManager {
       return cached;
     }
 
-    // Load from database
+    // Load defaults from database
+    const defaultPrompts = await this.loadDefaultPrompts(context.mcpServerId);
+
+    // Load custom prompts from database
     const customPrompts = await this.loadCustomPrompts(context);
 
-    // Merge with defaults
-    const registry = this.mergeWithDefaults(customPrompts);
+    // Merge with defaults (custom overrides default)
+    const registry = { ...defaultPrompts, ...customPrompts };
 
     // Cache the result
     this.cache.set(context.organizationId, context.mcpServerId, registry);
@@ -64,6 +57,42 @@ export class PromptManager implements IPromptManager {
    */
   invalidateCache(context: ConfigContext): void {
     this.cache.delete(context.organizationId, context.mcpServerId);
+  }
+
+  /**
+   * Load default prompts from database
+   */
+  private async loadDefaultPrompts(
+    mcpServerId: string
+  ): Promise<PromptRegistry> {
+    const defaultPrompts = await db.defaultPrompt.findMany({
+      where: {
+        mcpServerId: mcpServerId,
+      },
+    });
+
+    const registry: PromptRegistry = {};
+
+    for (const prompt of defaultPrompts) {
+      try {
+        const template = this.parseTemplate(prompt.template);
+        const argumentsSchema = this.parseArgumentsSchema(prompt.arguments);
+
+        registry[prompt.name] = {
+          id: prompt.id,
+          name: prompt.name,
+          description: prompt.description,
+          template,
+          arguments: argumentsSchema,
+          version: 0, // Default prompts are version 0
+          isActive: true,
+        };
+      } catch (error) {
+        console.error(`Failed to parse default prompt ${prompt.name}:`, error);
+      }
+    }
+
+    return registry;
   }
 
   /**
@@ -138,29 +167,5 @@ export class PromptManager implements IPromptManager {
     // This is a placeholder - in production, you'd need a proper schema reconstruction
     const schema = z.record(z.unknown());
     return schema;
-  }
-
-  /**
-   * Merge custom prompts with defaults
-   */
-  private mergeWithDefaults(customPrompts: PromptRegistry): PromptRegistry {
-    const registry: PromptRegistry = {};
-
-    // Add defaults first
-    for (const [name, defaultPrompt] of Object.entries(this.defaultPrompts)) {
-      registry[name] = {
-        ...defaultPrompt,
-        id: `default-${name}`,
-        version: 0,
-        isActive: true,
-      };
-    }
-
-    // Override with custom prompts
-    for (const [name, customPrompt] of Object.entries(customPrompts)) {
-      registry[name] = customPrompt;
-    }
-
-    return registry;
   }
 }
