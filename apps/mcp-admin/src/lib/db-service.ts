@@ -444,4 +444,42 @@ export class DatabaseService {
       },
     });
   }
+
+  /**
+   * Get organization by Clerk ID
+   */
+  static async getOrganizationByClerkId(clerkId: string) {
+    return await prisma.organization.findUnique({
+      where: {
+        clerkId,
+        deletedAt: null,
+      },
+    });
+  }
+
+  /**
+   * Get organization members
+   */
+  static async getOrganizationMembers(organizationId: string) {
+    return await prisma.organizationMembership.findMany({
+      where: {
+        organizationId,
+        deletedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            imageUrl: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
 }
