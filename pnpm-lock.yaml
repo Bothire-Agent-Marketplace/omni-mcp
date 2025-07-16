@@ -519,12 +519,6 @@ importers:
       '@mcp/database':
         specifier: workspace:*
         version: link:../database
-      '@mcp/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@mcp/utils':
-        specifier: workspace:*
-        version: link:../utils
       lru-cache:
         specifier: ^11.0.0
         version: 11.1.0
