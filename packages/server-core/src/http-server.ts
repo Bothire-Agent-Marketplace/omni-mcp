@@ -236,42 +236,42 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     const { getServerRegistry } = require("./server-registry.js");
     const { DefaultDynamicHandlerRegistry } = require("./dynamic-handlers.js");
     const { ConfigLoader } = require("@mcp/config-service");
-    
+
     const serverRegistry = getServerRegistry(logger);
     const configLoader = new ConfigLoader();
-    
+
     // Create dynamic handlers with server registry lookup
     const setupDynamicHandlers = async () => {
       const serverId = await serverRegistry.getServerId(serverKey);
       return new DefaultDynamicHandlerRegistry(serverId, configLoader);
     };
-    
+
     // For now, we'll create a lazy-loading dynamic handler
     finalDynamicHandlers = {
-      async getToolHandler(toolName: string, context?: any) {
+      async getToolHandler(toolName: string, context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getToolHandler(toolName, context);
       },
-      async getResourceHandler(uri: string, context?: any) {
+      async getResourceHandler(uri: string, context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getResourceHandler(uri, context);
       },
-      async getPromptHandler(promptName: string, context?: any) {
+      async getPromptHandler(promptName: string, context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getPromptHandler(promptName, context);
       },
-      async getAvailableTools(context?: any) {
+      async getAvailableTools(context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getAvailableTools(context);
       },
-      async getAvailableResources(context?: any) {
+      async getAvailableResources(context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getAvailableResources(context);
       },
-      async getAvailablePrompts(context?: any) {
+      async getAvailablePrompts(context?: RequestContext) {
         const registry = await setupDynamicHandlers();
         return registry.getAvailablePrompts(context);
-      }
+      },
     };
   }
 
