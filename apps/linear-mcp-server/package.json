@@ -21,6 +21,8 @@
   "dependencies": {
     "@linear/sdk": "^44.1.0",
     "@mcp/capabilities": "workspace:*",
+    "@mcp/config-service": "workspace:*",
+    "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/server-core": "workspace:*",
     "@mcp/utils": "workspace:*",

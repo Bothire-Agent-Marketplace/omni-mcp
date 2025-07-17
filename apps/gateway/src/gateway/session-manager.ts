@@ -2,6 +2,7 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
+import { OrganizationContextService, OrganizationContext } from "../services/organization-context.js";
 
 interface SessionJwtPayload extends JwtPayload {
   sessionId: string;
@@ -13,10 +14,12 @@ export class MCPSessionManager {
   private sessions = new Map<string, Session>();
   private config: GatewayConfig;
   private cleanupInterval: NodeJS.Timeout;
+  private orgContextService: OrganizationContextService;
 
   constructor(config: GatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger;
+    this.orgContextService = new OrganizationContextService(config.jwtSecret, logger);
 
     // Start session cleanup interval
     this.cleanupInterval = setInterval(() => {
@@ -24,7 +27,7 @@ export class MCPSessionManager {
     }, 60000); // Clean up every minute
   }
 
-  shutdown(): void {
+  async shutdown(): Promise<void> {
     clearInterval(this.cleanupInterval);
 
     // Close all WebSocket connections
@@ -39,7 +42,8 @@ export class MCPSessionManager {
 
   createSession(
     userId: string = "anonymous",
-    transport: "http" | "websocket" = "http"
+    transport: "http" | "websocket" = "http",
+    organizationContext?: OrganizationContext
   ): Session {
     const sessionId = uuidv4();
     const now = new Date();
@@ -47,6 +51,8 @@ export class MCPSessionManager {
     const session: Session = {
       id: sessionId,
       userId,
+      organizationId: organizationContext?.organizationId,
+      organizationClerkId: organizationContext?.organizationClerkId,
       createdAt: now,
       lastActivity: now,
       serverConnections: new Map(),
@@ -54,9 +60,30 @@ export class MCPSessionManager {
     };
 
     this.sessions.set(sessionId, session);
-    this.logger.debug(`Created new session: ${sessionId} for user: ${userId}`);
+    this.logger.debug(`Created new session: ${sessionId} for user: ${userId}`, {
+      organizationId: organizationContext?.organizationId,
+      organizationSlug: organizationContext?.slug,
+    });
 
     return session;
+  }
+
+  /**
+   * Create session with organization context extracted from auth headers
+   */
+  async createSessionWithAuth(
+    authHeader?: string,
+    apiKey?: string,
+    transport: "http" | "websocket" = "http"
+  ): Promise<Session> {
+    const orgContext = await this.orgContextService.extractOrganizationContext(
+      authHeader,
+      apiKey
+    );
+
+    const userId = orgContext?.userClerkId || "anonymous";
+    
+    return this.createSession(userId, transport, orgContext || undefined);
   }
 
   getSession(sessionId: string): Session | null {

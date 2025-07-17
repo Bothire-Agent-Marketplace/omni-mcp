@@ -101,7 +101,7 @@ export class MCPGateway {
     headers: HTTPHeaders
   ): Promise<GatewayHTTPResponse | MCPResponse> {
     try {
-      // Get or create session
+      // Get or create session with organization context
       let session = this.getSessionFromHeaders(headers);
       const _isNewSession = !session;
 
@@ -109,7 +109,10 @@ export class MCPGateway {
         if (!this.sessionManager.canCreateNewSession()) {
           throw new Error("Maximum concurrent sessions reached");
         }
-        session = this.sessionManager.createSession();
+        // Create session with organization context extracted from auth headers
+        const authHeader = headers.authorization || headers.Authorization;
+        const apiKey = headers["x-api-key"] as string;
+        session = await this.sessionManager.createSessionWithAuth(authHeader, apiKey, "http");
       }
 
       // Convert HTTP request to MCP format
@@ -313,10 +316,23 @@ export class MCPGateway {
       });
 
       try {
+        // Prepare headers with organization context
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
+
+        // Add organization context headers if available
+        if (session.organizationId) {
+          headers["x-organization-id"] = session.organizationId;
+        }
+        if (session.organizationClerkId) {
+          headers["x-organization-clerk-id"] = session.organizationClerkId;
+        }
+
         // Execute request by forwarding it to the server's URL
         const response = await fetch(`${serverInstance.url}/mcp`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers,
           body: JSON.stringify(request),
         });
 

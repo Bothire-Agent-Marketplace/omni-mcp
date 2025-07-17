@@ -14,6 +14,9 @@ import {
 } from "@mcp/utils/validation.js";
 import { ALL_MCP_SERVERS } from "./config/server-registry.js";
 
+// Well-known development API key for easy local testing
+const DEV_API_KEY = "dev-api-key-12345";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SERVICE_PATH = join(__dirname, "..");
@@ -36,7 +39,7 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
         (isProduction ? "" : "http://localhost:8080")
     ),
     jwtSecret: validateSecret(process.env.JWT_SECRET, env, "JWT_SECRET"),
-    mcpApiKey: validateSecret(process.env.MCP_API_KEY, env, "MCP_API_KEY"),
+    mcpApiKey: process.env.MCP_API_KEY || (isProduction ? "" : DEV_API_KEY),
     sessionTimeout: parseInt(process.env.SESSION_TIMEOUT || "3600000"), // 1 hour
     maxConcurrentSessions: parseInt(
       process.env.MAX_CONCURRENT_SESSIONS || (isProduction ? "500" : "100")
@@ -44,7 +47,7 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
     rateLimitPerMinute: parseInt(
       process.env.API_RATE_LIMIT || (isProduction ? "100" : "1000")
     ),
-    requireApiKey: isProduction,
+    requireApiKey: true, // Always require API key for security
     enableRateLimit: isProduction,
     maxRequestSizeMb: parseInt(process.env.MAX_REQUEST_SIZE || "1"),
     corsCredentials: process.env.CORS_CREDENTIALS !== "false",
@@ -56,6 +59,9 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
   if (isProduction) {
     if (config.allowedOrigins.length === 0) {
       throw new Error("ALLOWED_ORIGINS must be set in production.");
+    }
+    if (!config.mcpApiKey || config.mcpApiKey === DEV_API_KEY) {
+      throw new Error("MCP_API_KEY must be set in production and cannot be the development key.");
     }
   }
 

@@ -242,6 +242,8 @@ export interface EnhancedServerCreationOptions<TClient = unknown>
     ServerCreationOptions<TClient>,
     "toolHandlers" | "resourceHandlers" | "promptHandlers"
   > {
+  /** Server key for database lookup (e.g., "linear", "perplexity", "devtools") */
+  serverKey?: string;
   /** Dynamic handler registry for organization-specific handlers */
   dynamicHandlers?: DynamicHandlerRegistry;
   /** Fallback static handlers for backward compatibility */

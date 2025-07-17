@@ -43,6 +43,8 @@ export interface ServerInstance {
 export interface Session {
   id: string;
   userId: string;
+  organizationId?: string; // Add organization context
+  organizationClerkId?: string; // Add Clerk organization ID for lookups
   createdAt: Date;
   lastActivity: Date;
   serverConnections: Map<string, ServerInstance>;

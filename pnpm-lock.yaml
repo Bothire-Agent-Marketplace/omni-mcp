@@ -72,6 +72,12 @@ importers:
       '@mcp/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@mcp/config-service':
+        specifier: workspace:*
+        version: link:../../packages/mcp-config-service
+      '@mcp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -130,6 +136,9 @@ importers:
       '@mcp/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@mcp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -176,6 +185,12 @@ importers:
       '@mcp/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@mcp/config-service':
+        specifier: workspace:*
+        version: link:../../packages/mcp-config-service
+      '@mcp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -385,6 +400,12 @@ importers:
       '@mcp/capabilities':
         specifier: workspace:*
         version: link:../../packages/capabilities
+      '@mcp/config-service':
+        specifier: workspace:*
+        version: link:../../packages/mcp-config-service
+      '@mcp/database':
+        specifier: workspace:*
+        version: link:../../packages/database
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../../packages/schemas
@@ -551,6 +572,9 @@ importers:
       '@mcp/config-service':
         specifier: workspace:*
         version: link:../mcp-config-service
+      '@mcp/database':
+        specifier: workspace:*
+        version: link:../database
       '@mcp/schemas':
         specifier: workspace:*
         version: link:../schemas
