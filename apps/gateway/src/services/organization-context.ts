@@ -60,7 +60,10 @@ export class OrganizationContextService {
 
       return null;
     } catch (error) {
-      this.logger.error("Failed to extract organization context", error as Error);
+      this.logger.error(
+        "Failed to extract organization context",
+        error as Error
+      );
       return null;
     }
   }
@@ -68,12 +71,14 @@ export class OrganizationContextService {
   /**
    * Extract organization context from Clerk JWT token
    */
-  private async extractFromClerkToken(token: string): Promise<OrganizationContext | null> {
+  private async extractFromClerkToken(
+    token: string
+  ): Promise<OrganizationContext | null> {
     try {
       // Note: In production, you'd validate the Clerk token with Clerk's public key
       // For now, we'll decode it to extract organization info
       const decoded = jwt.decode(token) as ClerkJwtPayload;
-      
+
       if (!decoded || !decoded.org_id) {
         return null;
       }
@@ -86,11 +91,13 @@ export class OrganizationContextService {
           clerkId: true,
           slug: true,
           name: true,
-        }
+        },
       });
 
       if (!organization) {
-        this.logger.warn(`Organization not found for Clerk ID: ${decoded.org_id}`);
+        this.logger.warn(
+          `Organization not found for Clerk ID: ${decoded.org_id}`
+        );
         return null;
       }
 
@@ -99,7 +106,7 @@ export class OrganizationContextService {
       if (decoded.sub) {
         const user = await this.prisma.user.findUnique({
           where: { clerkId: decoded.sub },
-          select: { id: true }
+          select: { id: true },
         });
         userId = user?.id;
       }
@@ -113,7 +120,9 @@ export class OrganizationContextService {
         slug: organization.slug,
       };
     } catch (error) {
-      this.logger.debug("Failed to extract from Clerk token", { error: String(error) });
+      this.logger.debug("Failed to extract from Clerk token", {
+        error: String(error),
+      });
       return null;
     }
   }
@@ -121,7 +130,9 @@ export class OrganizationContextService {
   /**
    * Extract organization context from API key
    */
-  private async extractFromApiKey(apiKey: string): Promise<OrganizationContext | null> {
+  private async extractFromApiKey(
+    apiKey: string
+  ): Promise<OrganizationContext | null> {
     try {
       // Hash the API key to match database storage
       const crypto = await import("crypto");
@@ -129,9 +140,9 @@ export class OrganizationContextService {
 
       // Look up API key in database
       const apiKeyRecord = await this.prisma.apiKey.findUnique({
-        where: { 
+        where: {
           keyHash,
-          deletedAt: null 
+          deletedAt: null,
         },
         include: {
           organization: {
@@ -140,15 +151,15 @@ export class OrganizationContextService {
               clerkId: true,
               slug: true,
               name: true,
-            }
+            },
           },
           creator: {
             select: {
               id: true,
               clerkId: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       if (!apiKeyRecord || !apiKeyRecord.organization) {
@@ -157,14 +168,16 @@ export class OrganizationContextService {
 
       // Check if API key is expired
       if (apiKeyRecord.expiresAt && apiKeyRecord.expiresAt < new Date()) {
-        this.logger.warn(`Expired API key used for organization: ${apiKeyRecord.organization.clerkId}`);
+        this.logger.warn(
+          `Expired API key used for organization: ${apiKeyRecord.organization.clerkId}`
+        );
         return null;
       }
 
       // Update last used timestamp
       await this.prisma.apiKey.update({
         where: { id: apiKeyRecord.id },
-        data: { lastUsedAt: new Date() }
+        data: { lastUsedAt: new Date() },
       });
 
       return {
@@ -175,7 +188,9 @@ export class OrganizationContextService {
         slug: apiKeyRecord.organization.slug,
       };
     } catch (error) {
-      this.logger.debug("Failed to extract from API key", { error: String(error) });
+      this.logger.debug("Failed to extract from API key", {
+        error: String(error),
+      });
       return null;
     }
   }
@@ -183,15 +198,19 @@ export class OrganizationContextService {
   /**
    * Extract organization context from existing session token
    */
-  private async extractFromSessionToken(token: string): Promise<OrganizationContext | null> {
+  private async extractFromSessionToken(
+    _token: string
+  ): Promise<OrganizationContext | null> {
     try {
       // This would be for existing gateway session tokens
       // For now, we don't have organization context in these tokens
       // This is a placeholder for future enhancement
       return null;
     } catch (error) {
-      this.logger.debug("Failed to extract from session token", { error: String(error) });
+      this.logger.debug("Failed to extract from session token", {
+        error: String(error),
+      });
       return null;
     }
   }
-} 
+}
