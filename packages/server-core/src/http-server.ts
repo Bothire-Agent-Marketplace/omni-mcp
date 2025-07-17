@@ -215,6 +215,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 ): FastifyInstance {
   const {
     serverName,
+    serverKey,
     config,
     dynamicHandlers,
     fallbackHandlers,
@@ -228,6 +229,51 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     logLevel: config.logLevel,
     environment: config.env,
   });
+
+  // Auto-create dynamic handlers if serverKey is provided
+  let finalDynamicHandlers = dynamicHandlers;
+  if (serverKey && !dynamicHandlers) {
+    const { getServerRegistry } = require("./server-registry.js");
+    const { DefaultDynamicHandlerRegistry } = require("./dynamic-handlers.js");
+    const { ConfigLoader } = require("@mcp/config-service");
+    
+    const serverRegistry = getServerRegistry(logger);
+    const configLoader = new ConfigLoader();
+    
+    // Create dynamic handlers with server registry lookup
+    const setupDynamicHandlers = async () => {
+      const serverId = await serverRegistry.getServerId(serverKey);
+      return new DefaultDynamicHandlerRegistry(serverId, configLoader);
+    };
+    
+    // For now, we'll create a lazy-loading dynamic handler
+    finalDynamicHandlers = {
+      async getToolHandler(toolName: string, context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getToolHandler(toolName, context);
+      },
+      async getResourceHandler(uri: string, context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getResourceHandler(uri, context);
+      },
+      async getPromptHandler(promptName: string, context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getPromptHandler(promptName, context);
+      },
+      async getAvailableTools(context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getAvailableTools(context);
+      },
+      async getAvailableResources(context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getAvailableResources(context);
+      },
+      async getAvailablePrompts(context?: any) {
+        const registry = await setupDynamicHandlers();
+        return registry.getAvailablePrompts(context);
+      }
+    };
+  }
 
   const server = fastify({ logger: false }); // Disable default logger to use our own
 
@@ -280,7 +326,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
         id,
         requestContext,
         {
-          dynamicHandlers,
+          dynamicHandlers: finalDynamicHandlers,
           fallbackHandlers,
           getAvailableTools,
           getAvailableResources,

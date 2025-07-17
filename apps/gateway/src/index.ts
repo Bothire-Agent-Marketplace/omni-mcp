@@ -357,7 +357,7 @@ async function start() {
     );
 
     if (gatewayConfig.env === "development") {
-      logger.info(`🔑 Development API key: ${generateSecureApiKey()}`);
+      logger.info(`🔑 Development API key: ${gatewayConfig.mcpApiKey}`);
     }
   } catch (error) {
     // Create a basic logger for error reporting if config loading fails

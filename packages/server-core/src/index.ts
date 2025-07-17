@@ -32,6 +32,13 @@ export {
   createEnhancedHandlerRegistries,
 } from "./dynamic-handlers.js";
 
+// Server registry for database lookups
+export {
+  ServerRegistry,
+  getServerRegistry,
+  cleanupServerRegistry
+} from "./server-registry.js";
+
 // Server startup utilities
 export { startMcpServer, createServerStarter } from "./server-startup.js";
 
