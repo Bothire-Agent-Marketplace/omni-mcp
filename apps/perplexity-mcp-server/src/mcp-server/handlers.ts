@@ -4,7 +4,7 @@
 
 import { perplexityServerConfig } from "../config/config.js";
 import {
-  SearchInputSchema,
+  PerplexitySearchSchema,
   ResearchInputSchema,
   CompareInputSchema,
   SummarizeInputSchema,
@@ -51,7 +51,7 @@ export async function handlePerplexitySearch(
   params: unknown
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
   // Validate and parse input with Zod
-  const validatedParams = SearchInputSchema.parse(params);
+  const validatedParams = PerplexitySearchSchema.parse(params);
   const {
     query,
     model,

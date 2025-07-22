@@ -89,7 +89,6 @@ export async function showcaseCapabilities(
   console.log();
 
   try {
-    // Get all available tools
     const toolsResponse = await client.listTools();
     const toolsResult = isJsonRpcSuccessResponse(toolsResponse)
       ? (toolsResponse.result as { tools?: Tool[] })
@@ -103,11 +102,9 @@ export async function showcaseCapabilities(
       return;
     }
 
-    // Group tools by server
     const toolsByServer = groupToolsByServer(allTools);
 
     if (server === "all") {
-      // Show all servers
       for (const [serverName, serverInfo] of Object.entries(SERVER_EXAMPLES)) {
         if (toolsByServer[serverName]) {
           await showcaseServer(
@@ -121,7 +118,6 @@ export async function showcaseCapabilities(
         }
       }
     } else {
-      // Show specific server
       const serverInfo =
         SERVER_EXAMPLES[server as keyof typeof SERVER_EXAMPLES];
       if (!serverInfo) {

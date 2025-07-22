@@ -1,4 +1,4 @@
-import { z, ZodIssue } from "zod";
+import { z } from "zod";
 import type { Environment } from "@mcp/schemas";
 
 // Zod schema for port validation
@@ -16,8 +16,9 @@ export function validatePort(
   if (port === undefined) return fallback;
   const result = PortSchema.safeParse(port);
   if (!result.success) {
+    const formattedError = result.error.format();
     throw new Error(
-      `Invalid port number: ${port}. ${result.error.errors[0].message}`
+      `Invalid port number: ${port}. ${formattedError._errors.join(", ")}`
     );
   }
   return result.data;
@@ -37,8 +38,9 @@ export function validateTimeout(
   if (timeout === undefined) return fallback;
   const result = TimeoutSchema.safeParse(timeout);
   if (!result.success) {
+    const formattedError = result.error.format();
     throw new Error(
-      `Invalid timeout: ${timeout}. ${result.error.errors[0].message}`
+      `Invalid timeout: ${timeout}. ${formattedError._errors.join(", ")}`
     );
   }
   return result.data;
@@ -74,9 +76,7 @@ export function validateSecret(
   const s = secret || "";
   const result = SecretSchema(environment, type).safeParse(s);
   if (!result.success) {
-    throw new Error(
-      result.error.errors.map((e: ZodIssue) => e.message).join(", ")
-    );
+    throw new Error(result.error.format()._errors.join(", "));
   }
   return s;
 }

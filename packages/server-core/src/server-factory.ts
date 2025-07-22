@@ -1,8 +1,3 @@
-// ============================================================================
-// CONSOLIDATED MCP SERVER FACTORY
-// ============================================================================
-// Eliminates duplicate server creation patterns across all MCP servers
-
 import type { FastifyInstance } from "fastify";
 import { ConfigLoader } from "@mcp/config-service";
 import type {
@@ -14,10 +9,6 @@ import type {
 } from "./config.js";
 import { DatabaseDynamicHandlerRegistry } from "./dynamic-handlers.js";
 import { createEnhancedMcpHttpServer } from "./http-server.js";
-
-// ============================================================================
-// SERVER FACTORY TYPES
-// ============================================================================
 
 /**
  * Configuration for creating an MCP server
@@ -59,10 +50,6 @@ export interface McpServerFactoryConfig<TClient = unknown> {
   /** Optional prompt handlers (defaults to empty - uses dynamic handlers) */
   promptHandlers?: Record<string, PromptHandler>;
 }
-
-// ============================================================================
-// CONSOLIDATED SERVER FACTORY
-// ============================================================================
 
 /**
  * Creates a standardized MCP HTTP server with consistent patterns
@@ -151,10 +138,6 @@ async function getServerIdFromDatabase(serverKey: string): Promise<string> {
   return serverId;
 }
 
-// ============================================================================
-// CONVENIENCE FACTORIES FOR COMMON PATTERNS
-// ============================================================================
-
 /**
  * Creates an MCP server with a typed client (e.g., LinearClient, ChromeDevToolsClient)
  */
@@ -172,9 +155,3 @@ export async function createMcpServerWithoutClient(
 ): Promise<FastifyInstance> {
   return createMcpServer({ ...config, client: undefined });
 }
-
-// ============================================================================
-// EXPORT CONSOLIDATED API
-// ============================================================================
-
-// Note: Named exports only - default export removed as unused

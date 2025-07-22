@@ -1,10 +1,7 @@
 import { LinearClient } from "@linear/sdk";
 import { LinearInputSchemas } from "@mcp/schemas";
-import {
-  createGenericToolHandlers,
-  getGenericAvailableTools,
-  ToolDefinition,
-} from "@mcp/utils";
+import { ToolHandler } from "@mcp/server-core";
+import { getGenericAvailableTools, ToolDefinition } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
 // ============================================================================
@@ -58,8 +55,25 @@ const linearToolDefinitions: Record<string, ToolDefinition<LinearClient>> = {
 // EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
 // ============================================================================
 
-export const createToolHandlers = (linearClient: LinearClient) =>
-  createGenericToolHandlers(linearToolDefinitions, linearClient);
+export function createToolHandlers(
+  linearClient: LinearClient | undefined
+): Record<string, ToolHandler> {
+  if (!linearClient) {
+    return {};
+  }
+  return {
+    linear_get_teams: handlers.handleLinearGetTeams.bind(null, linearClient),
+    linear_get_users: handlers.handleLinearGetUsers.bind(null, linearClient),
+    linear_get_projects: handlers.handleLinearGetProjects.bind(
+      null,
+      linearClient
+    ),
+    linear_search_issues: handlers.handleLinearSearchIssues.bind(
+      null,
+      linearClient
+    ),
+  };
+}
 
 export const getAvailableTools = () =>
   getGenericAvailableTools(linearToolDefinitions);

@@ -33,7 +33,7 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
           <Navbar />
-          {children}
+          <main className="h-full w-full">{children}</main>
           <Toaster richColors />
         </body>
       </html>

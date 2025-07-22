@@ -13,7 +13,6 @@ export async function checkHealth(options: HealthOptions): Promise<void> {
 
   const client = new MCPClient(options.url);
 
-  // Check Gateway Health
   console.log(chalk.blue("🌐 Gateway Health..."));
   try {
     const response = await fetch(`${options.url}/health`);
@@ -35,7 +34,6 @@ export async function checkHealth(options: HealthOptions): Promise<void> {
   }
   console.log();
 
-  // Check Server Health via Tools
   console.log(chalk.blue("🔧 Server Health..."));
   try {
     const toolsResponse = await client.listTools();
@@ -51,7 +49,6 @@ export async function checkHealth(options: HealthOptions): Promise<void> {
       return;
     }
 
-    // Group tools by server
     const serverStats = getServerStats(allTools);
 
     console.log(
@@ -60,7 +57,6 @@ export async function checkHealth(options: HealthOptions): Promise<void> {
     console.log(chalk.gray(`   Total tools: ${allTools.length}`));
     console.log();
 
-    // Show each server status
     for (const [serverName, stats] of Object.entries(serverStats)) {
       const icon = getServerIcon(serverName);
       const port = getServerPort(serverName);

@@ -1,6 +1,6 @@
 import { LinearClient } from "@linear/sdk";
+import type { FastifyInstance } from "fastify";
 import { createMcpServerWithClient } from "@mcp/server-core";
-import type { FastifyInstance } from "@mcp/server-core";
 import type { LinearServerConfig } from "../config/config.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
 

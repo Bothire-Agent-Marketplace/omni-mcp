@@ -172,7 +172,7 @@ export class PromptManager implements IPromptManager {
     // For now, we'll store the schema definition as JSON and reconstruct it
     // In a real implementation, you might want a more sophisticated approach
     // This is a placeholder - in production, you'd need a proper schema reconstruction
-    const schema = z.record(z.unknown());
+    const schema = z.record(z.string(), z.unknown());
     return schema;
   }
 }

@@ -54,14 +54,14 @@ export const JSONSchemaPropertySchema: z.ZodType<JSONSchemaProperty> = z.lazy(
       maxItems: z.number().optional(),
       uniqueItems: z.boolean().optional(),
       // Object constraints
-      properties: z.record(JSONSchemaPropertySchema).optional(),
+      properties: z.record(z.string(), JSONSchemaPropertySchema).optional(),
       required: z.array(z.string()).optional(),
       additionalProperties: z
         .union([z.boolean(), JSONSchemaPropertySchema])
         .optional(),
       minProperties: z.number().optional(),
       maxProperties: z.number().optional(),
-    })
+    }) as z.ZodType<JSONSchemaProperty>
 );
 
 export type JSONSchemaProperty = {
@@ -115,7 +115,7 @@ export const ToolArgumentSchema = z.object({
   description: z.string(),
   type: z.string(),
   required: z.boolean().optional(),
-  properties: z.record(JSONSchemaPropertySchema).optional(),
+  properties: z.record(z.string(), JSONSchemaPropertySchema).optional(),
   items: JSONSchemaPropertySchema.optional(),
   minimum: z.number().optional(),
   maximum: z.number().optional(),
@@ -128,7 +128,7 @@ export const ToolSchema = z.object({
   description: z.string(),
   inputSchema: z.object({
     type: z.literal("object"),
-    properties: z.record(JSONSchemaPropertySchema),
+    properties: z.record(z.string(), JSONSchemaPropertySchema),
     required: z.array(z.string()).optional(),
   }),
 });

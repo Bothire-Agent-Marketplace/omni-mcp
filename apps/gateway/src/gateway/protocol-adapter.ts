@@ -41,7 +41,6 @@ export class MCPProtocolAdapter {
       };
     }
 
-    // This should never happen with properly typed responses
     throw new Error("Invalid MCP response format");
   }
 

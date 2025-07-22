@@ -181,7 +181,7 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
         const validatedArgs = prompt.arguments.parse(args);
 
         // Process the template with the validated arguments
-        const messages = prompt.template.map(
+        const populatedTemplate = prompt.template.map(
           (templateMessage: {
             role: "user" | "system" | "assistant";
             content: string;
@@ -190,13 +190,20 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
             // Simple template variable replacement
             // Replace {{variable}} with actual values
-            Object.entries(validatedArgs).forEach(([key, value]) => {
-              const placeholder = `{{${key}}}`;
-              processedContent = processedContent.replace(
-                new RegExp(placeholder, "g"),
-                String(value)
-              );
-            });
+            if (
+              validatedArgs &&
+              typeof validatedArgs === "object" &&
+              !Array.isArray(validatedArgs)
+            ) {
+              Object.entries(validatedArgs).forEach(([key, value]) => {
+                if (typeof value === "string") {
+                  processedContent = processedContent.replace(
+                    new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g"),
+                    value
+                  );
+                }
+              });
+            }
 
             // Map system role to user role for compatibility
             const mappedRole =
@@ -212,7 +219,7 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
           }
         );
 
-        return { messages };
+        return { messages: populatedTemplate };
       } catch (error) {
         // If validation fails, return an error message
         return {

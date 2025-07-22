@@ -51,7 +51,6 @@ export function PromptViewer({
 }: PromptViewerProps) {
   const isCustomPrompt = "version" in prompt && "createdByUser" in prompt;
 
-  // Extract template content for display
   const templateContent = (() => {
     if (typeof prompt.template === "string") {
       return prompt.template;
@@ -72,22 +71,18 @@ export function PromptViewer({
       // Handle legacy custom prompt formats
       const templateObj = prompt.template as Record<string, unknown>;
 
-      // If it has a message property, extract that
       if ("message" in templateObj && typeof templateObj.message === "string") {
         return templateObj.message;
       }
 
-      // Otherwise, stringify the whole object
       return JSON.stringify(templateObj, null, 2);
     } else {
       return JSON.stringify(prompt.template, null, 2);
     }
   })();
 
-  // Extract variables from template
   const variables = extractVariablesFromTemplate(templateContent);
 
-  // Parse arguments schema
   const argumentsSchema = prompt.arguments as Record<string, ArgumentConfig>;
   const argumentEntries = Object.entries(argumentsSchema || {});
 

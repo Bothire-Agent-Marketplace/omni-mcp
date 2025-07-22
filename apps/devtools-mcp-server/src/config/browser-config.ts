@@ -1,6 +1,3 @@
-// ============================================================================
-// CHROMIUM BROWSER CONFIGURATION
-// ============================================================================
 // Flexible configuration for multiple Chromium-based browsers
 
 import { existsSync } from "fs";
@@ -10,10 +7,6 @@ import type {
   BrowserInfo,
   BrowserConfigOptions,
 } from "../types/domain-types.js";
-
-// ============================================================================
-// BROWSER EXECUTABLE PATHS BY PLATFORM
-// ============================================================================
 
 // macOS-focused browser paths (Windows/Linux support can be added later)
 const BROWSER_PATHS: Record<BrowserType, string[]> = {

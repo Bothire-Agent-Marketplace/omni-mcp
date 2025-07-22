@@ -28,7 +28,6 @@ export class MCPGateway {
   private logger: McpLogger;
   private config: McpGatewayConfig;
 
-  // Core components
   private serverManager: MCPServerManager;
   private protocolAdapter: MCPProtocolAdapter;
   private protocolHandler: MCPProtocolHandler;
@@ -39,7 +38,6 @@ export class MCPGateway {
     this.config = config;
     this.logger = logger;
 
-    // Initialize core components
     this.serverManager = new MCPServerManager(
       config.mcpServers,
       this.logger.fork("server-manager")
@@ -102,15 +100,12 @@ export class MCPGateway {
     headers: HTTPHeaders
   ): Promise<GatewayHTTPResponse | MCPJsonRpcResponse> {
     try {
-      // Get or create session with organization context
       const session = await this.sessionAdapter.getOrCreateSession(headers);
 
-      // Convert HTTP request to MCP format
       const mcpRequest = await this.protocolAdapter.handleHttpToMCP(
         requestBody as HTTPRequestBody
       );
 
-      // Route and execute request
       const mcpResponse = await this.routeRequest(mcpRequest, session);
 
       // For protocol methods and MCP bridge compatibility, return JSON-RPC response directly
@@ -130,11 +125,9 @@ export class MCPGateway {
   handleWebSocketConnection(ws: IWebSocket): void {
     this.logger.info("New WebSocket connection established");
 
-    // Create session for WebSocket connection
     const session = this.sessionAdapter.createWebSocketSession();
     this.sessionAdapter.attachWebSocket(session.id, ws);
 
-    // Send initial connection success with session token
     const welcomeMessage = {
       type: "connection",
       sessionId: session.id,
@@ -144,7 +137,6 @@ export class MCPGateway {
 
     ws.send(JSON.stringify(welcomeMessage));
 
-    // Handle incoming WebSocket messages
     ws.on("message", async (data) => {
       const message = Buffer.isBuffer(data)
         ? data.toString()

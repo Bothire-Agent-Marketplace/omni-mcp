@@ -105,7 +105,7 @@ export const JSON_RPC_ERROR_CODES = {
 export const MCPJsonRpcRequestSchema = z.object({
   jsonrpc: z.literal("2.0"),
   method: z.string().min(1),
-  params: z.record(z.unknown()).optional(),
+  params: z.record(z.string(), z.unknown()).optional(),
   id: z.union([z.string(), z.number(), z.null()]).optional(),
 });
 

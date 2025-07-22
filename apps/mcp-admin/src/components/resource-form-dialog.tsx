@@ -88,7 +88,6 @@ export function ResourceFormDialog({
     size?: string;
   } | null>(null);
 
-  // Form data
   const [formData, setFormData] = useState({
     mcpServerId: "",
     name: "",
@@ -99,7 +98,6 @@ export function ResourceFormDialog({
 
   const isEditing = !!resource;
 
-  // Initialize form data when dialog opens
   useEffect(() => {
     if (open && resource) {
       setFormData({

@@ -1,10 +1,4 @@
-// ============================================================================
 // STREAMLINED DEVTOOLS TYPES - Essential Debugging Only
-// ============================================================================
-
-// ============================================================================
-// BROWSER CONFIGURATION TYPES
-// ============================================================================
 
 export type BrowserType =
   | "chrome"
@@ -30,10 +24,6 @@ export interface BrowserConfigOptions {
   enableAutoDetection?: boolean;
 }
 
-// ============================================================================
-// CHROME CONNECTION TYPES
-// ============================================================================
-
 export interface ChromeConnectionStatus {
   connected: boolean;
   port: number;
@@ -56,10 +46,6 @@ export interface ChromeStartOptions {
   args?: string[];
 }
 
-// ============================================================================
-// CONSOLE TYPES
-// ============================================================================
-
 export interface ConsoleLogEntry {
   type: "log" | "info" | "warn" | "error" | "debug" | "trace";
   args: unknown[];
@@ -69,10 +55,6 @@ export interface ConsoleLogEntry {
   url?: string;
   lineNumber?: number;
 }
-
-// ============================================================================
-// NETWORK TYPES
-// ============================================================================
 
 export interface NetworkRequest {
   requestId: string;
