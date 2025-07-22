@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { ResourceFormDialog } from "@/components/ui/resource-form-dialog";
+import { ResourceFormDialog } from "@/components/resource-form-dialog";
 import { useState } from "react";
 import type { McpServer } from "@/types/resources";
 

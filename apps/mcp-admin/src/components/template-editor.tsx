@@ -184,7 +184,7 @@ export function TemplateEditor({
             onChange={(e) => handleTemplateChange(e.target.value)}
             placeholder={placeholder}
             rows={rows}
-            className={`font-mono text-sm resize-vertical ${hasErrors ? "border-red-300" : ""}`}
+            className={`font-mono text-sm resize-vertical ${hasErrors ? "border-destructive" : ""}`}
           />
         </div>
 
@@ -238,7 +238,7 @@ export function TemplateEditor({
 
         {/* Success state */}
         {!hasErrors && variables.length > 0 && unusedArguments.length === 0 && (
-          <Alert className="border-green-200 bg-green-50">
+          <Alert className="border-green-200 bg-green-50/50">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700">
               Template is valid! All variables are properly defined.
@@ -248,8 +248,8 @@ export function TemplateEditor({
 
         {/* Variables summary */}
         {variables.length > 0 && (
-          <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
-            <h5 className="text-sm font-medium text-blue-900 mb-2">
+          <div className="bg-muted/50 border p-3 rounded-lg">
+            <h5 className="text-sm font-medium text-foreground mb-2">
               Variables in Template ({variables.length})
             </h5>
             <div className="flex flex-wrap gap-2">

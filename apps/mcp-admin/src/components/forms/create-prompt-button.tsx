@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { PromptFormDialog } from "@/components/ui/prompt-form-dialog";
+import { PromptFormDialog } from "@/components/prompt-form-dialog";
 import { useState } from "react";
 import type { McpServer } from "@/types/prompts";
 
