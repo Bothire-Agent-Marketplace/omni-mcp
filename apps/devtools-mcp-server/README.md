@@ -14,7 +14,7 @@ pnpm install
 pnpm run start
 ```
 
-The server runs on **port 3004** by default.
+The server runs on **port 3003** by default.
 
 ## 🛠️ Current Capabilities
 
