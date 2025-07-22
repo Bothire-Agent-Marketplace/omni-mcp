@@ -10,21 +10,12 @@ import {
   TestHistoryDisplay,
 } from "@/components/testing";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
-
-// Types
-interface Organization {
-  id: string;
-  clerkId: string;
-  name: string;
-}
-
-interface OrganizationMembership extends Organization {
-  role: string;
-}
+import type { Organization } from "@mcp/database/client";
 
 interface McpTestingViewProps {
   currentOrganization: Organization;
-  availableOrganizations: OrganizationMembership[];
+  //fix this type to proper role type from @database/client
+  availableOrganizations: (Organization & { role: string })[];
   initialCapabilities: McpTestCapabilities | null;
 }
 
@@ -87,7 +78,7 @@ export function McpTestingView({
         currentOrganization={currentOrganization}
         availableOrganizations={availableOrganizations}
         selectedOrganization={selectedOrganization}
-        onSelectedOrganizationChange={setSelectedOrganization}
+        onSelectedOrganizationChange={(org) => setSelectedOrganization(org)}
         simulateContext={simulateContext}
         onSimulateContextChange={setSimulateContext}
       />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import type { Organization } from "@mcp/database";
+import type { Organization } from "@mcp/database/client";
 import {
   testingService,
   type McpTestCapabilities,
@@ -43,7 +43,7 @@ export function useMcpTesting({
   );
   const [isLoadingCapabilities, setIsLoadingCapabilities] = useState(false);
   const [selectedOrganization, setSelectedOrganization] =
-    useState<Organization>(currentOrganization);
+    useState<Organization>(currentOrganization as Organization);
   const [simulateContext, setSimulateContext] = useState(false);
 
   // Test state

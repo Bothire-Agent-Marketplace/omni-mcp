@@ -27,25 +27,25 @@ export function MarkdownRenderer({
   useEffect(() => {
     const loadLanguages = async () => {
       // First import Prism itself - needed to initialize the global object
-      // @ts-ignore - PrismJS doesn't have proper TypeScript declarations
+      // @ts-expect-error - PrismJS doesn't have proper TypeScript declarations
       await import("prismjs");
 
       // Then import language components
-      // @ts-ignore - PrismJS language components don't have TypeScript declarations
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-bash");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-diff");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-json");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-python");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-typescript");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-jsx");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-tsx");
-      // @ts-ignore
+      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
       await import("prismjs/components/prism-yaml");
     };
 

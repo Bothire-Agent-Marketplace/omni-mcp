@@ -17,12 +17,7 @@ import {
 } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, Users } from "lucide-react";
-
-interface Organization {
-  id: string;
-  clerkId: string;
-  name: string;
-}
+import type { Organization } from "@mcp/database/client";
 
 interface OrganizationMembership extends Organization {
   role: string;
@@ -48,11 +43,7 @@ export function OrganizationContextSelector({
   const handleOrganizationChange = (clerkId: string) => {
     const org = availableOrganizations.find((o) => o.clerkId === clerkId);
     if (org) {
-      onSelectedOrganizationChange({
-        id: org.id,
-        clerkId: org.clerkId,
-        name: org.name,
-      });
+      onSelectedOrganizationChange(org);
     }
   };
 

@@ -23,9 +23,7 @@ export default async function McpTestingPage() {
 
   const availableOrganizations =
     userWithOrgs?.memberships.map((membership) => ({
-      id: membership.organization.id,
-      clerkId: membership.organization.clerkId,
-      name: membership.organization.name,
+      ...membership.organization,
       role: membership.role,
     })) || [];
 
@@ -35,11 +33,7 @@ export default async function McpTestingPage() {
 
   return (
     <McpTestingView
-      currentOrganization={{
-        id: organization.id,
-        clerkId: organization.clerkId,
-        name: organization.name,
-      }}
+      currentOrganization={organization}
       availableOrganizations={availableOrganizations}
       initialCapabilities={initialCapabilities}
     />
