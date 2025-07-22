@@ -140,10 +140,8 @@ export async function POST(req: Request) {
 
 // Event handlers - now implemented with database operations
 async function handleUserCreated(data: UserJSON) {
-  console.log("User created:", data.id);
   try {
     await DatabaseService.upsertUser(data);
-    console.log("✅ User created in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -151,7 +149,7 @@ async function handleUserCreated(data: UserJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      console.log(`User ${data.id} already exists, skipping...`);
+      // User already exists, skip silently
       return;
     }
     throw error;
@@ -159,10 +157,8 @@ async function handleUserCreated(data: UserJSON) {
 }
 
 async function handleUserUpdated(data: UserJSON) {
-  console.log("User updated:", data.id);
   try {
     await DatabaseService.upsertUser(data);
-    console.log("✅ User updated in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -170,7 +166,7 @@ async function handleUserUpdated(data: UserJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      console.log(`User ${data.id} already exists, skipping...`);
+      // User already exists, skip silently
       return;
     }
     throw error;
@@ -178,16 +174,12 @@ async function handleUserUpdated(data: UserJSON) {
 }
 
 async function handleUserDeleted(data: DeletedObjectJSON) {
-  console.log("User deleted:", data);
   await DatabaseService.deleteUser(data);
-  console.log("✅ User deleted from database");
 }
 
 async function handleOrganizationCreated(data: OrganizationJSON) {
-  console.log("Organization created:", data.id);
   try {
     await DatabaseService.upsertOrganization(data);
-    console.log("✅ Organization created in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -195,7 +187,7 @@ async function handleOrganizationCreated(data: OrganizationJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      console.log(`Organization ${data.id} already exists, skipping...`);
+      // Organization already exists, skip silently
       return;
     }
     throw error;
@@ -203,10 +195,8 @@ async function handleOrganizationCreated(data: OrganizationJSON) {
 }
 
 async function handleOrganizationUpdated(data: OrganizationJSON) {
-  console.log("Organization updated:", data.id);
   try {
     await DatabaseService.upsertOrganization(data);
-    console.log("✅ Organization updated in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -214,7 +204,7 @@ async function handleOrganizationUpdated(data: OrganizationJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      console.log(`Organization ${data.id} already exists, skipping...`);
+      // Organization already exists, skip silently
       return;
     }
     throw error;
@@ -222,25 +212,14 @@ async function handleOrganizationUpdated(data: OrganizationJSON) {
 }
 
 async function handleOrganizationDeleted(data: DeletedObjectJSON) {
-  console.log("Organization deleted:", data);
   await DatabaseService.deleteOrganization(data);
-  console.log("✅ Organization deleted from database");
 }
 
 async function handleOrganizationMembershipCreated(
   data: OrganizationMembershipJSON
 ) {
-  console.log(
-    "🔍 Organization membership created - Full data:",
-    JSON.stringify(data, null, 2)
-  );
-  console.log("🔍 Role specifically:", {
-    role: data.role,
-    type: typeof data.role,
-  });
   try {
     await DatabaseService.upsertOrganizationMembership(data);
-    console.log("✅ Organization membership created in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -260,10 +239,8 @@ async function handleOrganizationMembershipCreated(
 async function handleOrganizationMembershipUpdated(
   data: OrganizationMembershipJSON
 ) {
-  console.log("Organization membership updated:", data);
   try {
     await DatabaseService.upsertOrganizationMembership(data);
-    console.log("✅ Organization membership updated in database");
   } catch (error: unknown) {
     if (
       error &&
@@ -271,9 +248,7 @@ async function handleOrganizationMembershipUpdated(
       "code" in error &&
       error.code === "P2002"
     ) {
-      console.log(
-        `Organization membership ${data.id} already exists, skipping...`
-      );
+      // Membership already exists, skip silently
       return;
     }
     throw error;
@@ -283,7 +258,5 @@ async function handleOrganizationMembershipUpdated(
 async function handleOrganizationMembershipDeleted(
   data: OrganizationMembershipJSON | DeletedObjectJSON
 ) {
-  console.log("Organization membership deleted:", data);
   await DatabaseService.deleteOrganizationMembership(data);
-  console.log("✅ Organization membership deleted from database");
 }

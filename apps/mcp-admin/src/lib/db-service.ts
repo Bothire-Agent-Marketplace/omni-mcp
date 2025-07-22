@@ -106,20 +106,8 @@ export class DatabaseService {
    * Convert Clerk role to database role
    */
   private static mapClerkRoleToDbRole(clerkRole: string): MembershipRole {
-    // Add debug logging to see what role Clerk is actually sending
-    console.log("🔍 Mapping Clerk role to DB role:", {
-      clerkRole,
-      type: typeof clerkRole,
-      stringified: JSON.stringify(clerkRole),
-    });
-
     // Strip the "org:" prefix from Clerk roles (e.g., "org:admin" -> "admin")
     const roleWithoutPrefix = clerkRole.replace(/^org:/, "");
-
-    console.log("🔍 After stripping prefix:", {
-      originalRole: clerkRole,
-      strippedRole: roleWithoutPrefix,
-    });
 
     const validRoles = ["admin", "member", "viewer"] as const;
     type ValidRole = (typeof validRoles)[number];
@@ -128,9 +116,7 @@ export class DatabaseService {
       return roleWithoutPrefix as MembershipRole;
     }
 
-    console.warn(
-      `⚠️ Unknown Clerk role "${clerkRole}" (stripped: "${roleWithoutPrefix}"), defaulting to member`
-    );
+    // Fallback to member for unknown roles
     return MembershipRole.member;
   }
 
@@ -181,9 +167,7 @@ export class DatabaseService {
         "code" in error &&
         error.code === "P2002"
       ) {
-        console.log(
-          `User with clerkId ${userData.id} already exists, skipping...`
-        );
+        // User already exists, skip silently
         return;
       }
       throw error;
@@ -344,7 +328,6 @@ export class DatabaseService {
     });
 
     if (!organization) {
-      console.log("Organization not found, creating from membership data...");
       await this.upsertOrganization(membershipData.organization);
       organization = await prisma.organization.findUnique({
         where: { clerkId: membershipData.organization.id },
@@ -357,7 +340,6 @@ export class DatabaseService {
     });
 
     if (!user) {
-      console.log("User not found, creating from membership data...");
       // Create user record directly in the database to avoid complex UserJSON typing
       user = await prisma.user.create({
         data: {

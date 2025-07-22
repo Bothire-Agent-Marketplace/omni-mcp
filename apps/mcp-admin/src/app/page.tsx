@@ -38,6 +38,7 @@ function HomePage() {
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [hasCreatedOrg, setHasCreatedOrg] = useState(false);
 
   // Auto-select first organization if user has one but none is active
   useEffect(() => {
@@ -50,10 +51,6 @@ function HomePage() {
       userMemberships.data.length > 0
     ) {
       const firstOrg = userMemberships.data[0];
-      console.log(
-        "Auto-selecting first organization:",
-        firstOrg.organization.id
-      );
       setActive?.({ organization: firstOrg.organization.id });
     }
   }, [isLoaded, orgListLoaded, userId, orgId, userMemberships, setActive]);
@@ -66,17 +63,15 @@ function HomePage() {
 
     try {
       setIsCreatingOrg(true);
-      console.log("Creating organization:", orgName);
 
       // Create the organization
       const organization = await createOrganization({ name: orgName.trim() });
 
-      console.log("Organization created successfully:", organization.id);
-
       // Immediately set it as active
       await setActive({ organization: organization.id });
 
-      console.log("Organization set as active:", organization.id);
+      // Mark that we've created an organization
+      setHasCreatedOrg(true);
 
       // Reset form
       setOrgName("");
@@ -104,8 +99,12 @@ function HomePage() {
     );
   }
 
-  // User is authenticated but has no organization
-  if (userId && (!userMemberships?.data || userMemberships.data.length === 0)) {
+  // User is authenticated but has no organization and hasn't just created one
+  if (
+    userId &&
+    !hasCreatedOrg &&
+    (!userMemberships?.data || userMemberships.data.length === 0)
+  ) {
     return (
       <main className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8">

@@ -174,7 +174,7 @@ export function PromptTester({
     if (isValid) {
       // Here you could integrate with actual MCP server execution
       toast.success("Prompt is valid and ready to execute!");
-      console.log("Executing prompt:", renderedPrompt);
+      // Execute the prompt with the rendered template
     }
   };
 
