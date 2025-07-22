@@ -20,6 +20,16 @@ import { toast } from "sonner";
 import type { OrganizationPrompt, DefaultPrompt } from "@/types/prompts";
 import { extractVariablesFromTemplate } from "@/lib/prompt-utils";
 
+// Type for argument configuration in prompt schema
+interface ArgumentConfig {
+  type?: string;
+  description?: string;
+  required?: boolean;
+  default?: unknown;
+  placeholder?: string;
+  enum?: string[];
+}
+
 interface PromptViewerProps {
   prompt: OrganizationPrompt | DefaultPrompt;
   className?: string;
@@ -53,15 +63,18 @@ export function PromptViewer({
           return JSON.stringify(item);
         })
         .join("\n\n");
-    } else if (typeof prompt.template === "object" && prompt.template !== null) {
+    } else if (
+      typeof prompt.template === "object" &&
+      prompt.template !== null
+    ) {
       // Handle legacy custom prompt formats
       const templateObj = prompt.template as Record<string, unknown>;
-      
+
       // If it has a message property, extract that
       if ("message" in templateObj && typeof templateObj.message === "string") {
         return templateObj.message;
       }
-      
+
       // Otherwise, stringify the whole object
       return JSON.stringify(templateObj, null, 2);
     } else {
@@ -73,7 +86,7 @@ export function PromptViewer({
   const variables = extractVariablesFromTemplate(templateContent);
 
   // Parse arguments schema
-  const argumentsSchema = prompt.arguments as Record<string, any>;
+  const argumentsSchema = prompt.arguments as Record<string, ArgumentConfig>;
   const argumentEntries = Object.entries(argumentsSchema || {});
 
   const copyToClipboard = (text: string, label: string) => {
@@ -281,12 +294,14 @@ export function PromptViewer({
               <div className="text-center py-8 text-muted-foreground">
                 <Info className="w-8 h-8 mx-auto mb-2 opacity-50" />
                 <p>No arguments defined</p>
-                <p className="text-sm">This prompt doesn't use any variables</p>
+                <p className="text-sm">
+                  This prompt doesn&apos;t use any variables
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {argumentEntries.map(([name, config]) => {
-                  const argConfig = config as any;
+                  const argConfig = config as ArgumentConfig;
                   return (
                     <div key={name} className="border rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">

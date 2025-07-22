@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Play, Copy, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,7 +28,7 @@ interface PromptTesterProps {
 }
 
 interface VariableValues {
-  [key: string]: string | number | boolean;
+  [key: string]: string | number | boolean | object | unknown[];
 }
 
 export function PromptTester({

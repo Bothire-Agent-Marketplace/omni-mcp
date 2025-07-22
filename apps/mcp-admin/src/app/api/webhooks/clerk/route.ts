@@ -230,7 +230,14 @@ async function handleOrganizationDeleted(data: DeletedObjectJSON) {
 async function handleOrganizationMembershipCreated(
   data: OrganizationMembershipJSON
 ) {
-  console.log("Organization membership created:", data);
+  console.log(
+    "🔍 Organization membership created - Full data:",
+    JSON.stringify(data, null, 2)
+  );
+  console.log("🔍 Role specifically:", {
+    role: data.role,
+    type: typeof data.role,
+  });
   try {
     await DatabaseService.upsertOrganizationMembership(data);
     console.log("✅ Organization membership created in database");
