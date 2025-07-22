@@ -121,7 +121,7 @@ export function PromptsClient({
 
     return (
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-4 flex-shrink-0">
             <DialogTitle className="text-xl">{selectedPrompt.name}</DialogTitle>
           </DialogHeader>
@@ -163,7 +163,7 @@ export function PromptsClient({
 
     return (
       <Dialog open={isDefaultDialogOpen} onOpenChange={setIsDefaultDialogOpen}>
-        <DialogContent className="max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-4 flex-shrink-0">
             <DialogTitle className="text-xl">
               {selectedDefaultPrompt.name}

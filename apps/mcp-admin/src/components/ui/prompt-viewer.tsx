@@ -40,14 +40,34 @@ export function PromptViewer({
   const isCustomPrompt = "version" in prompt && "createdByUser" in prompt;
 
   // Extract template content for display
-  const templateContent =
-    typeof prompt.template === "string"
-      ? prompt.template
-      : Array.isArray(prompt.template)
-        ? prompt.template
-            .map((item) => item.content || JSON.stringify(item))
-            .join("\n\n")
-        : JSON.stringify(prompt.template, null, 2);
+  const templateContent = (() => {
+    if (typeof prompt.template === "string") {
+      return prompt.template;
+    } else if (Array.isArray(prompt.template)) {
+      // Handle new message format (default prompts and normalized custom prompts)
+      return prompt.template
+        .map((item) => {
+          if (item && typeof item === "object" && "content" in item) {
+            return (item as { content: string }).content;
+          }
+          return JSON.stringify(item);
+        })
+        .join("\n\n");
+    } else if (typeof prompt.template === "object" && prompt.template !== null) {
+      // Handle legacy custom prompt formats
+      const templateObj = prompt.template as Record<string, unknown>;
+      
+      // If it has a message property, extract that
+      if ("message" in templateObj && typeof templateObj.message === "string") {
+        return templateObj.message;
+      }
+      
+      // Otherwise, stringify the whole object
+      return JSON.stringify(templateObj, null, 2);
+    } else {
+      return JSON.stringify(prompt.template, null, 2);
+    }
+  })();
 
   // Extract variables from template
   const variables = extractVariablesFromTemplate(templateContent);
