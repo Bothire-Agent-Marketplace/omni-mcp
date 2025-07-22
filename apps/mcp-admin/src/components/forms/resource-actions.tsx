@@ -8,6 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
+import { ResourceViewer } from "@/components/ui/resource-viewer";
+import { ResourceFormDialog } from "@/components/ui/resource-form-dialog";
 import { useState } from "react";
 import {
   Dialog,
@@ -86,42 +88,13 @@ export function ResourceActions({
             <DialogTitle className="text-xl">{resource.name}</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6 min-h-0">
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  URI
-                </h4>
-                <code className="text-sm bg-muted p-2 rounded block break-all">
-                  {resource.uri}
-                </code>
-              </div>
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  Description
-                </h4>
-                <p className="text-sm">{resource.description}</p>
-              </div>
-              {resource.mimeType && (
-                <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                    MIME Type
-                  </h4>
-                  <p className="text-sm">{resource.mimeType}</p>
-                </div>
-              )}
-              <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-1">
-                  MCP Server
-                </h4>
-                <p className="text-sm">{resource.mcpServer.name}</p>
-              </div>
-            </div>
+            <ResourceViewer resource={resource} showActions={false} />
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* TODO: Add ResourceFormDialog for editing when it exists */}
-      {/* <ResourceFormDialog
+      {/* Edit Dialog */}
+      <ResourceFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         resource={resource}
@@ -130,7 +103,7 @@ export function ResourceActions({
           // Refresh the page to show updated data
           window.location.reload();
         }}
-      /> */}
+      />
     </>
   );
 }
