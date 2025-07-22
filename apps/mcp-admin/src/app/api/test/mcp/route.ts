@@ -4,29 +4,13 @@ import { NextRequest, NextResponse } from "next/server";
 // GET /api/test/mcp - Load MCP capabilities
 export async function GET(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const gatewayUrl = process.env.MCP_GATEWAY_URL || "http://localhost:37373";
-    const apiKey = process.env.MCP_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: "MCP API key not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Get JWT token from Clerk for proper authentication
-    const jwtToken = await getToken();
-    if (!jwtToken) {
-      return NextResponse.json(
-        { success: false, error: "Failed to get authentication token" },
-        { status: 401 }
-      );
-    }
+    const apiKey = process.env.MCP_API_KEY || "dev-api-key-12345";
 
     // Extract organization context from query params for simulation mode
     const organizationClerkId = request.nextUrl.searchParams.get(
@@ -35,10 +19,9 @@ export async function GET(request: NextRequest) {
     const simulateContext =
       request.nextUrl.searchParams.get("simulateContext") === "true";
 
-    // Prepare headers for gateway authentication
+    // Prepare headers for gateway authentication (API key only for now)
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${jwtToken}`,
       "x-api-key": apiKey,
       "x-client-type": "mcp-admin-testing",
     };
@@ -112,7 +95,7 @@ export async function GET(request: NextRequest) {
 // POST /api/test/mcp - Run MCP test
 export async function POST(request: NextRequest) {
   try {
-    const { userId, getToken } = await auth();
+    const { userId } = await auth();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -134,23 +117,7 @@ export async function POST(request: NextRequest) {
     }
 
     const gatewayUrl = process.env.MCP_GATEWAY_URL || "http://localhost:37373";
-    const apiKey = process.env.MCP_API_KEY;
-
-    if (!apiKey) {
-      return NextResponse.json(
-        { success: false, error: "MCP API key not configured" },
-        { status: 500 }
-      );
-    }
-
-    // Get JWT token from Clerk for proper authentication
-    const jwtToken = await getToken();
-    if (!jwtToken) {
-      return NextResponse.json(
-        { success: false, error: "Failed to get authentication token" },
-        { status: 401 }
-      );
-    }
+    const apiKey = process.env.MCP_API_KEY || "dev-api-key-12345";
 
     const startTime = Date.now();
     let method: string;
@@ -191,10 +158,9 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Prepare headers for gateway authentication
+      // Prepare headers for gateway authentication (API key only for now)
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${jwtToken}`,
         "x-api-key": apiKey,
         "x-client-type": "mcp-admin-testing",
       };
