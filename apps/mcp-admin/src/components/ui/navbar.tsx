@@ -8,7 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 
 export default async function Navbar() {
-  const { orgId } = await auth();
+  let orgId;
+  
+  try {
+    const authResult = await auth();
+    orgId = authResult.orgId;
+  } catch (error) {
+    console.error("Auth error in navbar:", error);
+    orgId = null;
+  }
 
   return (
     <header className="border-b">
