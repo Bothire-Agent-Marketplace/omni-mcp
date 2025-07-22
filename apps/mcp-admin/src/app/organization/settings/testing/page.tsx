@@ -2,7 +2,6 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { ServiceFactory } from "@/lib/services/service.factory";
 import { McpTestingView } from "@/components/views/mcp-testing-view";
-
 export default async function McpTestingPage() {
   const { userId, orgId } = await auth();
 
