@@ -7,6 +7,7 @@ import {
 } from "@clerk/nextjs/server";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
+import { prisma } from "@/lib/db";
 import { DatabaseService } from "@/lib/db-service";
 
 export async function POST(req: Request) {
@@ -45,6 +46,26 @@ export async function POST(req: Request) {
     return new Response("Invalid signature", { status: 400 });
   }
 
+  // Check if we've already processed this event (deduplication)
+  const eventId = svix_id;
+  const existingEvent = await prisma.webhookEvent.findUnique({
+    where: { eventId },
+  });
+
+  if (existingEvent) {
+    console.log(`Event ${eventId} already processed, skipping...`);
+    return new Response("OK", { status: 200 });
+  }
+
+  // Record this event as being processed
+  await prisma.webhookEvent.create({
+    data: {
+      eventId,
+      eventType: evt.type,
+      processedAt: new Date(),
+    },
+  });
+
   // Handle different event types
   try {
     switch (evt.type) {
@@ -78,8 +99,39 @@ export async function POST(req: Request) {
       default:
         console.log(`Unhandled event type: ${evt.type}`);
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Error handling event ${evt.type}:`, error);
+
+    // Handle Prisma unique constraint violations gracefully
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      const meta =
+        "meta" in error ? (error.meta as { target?: string[] }) : null;
+      const target = meta?.target ? ` on ${meta.target}` : "";
+      console.log(
+        `Unique constraint violation for ${evt.type}${target}, but continuing...`
+      );
+      return new Response("OK", { status: 200 }); // Return success to avoid retries
+    }
+
+    // Handle other database errors that shouldn't cause retries
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      typeof error.code === "string" &&
+      error.code.startsWith("P")
+    ) {
+      console.log(
+        `Database error ${error.code} for ${evt.type}, but continuing...`
+      );
+      return new Response("OK", { status: 200 });
+    }
+
     return new Response("Error processing webhook", { status: 500 });
   }
 
@@ -88,15 +140,41 @@ export async function POST(req: Request) {
 
 // Event handlers - now implemented with database operations
 async function handleUserCreated(data: UserJSON) {
-  console.log("User created:", data);
-  await DatabaseService.upsertUser(data);
-  console.log("✅ User created in database");
+  console.log("User created:", data.id);
+  try {
+    await DatabaseService.upsertUser(data);
+    console.log("✅ User created in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(`User ${data.id} already exists, skipping...`);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleUserUpdated(data: UserJSON) {
-  console.log("User updated:", data);
-  await DatabaseService.upsertUser(data);
-  console.log("✅ User updated in database");
+  console.log("User updated:", data.id);
+  try {
+    await DatabaseService.upsertUser(data);
+    console.log("✅ User updated in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(`User ${data.id} already exists, skipping...`);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleUserDeleted(data: DeletedObjectJSON) {
@@ -106,15 +184,41 @@ async function handleUserDeleted(data: DeletedObjectJSON) {
 }
 
 async function handleOrganizationCreated(data: OrganizationJSON) {
-  console.log("Organization created:", data);
-  await DatabaseService.upsertOrganization(data);
-  console.log("✅ Organization created in database");
+  console.log("Organization created:", data.id);
+  try {
+    await DatabaseService.upsertOrganization(data);
+    console.log("✅ Organization created in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(`Organization ${data.id} already exists, skipping...`);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleOrganizationUpdated(data: OrganizationJSON) {
-  console.log("Organization updated:", data);
-  await DatabaseService.upsertOrganization(data);
-  console.log("✅ Organization updated in database");
+  console.log("Organization updated:", data.id);
+  try {
+    await DatabaseService.upsertOrganization(data);
+    console.log("✅ Organization updated in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(`Organization ${data.id} already exists, skipping...`);
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleOrganizationDeleted(data: DeletedObjectJSON) {
@@ -127,16 +231,46 @@ async function handleOrganizationMembershipCreated(
   data: OrganizationMembershipJSON
 ) {
   console.log("Organization membership created:", data);
-  await DatabaseService.upsertOrganizationMembership(data);
-  console.log("✅ Organization membership created in database");
+  try {
+    await DatabaseService.upsertOrganizationMembership(data);
+    console.log("✅ Organization membership created in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(
+        `Organization membership ${data.id} already exists, skipping...`
+      );
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleOrganizationMembershipUpdated(
   data: OrganizationMembershipJSON
 ) {
   console.log("Organization membership updated:", data);
-  await DatabaseService.upsertOrganizationMembership(data);
-  console.log("✅ Organization membership updated in database");
+  try {
+    await DatabaseService.upsertOrganizationMembership(data);
+    console.log("✅ Organization membership updated in database");
+  } catch (error: unknown) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "P2002"
+    ) {
+      console.log(
+        `Organization membership ${data.id} already exists, skipping...`
+      );
+      return;
+    }
+    throw error;
+  }
 }
 
 async function handleOrganizationMembershipDeleted(

@@ -56,13 +56,50 @@ export class DatabaseService {
   }
 
   /**
-   * Generate slug from name
+   * Generate unique slug from name
    */
-  private static generateSlug(name: string): string {
-    return name
+  private static async generateUniqueSlug(
+    name: string,
+    excludeId?: string
+  ): Promise<string> {
+    const baseSlug = name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
+
+    // Check if base slug is unique
+    const existingOrg = await prisma.organization.findFirst({
+      where: {
+        slug: baseSlug,
+        deletedAt: null,
+        ...(excludeId && { id: { not: excludeId } }),
+      },
+    });
+
+    if (!existingOrg) {
+      return baseSlug;
+    }
+
+    // If not unique, add a number suffix
+    let counter = 1;
+    let candidateSlug = `${baseSlug}-${counter}`;
+
+    while (true) {
+      const existing = await prisma.organization.findFirst({
+        where: {
+          slug: candidateSlug,
+          deletedAt: null,
+          ...(excludeId && { id: { not: excludeId } }),
+        },
+      });
+
+      if (!existing) {
+        return candidateSlug;
+      }
+
+      counter++;
+      candidateSlug = `${baseSlug}-${counter}`;
+    }
   }
 
   /**
@@ -85,58 +122,53 @@ export class DatabaseService {
    * Create or update user from Clerk data
    */
   static async upsertUser(userData: UserJSON): Promise<void> {
-    const existingUser = await prisma.user.findUnique({
-      where: { clerkId: userData.id },
-    });
-
+    const sanitizedMetadata = this.sanitizeForPrisma(userData.public_metadata);
     const userPayload = {
       clerkId: userData.id,
       email: userData.email_addresses[0]?.email_address || "",
       firstName: userData.first_name || null,
       lastName: userData.last_name || null,
       imageUrl: userData.image_url || null,
-      metadata: this.sanitizeForPrisma(userData.public_metadata),
+      ...(sanitizedMetadata && { metadata: sanitizedMetadata }),
     };
 
-    if (existingUser) {
-      // Update existing user
-      await prisma.user.update({
+    try {
+      // Use Prisma's upsert to handle race conditions gracefully
+      const user = await prisma.user.upsert({
         where: { clerkId: userData.id },
-        data: {
+        update: {
           ...userPayload,
           updatedAt: new Date(),
         },
+        create: userPayload,
       });
 
+      // Create audit log for the operation
       await this.createAuditLog(
         null,
-        existingUser.id,
+        user.id,
         "user",
-        existingUser.id,
-        AuditAction.UPDATED,
-        this.sanitizeForPrisma({
-          email: existingUser.email,
-          firstName: existingUser.firstName,
-          lastName: existingUser.lastName,
-          imageUrl: existingUser.imageUrl,
-        }),
-        this.sanitizeForPrisma(userPayload)
-      );
-    } else {
-      // Create new user
-      const newUser = await prisma.user.create({
-        data: userPayload,
-      });
-
-      await this.createAuditLog(
-        null,
-        newUser.id,
-        "user",
-        newUser.id,
-        AuditAction.CREATED,
+        user.id,
+        user.createdAt.getTime() === user.updatedAt.getTime()
+          ? AuditAction.CREATED
+          : AuditAction.UPDATED,
         null,
         this.sanitizeForPrisma(userPayload)
       );
+    } catch (error: unknown) {
+      // Handle unique constraint violations gracefully
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        error.code === "P2002"
+      ) {
+        console.log(
+          `User with clerkId ${userData.id} already exists, skipping...`
+        );
+        return;
+      }
+      throw error;
     }
   }
 
@@ -188,7 +220,7 @@ export class DatabaseService {
     const orgPayload = {
       clerkId: orgData.id,
       name: orgData.name,
-      slug: this.generateSlug(orgData.name),
+      slug: await this.generateUniqueSlug(orgData.name, existingOrg?.id),
       metadata: this.sanitizeForPrisma(orgData.public_metadata),
     };
 
@@ -508,6 +540,360 @@ export class DatabaseService {
       },
       orderBy: {
         createdAt: "desc",
+      },
+    });
+  }
+
+  // Organization Prompt Management
+
+  /**
+   * Get organization prompts with their MCP server info
+   */
+  static async getOrganizationPrompts(organizationId: string) {
+    return await prisma.organizationPrompt.findMany({
+      where: {
+        organizationId,
+        isActive: true,
+      },
+      include: {
+        mcpServer: true,
+        createdByUser: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /**
+   * Get default prompts for reference
+   */
+  static async getDefaultPrompts() {
+    return await prisma.defaultPrompt.findMany({
+      include: {
+        mcpServer: true,
+      },
+      orderBy: [{ mcpServer: { name: "asc" } }, { name: "asc" }],
+    });
+  }
+
+  /**
+   * Create organization prompt
+   */
+  static async createOrganizationPrompt(data: {
+    organizationId: string;
+    mcpServerId: string;
+    name: string;
+    description: string;
+    template: Record<string, unknown>;
+    arguments: Record<string, unknown>;
+    createdBy?: string;
+  }) {
+    const newPrompt = await prisma.organizationPrompt.create({
+      data: {
+        organizationId: data.organizationId,
+        mcpServerId: data.mcpServerId,
+        name: data.name,
+        description: data.description,
+        template: this.sanitizeForPrisma(data.template),
+        arguments: this.sanitizeForPrisma(data.arguments),
+        createdBy: data.createdBy,
+        isActive: true,
+        version: 1,
+      },
+      include: {
+        mcpServer: true,
+      },
+    });
+
+    await this.createAuditLog(
+      data.organizationId,
+      data.createdBy || null,
+      "organization_prompt",
+      newPrompt.id,
+      AuditAction.CREATED,
+      null,
+      this.sanitizeForPrisma(data)
+    );
+
+    return newPrompt;
+  }
+
+  /**
+   * Update organization prompt
+   */
+  static async updateOrganizationPrompt(
+    promptId: string,
+    data: {
+      name?: string;
+      description?: string;
+      template?: Record<string, unknown>;
+      arguments?: Record<string, unknown>;
+      isActive?: boolean;
+    },
+    userId?: string
+  ) {
+    const existingPrompt = await prisma.organizationPrompt.findUnique({
+      where: { id: promptId },
+    });
+
+    if (!existingPrompt) {
+      throw new Error("Prompt not found");
+    }
+
+    const updatedPrompt = await prisma.organizationPrompt.update({
+      where: { id: promptId },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.description && { description: data.description }),
+        ...(data.template && {
+          template: this.sanitizeForPrisma(data.template),
+        }),
+        ...(data.arguments && {
+          arguments: this.sanitizeForPrisma(data.arguments),
+        }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        version: existingPrompt.version + 1,
+        updatedAt: new Date(),
+      },
+      include: {
+        mcpServer: true,
+      },
+    });
+
+    await this.createAuditLog(
+      existingPrompt.organizationId,
+      userId || null,
+      "organization_prompt",
+      promptId,
+      AuditAction.UPDATED,
+      this.sanitizeForPrisma(existingPrompt),
+      this.sanitizeForPrisma(data)
+    );
+
+    return updatedPrompt;
+  }
+
+  /**
+   * Delete organization prompt (soft delete)
+   */
+  static async deleteOrganizationPrompt(promptId: string, userId?: string) {
+    const prompt = await prisma.organizationPrompt.findUnique({
+      where: { id: promptId },
+    });
+
+    if (!prompt) {
+      throw new Error("Prompt not found");
+    }
+
+    const updatedPrompt = await prisma.organizationPrompt.update({
+      where: { id: promptId },
+      data: {
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
+
+    await this.createAuditLog(
+      prompt.organizationId,
+      userId || null,
+      "organization_prompt",
+      promptId,
+      AuditAction.DELETED,
+      this.sanitizeForPrisma({ isActive: true }),
+      this.sanitizeForPrisma({ isActive: false })
+    );
+
+    return updatedPrompt;
+  }
+
+  // Organization Resource Management
+
+  /**
+   * Get organization resources with their MCP server info
+   */
+  static async getOrganizationResources(organizationId: string) {
+    return await prisma.organizationResource.findMany({
+      where: {
+        organizationId,
+        isActive: true,
+      },
+      include: {
+        mcpServer: true,
+        createdByUser: {
+          select: {
+            email: true,
+            firstName: true,
+            lastName: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+
+  /**
+   * Get default resources for reference
+   */
+  static async getDefaultResources() {
+    return await prisma.defaultResource.findMany({
+      include: {
+        mcpServer: true,
+      },
+      orderBy: [{ mcpServer: { name: "asc" } }, { name: "asc" }],
+    });
+  }
+
+  /**
+   * Create organization resource
+   */
+  static async createOrganizationResource(data: {
+    organizationId: string;
+    mcpServerId: string;
+    uri: string;
+    name: string;
+    description: string;
+    mimeType?: string;
+    metadata?: Record<string, unknown>;
+    createdBy?: string;
+  }) {
+    const newResource = await prisma.organizationResource.create({
+      data: {
+        organizationId: data.organizationId,
+        mcpServerId: data.mcpServerId,
+        uri: data.uri,
+        name: data.name,
+        description: data.description,
+        mimeType: data.mimeType,
+        metadata: data.metadata
+          ? this.sanitizeForPrisma(data.metadata)
+          : undefined,
+        createdBy: data.createdBy,
+        isActive: true,
+      },
+      include: {
+        mcpServer: true,
+      },
+    });
+
+    await this.createAuditLog(
+      data.organizationId,
+      data.createdBy || null,
+      "organization_resource",
+      newResource.id,
+      AuditAction.CREATED,
+      null,
+      this.sanitizeForPrisma(data)
+    );
+
+    return newResource;
+  }
+
+  /**
+   * Update organization resource
+   */
+  static async updateOrganizationResource(
+    resourceId: string,
+    data: {
+      uri?: string;
+      name?: string;
+      description?: string;
+      mimeType?: string;
+      metadata?: Record<string, unknown>;
+      isActive?: boolean;
+    },
+    userId?: string
+  ) {
+    const existingResource = await prisma.organizationResource.findUnique({
+      where: { id: resourceId },
+    });
+
+    if (!existingResource) {
+      throw new Error("Resource not found");
+    }
+
+    const updatedResource = await prisma.organizationResource.update({
+      where: { id: resourceId },
+      data: {
+        ...(data.uri && { uri: data.uri }),
+        ...(data.name && { name: data.name }),
+        ...(data.description && { description: data.description }),
+        ...(data.mimeType !== undefined && { mimeType: data.mimeType }),
+        ...(data.metadata && {
+          metadata: this.sanitizeForPrisma(data.metadata),
+        }),
+        ...(data.isActive !== undefined && { isActive: data.isActive }),
+        updatedAt: new Date(),
+      },
+      include: {
+        mcpServer: true,
+      },
+    });
+
+    await this.createAuditLog(
+      existingResource.organizationId,
+      userId || null,
+      "organization_resource",
+      resourceId,
+      AuditAction.UPDATED,
+      this.sanitizeForPrisma(existingResource),
+      this.sanitizeForPrisma(data)
+    );
+
+    return updatedResource;
+  }
+
+  /**
+   * Delete organization resource (soft delete)
+   */
+  static async deleteOrganizationResource(resourceId: string, userId?: string) {
+    const resource = await prisma.organizationResource.findUnique({
+      where: { id: resourceId },
+    });
+
+    if (!resource) {
+      throw new Error("Resource not found");
+    }
+
+    const updatedResource = await prisma.organizationResource.update({
+      where: { id: resourceId },
+      data: {
+        isActive: false,
+        updatedAt: new Date(),
+      },
+    });
+
+    await this.createAuditLog(
+      resource.organizationId,
+      userId || null,
+      "organization_resource",
+      resourceId,
+      AuditAction.DELETED,
+      this.sanitizeForPrisma({ isActive: true }),
+      this.sanitizeForPrisma({ isActive: false })
+    );
+
+    return updatedResource;
+  }
+
+  /**
+   * Get all MCP servers for dropdown options
+   */
+  static async getMcpServers() {
+    return await prisma.mcpServer.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: {
+        name: "asc",
       },
     });
   }

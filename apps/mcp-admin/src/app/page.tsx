@@ -109,7 +109,7 @@ export default async function Home() {
                   Available MCP Services
                 </CardTitle>
                 <CardDescription>
-                  Manage your organization's MCP service integrations
+                  Manage your organization&apos;s MCP service integrations
                 </CardDescription>
               </CardHeader>
               <CardContent>

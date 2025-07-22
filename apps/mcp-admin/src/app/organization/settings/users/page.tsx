@@ -73,7 +73,7 @@ export default async function UsersManagementPage() {
         <Card>
           <CardContent className="p-0">
             <div className="divide-y">
-              {members.map((member: any) => (
+              {members.map((member: { id: string; publicUserData: { firstName?: string; lastName?: string; imageUrl?: string }; role: string }) => (
                 <div key={member.id} className="flex items-center justify-between p-6">
                   <div className="flex items-center space-x-4">
                     <Avatar>
