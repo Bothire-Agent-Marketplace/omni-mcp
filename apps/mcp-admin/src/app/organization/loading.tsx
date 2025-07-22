@@ -1,24 +1,15 @@
-import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export default function OrganizationLoading() {
+export default function Loading() {
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="space-y-6">
-        {/* Skeleton for header */}
-        <div>
-          <div className="h-8 bg-muted rounded-md w-64 animate-pulse" />
-          <div className="h-4 bg-muted rounded-md w-48 mt-2 animate-pulse" />
+    <div className="flex w-full flex-1 flex-col overflow-auto p-4 md:gap-8 md:p-8">
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-1/3" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
         </div>
-
-        {/* Loading indicator */}
-        <div className="flex items-center justify-center py-12">
-          <div className="flex items-center space-x-2">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <p className="text-muted-foreground">
-              Loading organization data...
-            </p>
-          </div>
-        </div>
+        <Skeleton className="h-48 w-full" />
       </div>
     </div>
   );
