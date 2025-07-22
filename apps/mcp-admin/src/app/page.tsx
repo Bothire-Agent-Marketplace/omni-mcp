@@ -24,8 +24,9 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import dynamic from "next/dynamic";
 
-export default function Home() {
+function HomePage() {
   const { userId, orgId, isLoaded } = useAuth();
   const {
     userMemberships,
@@ -33,7 +34,7 @@ export default function Home() {
     setActive,
     createOrganization,
   } = useOrganizationList();
-  const router = useRouter();
+  const _router = useRouter();
   const [isCreatingOrg, setIsCreatingOrg] = useState(false);
   const [orgName, setOrgName] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -103,29 +104,42 @@ export default function Home() {
     );
   }
 
-  return (
-    <main className="min-h-screen bg-background">
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        {!orgId ? (
-          /* No organization selected - show create organization */
-          <div className="max-w-md mx-auto">
-            <Card>
+  // User is authenticated but has no organization
+  if (userId && (!userMemberships?.data || userMemberships.data.length === 0)) {
+    return (
+      <main className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto text-center space-y-8">
+            <div className="space-y-4">
+              <h1 className="text-4xl font-bold text-foreground">
+                Welcome to MCP Admin
+              </h1>
+              <p className="text-xl text-muted-foreground">
+                Get started by creating your first organization
+              </p>
+            </div>
+
+            <Card className="text-left">
               <CardHeader>
-                <CardTitle>Create Your Organization</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="w-5 h-5" />
+                  Create Organization
+                </CardTitle>
                 <CardDescription>
-                  Get started by creating your first organization to manage your
-                  MCP services.
+                  Organizations help you manage MCP servers, team members, and
+                  resources in one place.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {!showCreateForm ? (
                   <Button
                     onClick={() => setShowCreateForm(true)}
+                    size="lg"
                     className="w-full"
+                    disabled={!createOrganization}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Create Organization
+                    Create New Organization
                   </Button>
                 ) : (
                   <form
@@ -182,160 +196,231 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
-        ) : (
-          /* Organization selected - show dashboard */
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Organization Settings
-                  </CardTitle>
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">Configure</div>
-                  <p className="text-xs text-muted-foreground">
-                    Manage your organization
-                  </p>
-                  <Button className="mt-4 w-full" asChild>
-                    <Link href="/organization/settings">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Open Settings
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+        </div>
+      </main>
+    );
+  }
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Team Management
-                  </CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">Manage</div>
-                  <p className="text-xs text-muted-foreground">
-                    Invite and manage team members
-                  </p>
-                  <Button className="mt-4 w-full" asChild>
-                    <Link href="/organization/settings/users">
-                      <Users className="mr-2 h-4 w-4" />
-                      Manage Team
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
+  // User has organizations - show dashboard
+  return (
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="space-y-2">
+            <h1 className="text-4xl font-bold text-foreground">
+              MCP Admin Dashboard
+            </h1>
+            <p className="text-xl text-muted-foreground">
+              Manage your MCP servers and team collaboration
+            </p>
+          </div>
 
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Role Management
-                  </CardTitle>
-                  <Shield className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">Control</div>
-                  <p className="text-xs text-muted-foreground">
-                    Manage roles and permissions
-                  </p>
-                  <Button className="mt-4 w-full" asChild>
-                    <Link href="/organization/settings/roles">
-                      <Shield className="mr-2 h-4 w-4" />
-                      Manage Roles
-                    </Link>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* MCP Services */}
+          {/* Current Organization Info */}
+          {userMemberships?.data && userMemberships.data.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Zap className="mr-2 h-5 w-5" />
-                  Available MCP Services
-                </CardTitle>
-                <CardDescription>
-                  Manage your organization&apos;s MCP service integrations
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Your Organizations
+                    </CardTitle>
+                    <CardDescription>
+                      You belong to {userMemberships.data.length}{" "}
+                      organization(s)
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="text-sm">
+                    {orgId ? "Active" : "Select one"}
+                  </Badge>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Activity className="h-8 w-8 text-blue-500" />
-                      <div>
-                        <p className="font-medium">Linear Integration</p>
-                        <p className="text-sm text-muted-foreground">
-                          Project management
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Activity className="h-8 w-8 text-purple-500" />
-                      <div>
-                        <p className="font-medium">Perplexity AI</p>
-                        <p className="text-sm text-muted-foreground">
-                          AI research
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Activity className="h-8 w-8 text-green-500" />
-                      <div>
-                        <p className="font-medium">Development Tools</p>
-                        <p className="text-sm text-muted-foreground">
-                          Dev utilities
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Active</Badge>
-                  </div>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {userMemberships.data.map((membership) => (
+                    <Card key={membership.id} className="relative">
+                      <CardContent className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <h3 className="font-medium">
+                              {membership.organization.name}
+                            </h3>
+                            <Badge
+                              variant={
+                                membership.organization.id === orgId
+                                  ? "default"
+                                  : "secondary"
+                              }
+                              className="text-xs"
+                            >
+                              {membership.role}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {membership.organization.membersCount || 0} members
+                          </p>
+                          {membership.organization.id === orgId ? (
+                            <Link href="/organization/settings">
+                              <Button size="sm" className="w-full">
+                                <Settings className="w-4 h-4 mr-2" />
+                                Manage
+                              </Button>
+                            </Link>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() =>
+                                setActive?.({
+                                  organization: membership.organization.id,
+                                })
+                              }
+                            >
+                              Switch To
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </CardContent>
             </Card>
+          )}
 
-            {/* Organization Info */}
+          {/* Quick Actions */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Organization Information</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Organization Settings
+                </CardTitle>
                 <CardDescription>
-                  Quick overview of your organization details
+                  Manage organization details and preferences
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      User ID
-                    </p>
-                    <p className="font-mono text-sm bg-muted p-2 rounded">
-                      {userId}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Organization ID
-                    </p>
-                    <p className="font-mono text-sm bg-muted p-2 rounded">
-                      {orgId}
-                    </p>
-                  </div>
-                </div>
+                <Link href="/organization/settings">
+                  <Button className="w-full">View Settings</Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Team Management
+                </CardTitle>
+                <CardDescription>
+                  Invite members and manage roles
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/organization/settings/users">
+                  <Button className="w-full" variant="outline">
+                    Manage Users
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  MCP Services
+                </CardTitle>
+                <CardDescription>
+                  Configure and monitor MCP servers
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" variant="outline" disabled>
+                  <Activity className="w-4 h-4 mr-2" />
+                  Coming Soon
+                </Button>
               </CardContent>
             </Card>
           </div>
-        )}
+
+          {/* Stats Overview */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Active Servers
+                </CardTitle>
+                <Zap className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">3</div>
+                <p className="text-xs text-muted-foreground">
+                  MCP servers running
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  Team Members
+                </CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {userMemberships?.data?.[0]?.organization?.membersCount || 1}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Active collaborators
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  API Requests
+                </CardTitle>
+                <Activity className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">12.4K</div>
+                <p className="text-xs text-muted-foreground">This month</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Uptime</CardTitle>
+                <Shield className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">99.9%</div>
+                <p className="text-xs text-muted-foreground">Last 30 days</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </main>
   );
 }
+
+// Export with dynamic configuration to disable SSR
+export default dynamic(() => Promise.resolve(HomePage), {
+  ssr: false,
+  loading: () => (
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center space-x-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  ),
+});

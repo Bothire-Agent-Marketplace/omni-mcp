@@ -96,7 +96,6 @@ export function PromptsClient({
           setIsViewDialogOpen(false);
           handleEditPrompt(selectedPrompt);
         }}
-        onCopy={() => handleCopyFromDefault(selectedPrompt as any)}
         onDelete={() => {
           setIsViewDialogOpen(false);
           handleDeletePrompt(selectedPrompt.id);

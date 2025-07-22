@@ -24,19 +24,19 @@ export default async function RolesManagementPage() {
   const roles = [
     {
       name: "Admin",
-      value: "ADMIN",
+      value: "admin",
       description: "Full access to organization settings and user management",
       permissions: ["manage_users", "manage_settings", "manage_services", "view_audit_logs"],
     },
     {
       name: "Member",
-      value: "MEMBER", 
+      value: "member", 
       description: "Access to organization services and basic functionality",
       permissions: ["use_services", "view_organization"],
     },
     {
       name: "Viewer",
-      value: "VIEWER",
+      value: "viewer",
       description: "Read-only access to organization information",
       permissions: ["view_organization"],
     },
@@ -44,9 +44,9 @@ export default async function RolesManagementPage() {
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
-      case 'ADMIN':
+      case 'admin':
         return 'destructive';
-      case 'MEMBER':
+      case 'member':
         return 'default';
       default:
         return 'secondary';

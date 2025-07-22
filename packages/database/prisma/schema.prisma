@@ -63,7 +63,7 @@ model OrganizationMembership {
   organizationId    String         @map("organization_id") @db.Uuid
   userId            String         @map("user_id") @db.Uuid
   clerkMembershipId String         @unique @map("clerk_membership_id")
-  role              MembershipRole @default(MEMBER)
+  role              MembershipRole @default(member)
   permissions       Json           @default("{}")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
@@ -267,9 +267,9 @@ model WebhookEvent {
 // Enums
 
 enum MembershipRole {
-  ADMIN
-  MEMBER
-  VIEWER
+  admin
+  member
+  viewer
 
   @@map("membership_role")
 }

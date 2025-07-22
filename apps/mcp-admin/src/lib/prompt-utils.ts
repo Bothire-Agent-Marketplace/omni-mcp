@@ -10,7 +10,7 @@ interface JsonSchemaProperty {
   enum?: string[];
 }
 
-interface JsonSchema {
+export interface JsonSchema {
   [key: string]: JsonSchemaProperty;
 }
 

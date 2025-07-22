@@ -106,14 +106,23 @@ export class DatabaseService {
    * Convert Clerk role to database role
    */
   private static mapClerkRoleToDbRole(clerkRole: string): MembershipRole {
-    switch (clerkRole) {
-      case "admin":
-        return MembershipRole.ADMIN;
-      case "member":
-        return MembershipRole.MEMBER;
-      default:
-        return MembershipRole.VIEWER;
+    // Add debug logging to see what role Clerk is actually sending
+    console.log("🔍 Mapping Clerk role to DB role:", {
+      clerkRole,
+      type: typeof clerkRole,
+      stringified: JSON.stringify(clerkRole),
+    });
+
+    // Direct mapping since enum values now match Clerk's convention
+    const validRoles = ["admin", "member", "viewer"] as const;
+    type ValidRole = (typeof validRoles)[number];
+
+    if (validRoles.includes(clerkRole as ValidRole)) {
+      return clerkRole as MembershipRole;
     }
+
+    console.warn(`⚠️ Unknown Clerk role "${clerkRole}", defaulting to member`);
+    return MembershipRole.member;
   }
 
   // User Operations

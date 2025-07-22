@@ -33,6 +33,7 @@ import {
   argumentsToJsonSchema,
   jsonSchemaToArguments,
   validateTemplate,
+  type JsonSchema,
 } from "@/lib/prompt-utils";
 import type { OrganizationPrompt, McpServer } from "@/types/prompts";
 
@@ -119,7 +120,7 @@ export function PromptFormDialog({
 
       // Convert existing arguments to visual format
       const existingArgs = jsonSchemaToArguments(
-        prompt.arguments as Record<string, any>
+        prompt.arguments as unknown as JsonSchema
       );
       setArgumentsSchema(existingArgs);
       setJsonArguments(JSON.stringify(prompt.arguments, null, 2));
@@ -156,7 +157,7 @@ export function PromptFormDialog({
       const parsed = JSON.parse(newJson);
       const visualArgs = jsonSchemaToArguments(parsed);
       setArgumentsSchema(visualArgs);
-    } catch (error) {
+    } catch (_error) {
       // Invalid JSON, keep visual state as is
     }
   };

@@ -71,7 +71,7 @@ export function ArgumentsSchemaBuilder({
     setArgumentsState(argumentsState.filter((_, i) => i !== index));
   };
 
-  const moveArgument = (fromIndex: number, toIndex: number) => {
+  const _moveArgument = (fromIndex: number, toIndex: number) => {
     const moved = [...argumentsState];
     const [movedItem] = moved.splice(fromIndex, 1);
     moved.splice(toIndex, 0, movedItem);
