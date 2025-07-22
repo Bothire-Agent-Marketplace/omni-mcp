@@ -20,12 +20,9 @@
   },
   "dependencies": {
     "@mcp/capabilities": "workspace:*",
-    "@mcp/config-service": "workspace:*",
-    "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/server-core": "workspace:*",
-    "@mcp/utils": "workspace:*",
-    "zod": "^3.25.67"
+    "@mcp/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^24.0.8",

@@ -12,7 +12,6 @@ import {
   MCPRouteGeneric,
   HealthRouteGeneric,
   WebSocketRouteGeneric,
-  MCPJsonRpcRequestSchema,
   // Deprecated schemas removed - use unified response schemas instead
   HTTPHeaders,
 } from "@mcp/schemas";
@@ -209,7 +208,22 @@ async function createServer(): Promise<FastifyInstance> {
       "/mcp",
       {
         schema: {
-          body: MCPJsonRpcRequestSchema,
+          body: {
+            type: "object",
+            properties: {
+              jsonrpc: { type: "string", enum: ["2.0"] },
+              method: { type: "string", minLength: 1 },
+              params: {
+                type: "object",
+                additionalProperties: true,
+              },
+              id: {
+                type: ["string", "number", "null"],
+              },
+            },
+            required: ["jsonrpc", "method"],
+            additionalProperties: false,
+          },
           response: {
             400: {}, // Use standard error response
             401: {}, // Use standard error response

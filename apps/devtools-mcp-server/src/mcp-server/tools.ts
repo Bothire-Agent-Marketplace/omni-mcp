@@ -136,8 +136,12 @@ const chromeToolDefinitions: Record<
 // EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
 // ============================================================================
 
-export const createToolHandlers = (chromeClient: ChromeDevToolsClient) =>
-  createGenericToolHandlers(chromeToolDefinitions, chromeClient);
+export const createToolHandlers = (chromeClient?: ChromeDevToolsClient) => {
+  if (!chromeClient) {
+    throw new Error("ChromeDevToolsClient is required for devtools server");
+  }
+  return createGenericToolHandlers(chromeToolDefinitions, chromeClient);
+};
 
 export const getAvailableTools = () =>
   getGenericAvailableTools(chromeToolDefinitions);

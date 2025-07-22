@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
-import type { BaseMcpServerConfig } from "./config.js";
+import type { McpServerConfig } from "./config.js";
 
 // ============================================================================
 // GENERIC MCP SERVER ENTRY POINT
@@ -10,7 +10,7 @@ import type { BaseMcpServerConfig } from "./config.js";
 /**
  * Options for creating a server entry point
  */
-export interface EntryPointOptions<TConfig extends BaseMcpServerConfig> {
+export interface EntryPointOptions<TConfig extends McpServerConfig> {
   /** Server name for logging */
   serverName: string;
   /** Server configuration */
@@ -22,7 +22,7 @@ export interface EntryPointOptions<TConfig extends BaseMcpServerConfig> {
 /**
  * Creates a standardized entry point for MCP servers
  */
-export function createServerEntryPoint<TConfig extends BaseMcpServerConfig>(
+export function createServerEntryPoint<TConfig extends McpServerConfig>(
   options: EntryPointOptions<TConfig>
 ): { logger: ReturnType<typeof createMcpLogger>; main: () => Promise<void> } {
   const { serverName, config, startServer } = options;
@@ -65,7 +65,7 @@ export function createServerEntryPoint<TConfig extends BaseMcpServerConfig>(
 /**
  * Simplified entry point that automatically starts the server
  */
-export async function runMcpServer<TConfig extends BaseMcpServerConfig>(
+export async function runMcpServer<TConfig extends McpServerConfig>(
   options: EntryPointOptions<TConfig>
 ): Promise<void> {
   const { main } = createServerEntryPoint(options);

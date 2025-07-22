@@ -1,4 +1,5 @@
 import type { McpServerConfig, OrganizationContext } from "@mcp/schemas";
+import type { DynamicHandlerRegistry } from "./dynamic-handlers.js";
 
 // Re-export the unified OrganizationContext for backward compatibility
 export type { OrganizationContext };
@@ -18,12 +19,6 @@ export interface RequestContext {
 // ============================================================================
 // BASE MCP SERVER CONFIGURATION
 // ============================================================================
-
-/**
- * @deprecated Import from @mcp/schemas instead
- * Base configuration interface that all MCP servers should extend
- */
-export type BaseMcpServerConfig = McpServerConfig;
 
 // Re-export consolidated types from @mcp/schemas for backward compatibility
 export type { McpServerConfig };
@@ -159,51 +154,6 @@ export interface HandlerRegistries {
 // ============================================================================
 // DYNAMIC HANDLER TYPES
 // ============================================================================
-
-/**
- * Dynamic handler registry that can load handlers based on organization context
- */
-export interface DynamicHandlerRegistry {
-  /** Get tool handler for a specific tool name and organization context */
-  getToolHandler: (
-    toolName: string,
-    context?: RequestContext
-  ) => Promise<ToolHandler | undefined>;
-  /** Get resource handler for a specific URI and organization context */
-  getResourceHandler: (
-    uri: string,
-    context?: RequestContext
-  ) => Promise<ResourceHandler | undefined>;
-  /** Get prompt handler for a specific prompt name and organization context */
-  getPromptHandler: (
-    promptName: string,
-    context?: RequestContext
-  ) => Promise<PromptHandler | undefined>;
-  /** Get all available tools for a given context */
-  getAvailableTools: (context?: RequestContext) => Promise<
-    Array<{
-      name: string;
-      description: string;
-      inputSchema: unknown;
-    }>
-  >;
-  /** Get all available resources for a given context */
-  getAvailableResources: (context?: RequestContext) => Promise<
-    Array<{
-      uri: string;
-      name: string;
-      description: string;
-      mimeType?: string;
-    }>
-  >;
-  /** Get all available prompts for a given context */
-  getAvailablePrompts: (context?: RequestContext) => Promise<
-    Array<{
-      name: string;
-      description: string;
-    }>
-  >;
-}
 
 /**
  * Enhanced server creation options with dynamic handler support
