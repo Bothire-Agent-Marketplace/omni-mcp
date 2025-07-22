@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { ResourcesView } from "@/components/views/resources-view";
 
 export default async function ResourcesPage() {
@@ -10,17 +10,16 @@ export default async function ResourcesPage() {
     redirect("/sign-in");
   }
 
-  const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+  const organizationService = ServiceFactory.getOrganizationService();
+  const resourceService = ServiceFactory.getResourceService();
+
+  const organization = await organizationService.getOrganizationByClerkId(orgId);
   if (!organization) {
     redirect("/");
   }
 
-  // Fetch data directly in server component
-  const [resources, defaultResources, mcpServers] = await Promise.all([
-    DatabaseService.getOrganizationResources(organization.id),
-    DatabaseService.getDefaultResources(),
-    DatabaseService.getMcpServers(),
-  ]);
+  // Fetch data using the new service
+  const { resources, defaultResources, mcpServers } = await resourceService.getResourcesPageData(organization.id);
 
   // Pass data as props to view component
   return (

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { Separator } from "@/components/ui/separator";
 
 // Force dynamic rendering for all organization routes
@@ -22,7 +22,9 @@ export default async function OrganizationLayout({
   }
 
   // Get organization details for context
-  const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+  const organizationService = ServiceFactory.getOrganizationService();
+  const organization =
+    await organizationService.getOrganizationByClerkId(orgId);
 
   if (!organization) {
     redirect("/");

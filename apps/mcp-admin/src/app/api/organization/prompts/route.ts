@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 // Schema for creating/updating prompts
 const PromptSchema = z.object({
@@ -36,7 +35,11 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+    const organizationService = ServiceFactory.getOrganizationService();
+    const promptService = ServiceFactory.getPromptService();
+
+    const organization =
+      await organizationService.getOrganizationByClerkId(orgId);
     if (!organization) {
       return NextResponse.json(
         { error: "Organization not found" },
@@ -44,10 +47,9 @@ export async function GET() {
       );
     }
 
-    const prompts = await DatabaseService.getOrganizationPrompts(
+    const { prompts, defaultPrompts } = await promptService.getPromptsPageData(
       organization.id
     );
-    const defaultPrompts = await DatabaseService.getDefaultPrompts();
 
     return NextResponse.json({
       prompts,
@@ -72,7 +74,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+    const organizationService = ServiceFactory.getOrganizationService();
+    const promptService = ServiceFactory.getPromptService();
+    const userService = ServiceFactory.getUserService();
+
+    const organization =
+      await organizationService.getOrganizationByClerkId(orgId);
     if (!organization) {
       return NextResponse.json(
         { error: "Organization not found" },
@@ -81,9 +88,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Look up the user by their Clerk ID to get the internal UUID
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -92,7 +97,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = PromptSchema.parse(body);
 
-    const newPrompt = await DatabaseService.createOrganizationPrompt({
+    const newPrompt = await promptService.createPrompt({
       organizationId: organization.id,
       mcpServerId: validatedData.mcpServerId,
       name: validatedData.name,

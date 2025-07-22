@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { PromptsView } from "@/components/views/prompts-view";
 
 export default async function PromptsPage() {
@@ -10,17 +10,16 @@ export default async function PromptsPage() {
     redirect("/sign-in");
   }
 
-  const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+  const organizationService = ServiceFactory.getOrganizationService();
+  const promptService = ServiceFactory.getPromptService();
+
+  const organization = await organizationService.getOrganizationByClerkId(orgId);
   if (!organization) {
     redirect("/");
   }
 
-  // Fetch data directly in server component
-  const [prompts, defaultPrompts, mcpServers] = await Promise.all([
-    DatabaseService.getOrganizationPrompts(organization.id),
-    DatabaseService.getDefaultPrompts(),
-    DatabaseService.getMcpServers(),
-  ]);
+  // Fetch data using the new service
+  const { prompts, defaultPrompts, mcpServers } = await promptService.getPromptsPageData(organization.id);
 
   // Pass data as props to view component
   return (
