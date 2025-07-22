@@ -20,10 +20,10 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
-  const { memberships: userMemberships } = userWithOrgs;
+  const { memberships } = userWithOrgs;
 
   // Convert database format to match the view component interface
-  const formattedMemberships = userMemberships.map((membership) => ({
+  const formattedMemberships = memberships.map((membership) => ({
     id: membership.id,
     role: membership.role,
     organization: {
