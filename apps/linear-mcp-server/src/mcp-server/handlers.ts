@@ -6,10 +6,6 @@ import {
   GetProjectsInputSchema,
   GetIssueInputSchema,
 } from "../schemas/domain-schemas.js";
-import type {
-  LinearTeamResource,
-  LinearUserResource,
-} from "../types/domain-types.js";
 
 // Linear SDK Filter Types based on GraphQL API patterns
 interface LinearIssueFilter {
@@ -262,79 +258,4 @@ export async function handleLinearGetIssue(
       { type: "text" as const, text: JSON.stringify(formattedIssue, null, 2) },
     ],
   };
-}
-
-// ============================================================================
-// RESOURCE HANDLERS
-// ============================================================================
-
-export async function handleLinearTeamsResource(
-  linearClient: LinearClient,
-  uri: string
-) {
-  try {
-    const teams = await linearClient.teams();
-    const formattedTeams: LinearTeamResource[] = teams.nodes.map((team) => ({
-      id: team.id,
-      name: team.name,
-      key: team.key,
-      description: team.description,
-    }));
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(formattedTeams, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching teams: ${errorMessage}`,
-        },
-      ],
-    };
-  }
-}
-
-export async function handleLinearUsersResource(
-  linearClient: LinearClient,
-  uri: string
-) {
-  try {
-    const users = await linearClient.users();
-    const formattedUsers: LinearUserResource[] = users.nodes.map((user) => ({
-      id: user.id,
-      name: user.name,
-      displayName: user.displayName,
-      email: user.email,
-      active: user.active,
-    }));
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(formattedUsers, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching users: ${errorMessage}`,
-        },
-      ],
-    };
-  }
 }

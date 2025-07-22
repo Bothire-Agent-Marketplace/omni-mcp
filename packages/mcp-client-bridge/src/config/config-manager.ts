@@ -10,6 +10,9 @@ import {
   ClaudeDesktopMCPConfig,
 } from "../types/client-types.js";
 
+// Default dev API key for local development
+const DEV_API_KEY = "dev-api-key-12345";
+
 /**
  * Centralized configuration manager for MCP client bridges
  */
@@ -40,6 +43,32 @@ export class ConfigManager {
         this.addServer(name, endpoint);
       });
     }
+  }
+
+  /**
+   * Configure server endpoint with appropriate authentication headers
+   */
+  private configureServerEndpoint(
+    name: string,
+    url: string,
+    environment: Environment
+  ): ServerEndpoint {
+    const endpoint: ServerEndpoint = {
+      name,
+      url,
+      environment,
+      authRequired: !url.startsWith("http://localhost"),
+      headers: {},
+    };
+
+    // Add API key for local development gateway
+    if (environment === "development" && url.startsWith("http://localhost")) {
+      endpoint.headers = {
+        "x-api-key": process.env.MCP_API_KEY || DEV_API_KEY,
+      };
+    }
+
+    return endpoint;
   }
 
   /**
@@ -196,6 +225,31 @@ export class ConfigManager {
   }
 
   /**
+   * Create a development configuration with local gateway and API key
+   */
+  static forDevelopment(
+    gatewayUrl: string = "http://localhost:37373",
+    additionalServers?: Record<string, string>,
+    options?: {
+      bridgeOptions?: Partial<BridgeOptions>;
+    }
+  ): ConfigManager {
+    const servers = {
+      gateway: gatewayUrl,
+      ...additionalServers,
+    };
+
+    return ConfigManager.fromServers(servers, {
+      environment: "development",
+      bridgeOptions: {
+        debug: true,
+        allowHttp: true,
+        ...options?.bridgeOptions,
+      },
+    });
+  }
+
+  /**
    * Create a configuration from a simple server list
    */
   static fromServers(
@@ -205,22 +259,32 @@ export class ConfigManager {
       bridgeOptions?: Partial<BridgeOptions>;
     }
   ): ConfigManager {
+    const environment = options?.environment || "development";
     const serverEndpoints: Record<string, ServerEndpoint> = {};
 
     Object.entries(servers).forEach(([name, url]) => {
-      serverEndpoints[name] = {
+      const endpoint: ServerEndpoint = {
         name,
         url,
-        environment: options?.environment || "development",
+        environment,
         authRequired: !url.startsWith("http://localhost"),
         headers: {},
       };
+
+      // Add API key for local development gateway
+      if (environment === "development" && url.startsWith("http://localhost")) {
+        endpoint.headers = {
+          "x-api-key": process.env.MCP_API_KEY || DEV_API_KEY,
+        };
+      }
+
+      serverEndpoints[name] = endpoint;
     });
 
     return new ConfigManager({
       servers: serverEndpoints,
       clients: ["cursor", "claude-desktop"],
-      environment: options?.environment || "development",
+      environment,
       bridgeOptions: options?.bridgeOptions || {},
     });
   }

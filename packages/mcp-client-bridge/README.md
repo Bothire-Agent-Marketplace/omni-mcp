@@ -46,7 +46,7 @@ await manager.saveConfigs();
 ### Simple API
 
 ```typescript
-import { generateClientConfigs, deployConfigs } from "@mcp/client-bridge";
+import { generateClientConfigs, deployConfigs, deployDevelopmentConfigs } from "@mcp/client-bridge";
 
 // Generate configs
 const configs = await generateClientConfigs({
@@ -63,6 +63,15 @@ await deployConfigs(
     environment: "development",
   }
 );
+
+// Deploy development configs with automatic API key
+await deployDevelopmentConfigs(); // Uses default localhost:37373
+await deployDevelopmentConfigs("http://localhost:37373", {
+  clients: ["cursor"],
+  additionalServers: {
+    staging: "https://staging.example.com/mcp",
+  },
+});
 ```
 
 ## CLI Usage
@@ -70,7 +79,7 @@ await deployConfigs(
 ### Generate Configurations
 
 ```bash
-# Generate for local development
+# Generate for local development (automatically includes API key)
 mcp-client-bridge generate --servers '{"gateway":"http://localhost:37373"}'
 
 # Generate for production
@@ -266,6 +275,25 @@ The library automatically detects the correct configuration paths:
 
 ## Authentication
 
+### Local Development
+
+For local development with the MCP gateway, the bridge automatically includes the API key:
+
+```typescript
+// Automatically includes x-api-key header for localhost URLs
+const manager = ConfigManager.forDevelopment(); // Uses default localhost:37373
+
+// Or use convenience function
+await deployDevelopmentConfigs();
+```
+
+The API key is automatically sourced from:
+
+1. `process.env.MCP_API_KEY` environment variable
+2. Default development key: `dev-api-key-12345`
+
+### Production/Remote Servers
+
 For servers requiring authentication:
 
 ```typescript
@@ -288,6 +316,7 @@ Set environment variables:
 
 ```bash
 export AUTH_TOKEN=your_token_here
+export MCP_API_KEY=your_dev_api_key_here
 ```
 
 ## Integration with Monorepo
@@ -309,8 +338,28 @@ Add to your monorepo's main package.json:
 ### Local Development
 
 ```typescript
-import { deployConfigs } from "@mcp/client-bridge";
+import {
+  deployConfigs,
+  deployDevelopmentConfigs,
+  createDevelopmentConfig,
+} from "@mcp/client-bridge";
 
+// Simple development deployment with automatic API key
+await deployDevelopmentConfigs();
+
+// Custom development deployment
+await deployDevelopmentConfigs("http://localhost:37373", {
+  clients: ["cursor"],
+  additionalServers: {
+    staging: "https://staging.example.com/mcp",
+  },
+});
+
+// Manual development configuration
+const devManager = createDevelopmentConfig();
+await devManager.saveConfigs(["cursor", "claude-desktop"]);
+
+// Traditional approach (still works)
 await deployConfigs(
   {
     gateway: "http://localhost:37373",

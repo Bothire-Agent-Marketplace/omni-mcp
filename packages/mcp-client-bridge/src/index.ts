@@ -16,4 +16,6 @@ export {
   createConfigManager,
   generateClientConfigs,
   deployConfigs,
+  createDevelopmentConfig,
+  deployDevelopmentConfigs,
 } from "./utils.js";
