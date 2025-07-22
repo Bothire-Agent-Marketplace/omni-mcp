@@ -113,15 +113,24 @@ export class DatabaseService {
       stringified: JSON.stringify(clerkRole),
     });
 
-    // Direct mapping since enum values now match Clerk's convention
+    // Strip the "org:" prefix from Clerk roles (e.g., "org:admin" -> "admin")
+    const roleWithoutPrefix = clerkRole.replace(/^org:/, "");
+
+    console.log("🔍 After stripping prefix:", {
+      originalRole: clerkRole,
+      strippedRole: roleWithoutPrefix,
+    });
+
     const validRoles = ["admin", "member", "viewer"] as const;
     type ValidRole = (typeof validRoles)[number];
 
-    if (validRoles.includes(clerkRole as ValidRole)) {
-      return clerkRole as MembershipRole;
+    if (validRoles.includes(roleWithoutPrefix as ValidRole)) {
+      return roleWithoutPrefix as MembershipRole;
     }
 
-    console.warn(`⚠️ Unknown Clerk role "${clerkRole}", defaulting to member`);
+    console.warn(
+      `⚠️ Unknown Clerk role "${clerkRole}" (stripped: "${roleWithoutPrefix}"), defaulting to member`
+    );
     return MembershipRole.member;
   }
 
