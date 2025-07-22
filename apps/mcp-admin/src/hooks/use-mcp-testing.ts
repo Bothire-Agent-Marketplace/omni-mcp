@@ -307,7 +307,7 @@ export function useMcpTesting({
   };
 
   // Quick preset functions
-  const loadQuickPreset = (preset: "search" | "debug" | "docs" | "health") => {
+  const loadQuickPreset = (preset: "search" | "linear" | "devtools") => {
     switch (preset) {
       case "search":
         setToolForm({
@@ -323,13 +323,13 @@ export function useMcpTesting({
         });
         setActiveTab("tools");
         break;
-      case "debug":
+      case "linear":
         setToolForm({
-          name: "console_execute",
+          name: "linear_search_issues",
           arguments: JSON.stringify(
             {
-              code: "console.log('Debug info:', { url: window.location.href, timestamp: new Date().toISOString() })",
-              awaitPromise: false,
+              query: "bug report",
+              limit: 5,
             },
             null,
             2
@@ -337,17 +337,12 @@ export function useMcpTesting({
         });
         setActiveTab("tools");
         break;
-      case "docs":
-        setResourceForm({
-          uri: "https://modelcontextprotocol.io/introduction",
+      case "devtools":
+        setToolForm({
+          name: "chrome_status",
+          arguments: JSON.stringify({}, null, 2),
         });
-        setActiveTab("resources");
-        break;
-      case "health":
-        setHealthForm({
-          target: "gateway",
-        });
-        setActiveTab("health");
+        setActiveTab("tools");
         break;
     }
     toast.success(`Loaded ${preset} preset`);

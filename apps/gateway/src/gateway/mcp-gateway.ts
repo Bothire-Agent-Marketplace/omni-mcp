@@ -8,62 +8,63 @@ import {
   HTTPHeaders,
   HTTPRequestBody,
   GatewayHTTPResponse,
-  ToolInputSchema,
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
-import { MCPSessionManager } from "./session-manager.js";
+import { MCPProtocolHandler } from "./core/protocol-handler.js";
+import { MCPRequestRouter } from "./core/request-router.js";
+import { SessionAdapter } from "./adapters/session-adapter.js";
 
-// MCP Resource and Tool Types (now using centralized schemas)
-interface MCPTool {
-  name: string;
-  description: string;
-  inputSchema: ToolInputSchema;
-}
-
-interface MCPResource {
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string;
-}
-
-interface MCPPrompt {
-  name: string;
-  description: string;
-  arguments?: Array<{
-    name: string;
-    description: string;
-    required?: boolean;
-  }>;
-}
-
+/**
+ * Refactored MCP Gateway - Main orchestrator
+ *
+ * Responsibilities:
+ * - Initialize and coordinate focused components
+ * - Handle HTTP and WebSocket connections
+ * - Orchestrate request flow between components
+ */
 export class MCPGateway {
   private logger: McpLogger;
   private config: GatewayConfig;
+
+  // Core components
   private serverManager: MCPServerManager;
-  private sessionManager: MCPSessionManager;
   private protocolAdapter: MCPProtocolAdapter;
-  private capabilityMap = new Map<string, string[]>();
+  private protocolHandler: MCPProtocolHandler;
+  private requestRouter: MCPRequestRouter;
+  private sessionAdapter: SessionAdapter;
 
   constructor(config: GatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger;
+
+    // Initialize core components
     this.serverManager = new MCPServerManager(
       config.mcpServers,
       this.logger.fork("server-manager")
     );
-    this.sessionManager = new MCPSessionManager(
-      config,
-      this.logger.fork("session-manager")
-    );
+
     this.protocolAdapter = new MCPProtocolAdapter(
       this.logger.fork("protocol-adapter")
     );
 
-    // Build capability map
-    this.buildCapabilityMap();
+    this.sessionAdapter = new SessionAdapter(
+      config,
+      this.logger.fork("session-adapter")
+    );
+
+    this.protocolHandler = new MCPProtocolHandler(
+      config,
+      this.logger.fork("protocol-handler")
+    );
+
+    this.requestRouter = new MCPRequestRouter(
+      config,
+      this.serverManager,
+      this.protocolAdapter,
+      this.logger.fork("request-router")
+    );
   }
 
   async initialize(): Promise<void> {
@@ -86,7 +87,7 @@ export class MCPGateway {
 
     try {
       await this.serverManager.shutdown();
-      this.sessionManager.shutdown();
+      this.sessionAdapter.shutdown();
       this.logger.info("MCP Gateway shutdown complete");
     } catch (error) {
       this.logger.error(
@@ -102,25 +103,7 @@ export class MCPGateway {
   ): Promise<GatewayHTTPResponse | MCPResponse> {
     try {
       // Get or create session with organization context
-      let session = this.getSessionFromHeaders(headers);
-      const _isNewSession = !session;
-
-      if (!session) {
-        if (!this.sessionManager.canCreateNewSession()) {
-          throw new Error("Maximum concurrent sessions reached");
-        }
-        // Create session with organization context extracted from auth headers
-        const authHeader = headers.authorization || headers.Authorization;
-        const apiKey = headers["x-api-key"] as string;
-        const simulateOrgHeader = headers["x-simulate-organization"] as string;
-
-        session = await this.sessionManager.createSessionWithAuth(
-          authHeader,
-          apiKey,
-          "http",
-          simulateOrgHeader
-        );
-      }
+      const session = await this.sessionAdapter.getOrCreateSession(headers);
 
       // Convert HTTP request to MCP format
       const mcpRequest = await this.protocolAdapter.handleHttpToMCP(
@@ -128,17 +111,9 @@ export class MCPGateway {
       );
 
       // Route and execute request
-      const mcpResponse = await this.routeAndExecuteRequest(
-        mcpRequest,
-        session
-      );
+      const mcpResponse = await this.routeRequest(mcpRequest, session);
 
-      // For protocol methods, return JSON-RPC response directly
-      if (this.isProtocolMethod(mcpRequest.method)) {
-        return mcpResponse;
-      }
-
-      // For MCP bridge compatibility, return JSON-RPC response directly for all methods
+      // For protocol methods and MCP bridge compatibility, return JSON-RPC response directly
       return mcpResponse;
     } catch (error) {
       this.logger.error(
@@ -156,18 +131,15 @@ export class MCPGateway {
     this.logger.info("New WebSocket connection established");
 
     // Create session for WebSocket connection
-    const session = this.sessionManager.createSession(
-      "websocket-user",
-      "websocket"
-    );
-    this.sessionManager.attachWebSocket(session.id, ws);
+    const session = this.sessionAdapter.createWebSocketSession();
+    this.sessionAdapter.attachWebSocket(session.id, ws);
 
     // Send initial connection success with session token
     const welcomeMessage = {
       type: "connection",
       sessionId: session.id,
-      sessionToken: this.sessionManager.generateToken(session.id),
-      capabilities: this.getAvailableCapabilities(),
+      sessionToken: this.sessionAdapter.generateSessionToken(session.id),
+      capabilities: this.requestRouter.getAvailableCapabilities(),
     };
 
     ws.send(JSON.stringify(welcomeMessage));
@@ -184,12 +156,10 @@ export class MCPGateway {
         ws,
         message as string
       );
+
       if (mcpRequest) {
         try {
-          const mcpResponse = await this.routeAndExecuteRequest(
-            mcpRequest,
-            session
-          );
+          const mcpResponse = await this.routeRequest(mcpRequest, session);
           this.protocolAdapter.sendWebSocketResponse(ws, mcpResponse);
         } catch (error) {
           this.logger.error(
@@ -215,12 +185,12 @@ export class MCPGateway {
       this.logger.info(
         `WebSocket connection closed for session: ${session.id}`
       );
-      this.sessionManager.removeSession(session.id);
+      this.sessionAdapter.removeSession(session.id);
     });
 
     ws.on("error", (error: Error) => {
       this.logger.error("WebSocket error:", error);
-      this.sessionManager.removeSession(session.id);
+      this.sessionAdapter.removeSession(session.id);
     });
   }
 
@@ -228,477 +198,32 @@ export class MCPGateway {
     return this.serverManager.getHealthStatus();
   }
 
-  private async routeAndExecuteRequest(
+  /**
+   * Get gateway status including session information
+   */
+  getGatewayStatus() {
+    const serverHealth = this.serverManager.getHealthStatus();
+    const sessionStats = this.sessionAdapter.getSessionStats();
+
+    return {
+      ...serverHealth,
+      sessions: {
+        active: sessionStats.active,
+        canCreateNew: sessionStats.canCreateNew,
+      },
+    };
+  }
+
+  private async routeRequest(
     request: MCPRequest,
     session: Session
   ): Promise<MCPResponse> {
-    const requestId = `req_${Date.now()}_${Math.random()
-      .toString(36)
-      .substr(2, 9)}`;
-    const startTime = Date.now();
-
-    // Log incoming MCP request with full details
-    this.logger.mcpRequest(request.method, requestId, {
-      sessionId: session.id,
-      requestParams: request.params,
-      mcpRequestId: String(request.id),
-    });
-
-    try {
-      // Handle core MCP protocol methods directly in the gateway
-      if (this.isProtocolMethod(request.method)) {
-        return await this.handleProtocolMethod(request, session);
-      }
-
-      // Resolve capability to server for tool calls and other methods
-      const serverId = this.protocolAdapter.resolveCapability(
-        request,
-        this.capabilityMap
-      );
-
-      this.logger.info(`Routing request to server: ${serverId}`, {
-        requestId,
-        method: request.method,
-        serverId,
-        phase: "routing_decision",
-      });
-
-      if (!serverId) {
-        const capabilityToResolve = this.getCapabilityToResolve(request);
-        this.logger.error(
-          `No server found for capability: ${capabilityToResolve}`,
-          undefined,
-          {
-            requestId,
-            method: request.method,
-            capability: capabilityToResolve,
-            phase: "routing_failed",
-          }
-        );
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          error: {
-            code: -32601,
-            message: "Method not found",
-            data: `No server found for capability: ${capabilityToResolve}`,
-          },
-        };
-      }
-
-      // Get server instance
-      const serverInstance = await this.serverManager.getServerInstance(
-        serverId,
-        request.method
-      );
-
-      if (!serverInstance) {
-        this.logger.error(
-          `No healthy server instances available for: ${serverId}`,
-          undefined,
-          {
-            requestId,
-            method: request.method,
-            serverId,
-            phase: "server_unavailable",
-          }
-        );
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          error: {
-            code: -32603,
-            message: "Internal error",
-            data: `No healthy server instances available for: ${serverId}`,
-          },
-        };
-      }
-
-      this.logger.info(`Executing request on server instance`, {
-        requestId,
-        method: request.method,
-        serverId,
-        serverInstanceId: serverInstance.id,
-        phase: "server_execution_start",
-      });
-
-      try {
-        // Prepare headers with organization context
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-
-        // Add organization context headers if available
-        if (session.organizationId) {
-          headers["x-organization-id"] = session.organizationId;
-        }
-        if (session.organizationClerkId) {
-          headers["x-organization-clerk-id"] = session.organizationClerkId;
-        }
-
-        // Execute request by forwarding it to the server's URL
-        const response = await fetch(`${serverInstance.url}/mcp`, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(request),
-        });
-
-        const mcpResponse = (await response.json()) as MCPResponse;
-
-        // If the server returned an error, forward it directly (including validation errors)
-        if (!response.ok || mcpResponse.error) {
-          return mcpResponse;
-        }
-
-        const duration = Date.now() - startTime;
-        this.logger.mcpResponse(request.method, requestId, true, duration, {
-          sessionId: session.id,
-          serverId,
-          serverInstanceId: serverInstance.id,
-        });
-
-        return mcpResponse;
-      } finally {
-        // Release server instance
-        this.serverManager.releaseServerInstance(serverInstance);
-      }
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      this.logger.mcpError(
-        request.method,
-        requestId,
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          sessionId: session.id,
-          duration,
-        }
-      );
-
-      return {
-        jsonrpc: "2.0",
-        id: request.id,
-        error: {
-          code: -32603,
-          message: "Internal error",
-          data: error instanceof Error ? error.message : "Unknown error",
-        },
-      };
-    }
-  }
-
-  private getSessionFromHeaders(headers: HTTPHeaders): Session | null {
-    const authHeader = headers.authorization || headers.Authorization;
-    return authHeader
-      ? this.sessionManager.getSessionFromAuthHeader(authHeader)
-      : null;
-  }
-
-  private buildCapabilityMap(): void {
-    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
-      this.capabilityMap.set(serverId, config.capabilities);
+    // Handle core MCP protocol methods directly
+    if (this.protocolHandler.isProtocolMethod(request.method)) {
+      return await this.protocolHandler.handleProtocolMethod(request, session);
     }
 
-    this.logger.info(
-      "Built capability map:",
-      Object.fromEntries(this.capabilityMap.entries())
-    );
-  }
-
-  private getAvailableCapabilities(): string[] {
-    const allCapabilities: string[] = [];
-
-    for (const capabilities of this.capabilityMap.values()) {
-      allCapabilities.push(...capabilities);
-    }
-
-    return [...new Set(allCapabilities)].sort();
-  }
-
-  private isProtocolMethod(method: string): boolean {
-    const protocolMethods = [
-      "initialize",
-      "notifications/initialized",
-      "tools/list",
-      "resources/list",
-      "prompts/list",
-      "ping",
-    ];
-    return protocolMethods.includes(method);
-  }
-
-  private getCapabilityToResolve(request: MCPRequest): string {
-    const { method, params } = request;
-
-    // For tool calls, route based on the specific tool name
-    if (method === "tools/call" && params?.name) {
-      return params.name as string;
-    }
-
-    // For resource reads, route based on the resource URI
-    if (method === "resources/read" && params?.uri) {
-      return params.uri as string;
-    }
-
-    // For prompt gets, route based on the prompt name
-    if (method === "prompts/get" && params?.name) {
-      return params.name as string;
-    }
-
-    return method;
-  }
-
-  private async handleProtocolMethod(
-    request: MCPRequest,
-    session?: Session
-  ): Promise<MCPResponse> {
-    switch (request.method) {
-      case "initialize":
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {
-            protocolVersion: "2024-11-05",
-            capabilities: {
-              tools: {},
-              resources: {},
-              prompts: {},
-            },
-            serverInfo: {
-              name: "omni-mcp-gateway",
-              version: "1.0.0",
-            },
-          },
-        };
-
-      case "notifications/initialized":
-        // This is a notification, no response needed
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {},
-        };
-
-      case "tools/list":
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {
-            tools: await this.getAvailableTools(),
-          },
-        };
-
-      case "resources/list":
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {
-            resources: await this.getAvailableResources(),
-          },
-        };
-
-      case "prompts/list":
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {
-            prompts: await this.getAvailablePrompts(session),
-          },
-        };
-
-      case "ping":
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          result: {},
-        };
-
-      default:
-        return {
-          jsonrpc: "2.0",
-          id: request.id,
-          error: {
-            code: -32601,
-            message: "Method not found",
-            data: `Protocol method ${request.method} not implemented`,
-          },
-        };
-    }
-  }
-
-  private async getAvailableTools(): Promise<MCPTool[]> {
-    const allTools: MCPTool[] = [];
-
-    // Fetch tools from all servers (not just healthy ones) in development
-    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
-      try {
-        const toolsRequest = {
-          jsonrpc: "2.0",
-          id: `tools_${Date.now()}`,
-          method: "tools/list",
-          params: {},
-        };
-
-        const response = await fetch(`${config.url}/mcp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(toolsRequest),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.result?.tools) {
-            // Use the actual tool definitions from the server
-            allTools.push(...result.result.tools);
-          }
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to fetch tools from ${serverId}:`, {
-          error: error instanceof Error ? error.message : String(error),
-          serverId,
-        });
-      }
-    }
-
-    return allTools;
-  }
-
-  private async getAvailableResources(): Promise<MCPResource[]> {
-    const allResources: MCPResource[] = [];
-
-    // Fetch resources from all servers (not just healthy ones) in development
-    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
-      try {
-        const resourcesRequest = {
-          jsonrpc: "2.0",
-          id: `resources_${Date.now()}`,
-          method: "resources/list",
-          params: {},
-        };
-
-        const response = await fetch(`${config.url}/mcp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(resourcesRequest),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.result?.resources) {
-            allResources.push(...result.result.resources);
-          }
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to fetch resources from ${serverId}:`, {
-          error: error instanceof Error ? error.message : String(error),
-          serverId,
-        });
-      }
-    }
-
-    return allResources;
-  }
-
-  private async getAvailablePrompts(session?: Session): Promise<MCPPrompt[]> {
-    const allPrompts: MCPPrompt[] = [];
-
-    // Fetch prompts from all servers (not just healthy ones) in development
-    for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
-      try {
-        const promptsRequest = {
-          jsonrpc: "2.0",
-          id: `prompts_${Date.now()}`,
-          method: "prompts/list",
-          params: {},
-        };
-
-        const response = await fetch(`${config.url}/mcp`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(promptsRequest),
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.result?.prompts) {
-            allPrompts.push(...result.result.prompts);
-          }
-        }
-      } catch (error) {
-        this.logger.warn(`Failed to fetch prompts from ${serverId}:`, {
-          error: error instanceof Error ? error.message : String(error),
-          serverId,
-        });
-      }
-    }
-
-    // Fetch custom prompts from database if we have organization context
-    if (session?.organizationId) {
-      try {
-        const { PrismaClient } = await import("@mcp/database/client");
-        const prisma = new PrismaClient();
-
-        const customPrompts = await prisma.organizationPrompt.findMany({
-          where: {
-            organizationId: session.organizationId,
-          },
-          include: {
-            mcpServer: true,
-          },
-        });
-
-        // Convert database prompts to MCP format
-        const mcpCustomPrompts: MCPPrompt[] = customPrompts.map((prompt) => {
-          // Parse arguments from the stored JSON
-          let arguments_array: Array<{
-            name: string;
-            description: string;
-            required?: boolean;
-          }> = [];
-
-          try {
-            const argsSchema = prompt.arguments as Record<string, unknown>;
-            if (argsSchema && typeof argsSchema === "object") {
-              arguments_array = Object.entries(argsSchema).map(
-                ([name, config]: [string, unknown]) => ({
-                  name,
-                  description:
-                    (config as { description?: string }).description || "",
-                  required:
-                    (config as { required?: boolean }).required || false,
-                })
-              );
-            }
-          } catch (error) {
-            this.logger.warn(
-              `Failed to parse arguments for custom prompt ${prompt.name}:`,
-              {
-                error: error instanceof Error ? error.message : String(error),
-              }
-            );
-          }
-
-          return {
-            name: `custom_${prompt.name}`, // Prefix to distinguish from default prompts
-            description: prompt.description,
-            arguments: arguments_array,
-          };
-        });
-
-        allPrompts.push(...mcpCustomPrompts);
-
-        await prisma.$disconnect();
-
-        this.logger.info(
-          `Added ${mcpCustomPrompts.length} custom prompts for organization ${session.organizationId}`
-        );
-      } catch (error) {
-        this.logger.warn("Failed to fetch custom prompts from database:", {
-          error: error instanceof Error ? error.message : String(error),
-          organizationId: session.organizationId,
-        });
-      }
-    }
-
-    return allPrompts;
+    // Route all other requests to appropriate servers
+    return await this.requestRouter.routeAndExecuteRequest(request, session);
   }
 }
