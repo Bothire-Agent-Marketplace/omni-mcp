@@ -74,14 +74,47 @@ export function PromptFormDialog({
   // Initialize form data when dialog opens
   useEffect(() => {
     if (open && prompt) {
+      // Extract template content for editing
+      let templateForEditing = "";
+      if (typeof prompt.template === "string") {
+        templateForEditing = prompt.template;
+      } else if (Array.isArray(prompt.template)) {
+        // Extract content from message format (default prompts or normalized custom prompts)
+        templateForEditing = prompt.template
+          .map((msg) => {
+            if (msg && typeof msg === "object" && "content" in msg) {
+              return (msg as { content: string }).content;
+            }
+            return JSON.stringify(msg);
+          })
+          .join("\n\n");
+      } else if (
+        typeof prompt.template === "object" &&
+        prompt.template !== null
+      ) {
+        // Handle legacy custom prompt formats
+        const templateObj = prompt.template as Record<string, unknown>;
+
+        // If it has a message property, extract that for editing
+        if (
+          "message" in templateObj &&
+          typeof templateObj.message === "string"
+        ) {
+          templateForEditing = templateObj.message;
+        } else {
+          // Otherwise, stringify the whole object for editing
+          templateForEditing = JSON.stringify(templateObj, null, 2);
+        }
+      } else {
+        // Fallback for other formats
+        templateForEditing = JSON.stringify(prompt.template, null, 2);
+      }
+
       setFormData({
         mcpServerId: prompt.mcpServer.id,
         name: prompt.name,
         description: prompt.description,
-        template:
-          typeof prompt.template === "string"
-            ? prompt.template
-            : JSON.stringify(prompt.template, null, 2),
+        template: templateForEditing,
       });
 
       // Convert existing arguments to visual format
@@ -174,10 +207,53 @@ export function PromptFormDialog({
 
     setIsLoading(true);
     try {
-      const templateObj =
-        typeof formData.template === "string"
-          ? { message: formData.template }
-          : JSON.parse(formData.template);
+      // Normalize template to match default prompt format (array of message objects)
+      let templateObj;
+      if (typeof formData.template === "string") {
+        // Convert string template to standard message format
+        templateObj = [
+          {
+            role: "user",
+            content: formData.template,
+          },
+        ];
+      } else {
+        try {
+          const parsed = JSON.parse(formData.template);
+          // If it's already in the correct format, use it
+          if (
+            Array.isArray(parsed) &&
+            parsed.every(
+              (msg) =>
+                msg &&
+                typeof msg === "object" &&
+                "role" in msg &&
+                "content" in msg
+            )
+          ) {
+            templateObj = parsed;
+          } else {
+            // Convert object format to standard message format
+            templateObj = [
+              {
+                role: "user",
+                content:
+                  typeof parsed === "string"
+                    ? parsed
+                    : JSON.stringify(parsed, null, 2),
+              },
+            ];
+          }
+        } catch {
+          // Fallback for invalid JSON
+          templateObj = [
+            {
+              role: "user",
+              content: formData.template,
+            },
+          ];
+        }
+      }
 
       const argumentsObj = isVisualMode
         ? argumentsToJsonSchema(argumentsSchema)
@@ -234,7 +310,7 @@ export function PromptFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-xl">
             {isEditing ? "Edit Prompt" : "Create New Prompt"}

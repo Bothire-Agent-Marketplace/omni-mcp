@@ -15,7 +15,15 @@ const PromptSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(500, "Description must be less than 500 characters"),
-  template: z.record(z.string(), z.unknown()),
+  template: z.union([
+    z.record(z.string(), z.unknown()), // Legacy object format
+    z.array(
+      z.object({
+        role: z.enum(["user", "system", "assistant"]),
+        content: z.string(),
+      })
+    ), // New array format for consistency with defaults
+  ]),
   arguments: z.record(z.string(), z.unknown()).optional().default({}),
 });
 

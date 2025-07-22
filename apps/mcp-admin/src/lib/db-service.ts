@@ -591,10 +591,30 @@ export class DatabaseService {
     mcpServerId: string;
     name: string;
     description: string;
-    template: Record<string, unknown>;
+    template:
+      | Record<string, unknown>
+      | Array<{ role: "user" | "system" | "assistant"; content: string }>;
     arguments: Record<string, unknown>;
     createdBy?: string;
   }) {
+    // Find the next available version number for this prompt name
+    const existingPrompts = await prisma.organizationPrompt.findMany({
+      where: {
+        organizationId: data.organizationId,
+        mcpServerId: data.mcpServerId,
+        name: data.name,
+      },
+      select: {
+        version: true,
+      },
+      orderBy: {
+        version: "desc",
+      },
+    });
+
+    const nextVersion =
+      existingPrompts.length > 0 ? existingPrompts[0].version + 1 : 1;
+
     const newPrompt = await prisma.organizationPrompt.create({
       data: {
         organizationId: data.organizationId,
@@ -605,7 +625,7 @@ export class DatabaseService {
         arguments: this.sanitizeForPrisma(data.arguments),
         createdBy: data.createdBy,
         isActive: true,
-        version: 1,
+        version: nextVersion,
       },
       include: {
         mcpServer: true,
