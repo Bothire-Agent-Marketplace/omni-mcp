@@ -179,11 +179,11 @@ export function ArgumentsSchemaBuilder({
                       updateArgument(index, { name: e.target.value })
                     }
                     placeholder="e.g. userName, taskType"
-                    className={!arg.name ? "border-amber-300" : ""}
-                  />
-                  {!arg.name && (
-                    <p className="text-xs text-amber-600">Name is required</p>
-                  )}
+                                      className={!arg.name ? "border-destructive" : ""}
+                />
+                {!arg.name && (
+                  <p className="text-xs text-destructive">Name is required</p>
+                )}
                 </div>
 
                 {/* Type */}

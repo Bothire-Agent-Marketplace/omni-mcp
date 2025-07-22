@@ -8,8 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { PromptViewer } from "@/components/ui/prompt-viewer";
-import { PromptFormDialog } from "@/components/ui/prompt-form-dialog";
+import { PromptViewer } from "@/components/prompt-viewer";
+import { PromptFormDialog } from "@/components/prompt-form-dialog";
 import { useState } from "react";
 import {
   Dialog,

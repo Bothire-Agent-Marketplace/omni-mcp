@@ -8,8 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { ResourceViewer } from "@/components/ui/resource-viewer";
-import { ResourceFormDialog } from "@/components/ui/resource-form-dialog";
+import { ResourceViewer } from "@/components/resource-viewer";
+import { ResourceFormDialog } from "@/components/resource-form-dialog";
 import { useState } from "react";
 import {
   Dialog,
@@ -99,7 +99,7 @@ export function ResourceActions({
         onOpenChange={setIsEditDialogOpen}
         resource={resource}
         mcpServers={mcpServers}
-        onSave={(updatedResource) => {
+        onSave={() => {
           // Refresh the page to show updated data
           window.location.reload();
         }}

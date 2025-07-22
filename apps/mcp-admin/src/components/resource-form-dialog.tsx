@@ -506,7 +506,7 @@ export function ResourceFormDialog({
                     <div className="space-y-3">
                       <Label>Test Results</Label>
                       {uriTestResult.success ? (
-                        <Alert className="border-green-200 bg-green-50">
+                        <Alert className="border-green-200 bg-green-50/50">
                           <CheckCircle2 className="h-4 w-4 text-green-600" />
                           <AlertDescription className="text-green-700">
                             <div className="space-y-2">

@@ -215,7 +215,7 @@ export function PromptTester({
               onClick={executePrompt}
               size="sm"
               disabled={!isValid}
-              className={isValid ? "bg-green-600 hover:bg-green-700" : ""}
+              className={isValid ? "" : ""}
             >
               <Play className="w-4 h-4 mr-2" />
               Test Prompt
@@ -274,7 +274,7 @@ export function PromptTester({
                         }
                       >
                         <SelectTrigger
-                          className={hasError ? "border-red-300" : ""}
+                          className={hasError ? "border-destructive" : ""}
                         >
                           <SelectValue
                             placeholder={arg.placeholder || "Select an option"}
@@ -298,7 +298,7 @@ export function PromptTester({
                         }
                         placeholder={arg.placeholder || `Enter ${arg.name}`}
                         rows={2}
-                        className={hasError ? "border-red-300" : ""}
+                        className={hasError ? "border-destructive" : ""}
                       />
                     ) : /* Number input */
                     arg.type === "number" ? (
@@ -313,7 +313,7 @@ export function PromptTester({
                           )
                         }
                         placeholder={arg.placeholder || `Enter ${arg.name}`}
-                        className={hasError ? "border-red-300" : ""}
+                        className={hasError ? "border-destructive" : ""}
                       />
                     ) : /* Boolean input */
                     arg.type === "boolean" ? (
@@ -340,12 +340,12 @@ export function PromptTester({
                             : '{"key": "value"}'
                         }
                         rows={3}
-                        className={`font-mono text-sm ${hasError ? "border-red-300" : ""}`}
+                        className={`font-mono text-sm ${hasError ? "border-destructive" : ""}`}
                       />
                     ) : null}
 
                     {hasError && (
-                      <p className="text-xs text-red-600">
+                      <p className="text-xs text-destructive">
                         This field is required
                       </p>
                     )}

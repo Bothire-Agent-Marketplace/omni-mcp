@@ -1,4 +1,4 @@
-import type { ArgumentDefinition } from "@/components/ui/arguments-schema-builder";
+import { type ArgumentDefinition } from "@/components/arguments-schema-builder";
 
 // Type definitions for JSON schema properties
 interface JsonSchemaProperty {

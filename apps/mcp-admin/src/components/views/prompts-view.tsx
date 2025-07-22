@@ -4,8 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Plus, Edit, Trash2, Eye, Copy } from "lucide-react";
+import { Eye, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/table";
 import { CreatePromptButton } from "../forms/create-prompt-button";
 import { PromptActions } from "../forms/prompt-actions";
-import { PromptViewer } from "@/components/ui/prompt-viewer";
+import { PromptViewer } from "../prompt-viewer";
 import { toast } from "sonner";
 import type {
   OrganizationPrompt,
