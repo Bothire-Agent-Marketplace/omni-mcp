@@ -14,15 +14,8 @@ const PromptSchema = z.object({
     .string()
     .min(1, "Description is required")
     .max(500, "Description must be less than 500 characters"),
-  template: z
-    .array(
-      z.object({
-        role: z.enum(["user", "system", "assistant"]),
-        content: z.string().min(1, "Content is required"),
-      })
-    )
-    .min(1, "At least one template message is required"),
-  arguments: z.record(z.any()).optional().default({}),
+  template: z.record(z.string(), z.unknown()),
+  arguments: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 // GET /api/organization/prompts - Get organization prompts
