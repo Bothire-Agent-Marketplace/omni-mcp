@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { ResourceFormDialog } from "@/components/ui/resource-form-dialog";
 import { useState } from "react";
 import type { McpServer } from "@/types/resources";
 
@@ -29,8 +30,7 @@ export function CreateResourceButton({
         Create Resource
       </Button>
 
-      {/* TODO: Add ResourceFormDialog when it exists */}
-      {/* <ResourceFormDialog
+      <ResourceFormDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         mcpServers={mcpServers}
@@ -38,7 +38,7 @@ export function CreateResourceButton({
           // Refresh the page to show updated data
           window.location.reload();
         }}
-      /> */}
+      />
     </>
   );
 }

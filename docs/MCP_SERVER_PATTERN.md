@@ -2,7 +2,8 @@
 
 ## Overview
 
-This document describes the standardized pattern for creating MCP servers in this monorepo.
+This document describes the standardized pattern for creating MCP servers in this monorepo, updated
+to reflect our **database-driven configuration system**.
 
 ## Fundamental Differences: Tools, Resources, and Prompts in MCP Servers
 
@@ -65,7 +66,7 @@ saying things in a structured way.
 
 ## File Structure Template
 
-When creating a new MCP server, follow this structure:
+When creating a new MCP server, follow this **database-driven** structure:
 
 ```
 apps/[domain]-mcp-server/
@@ -78,14 +79,62 @@ apps/[domain]-mcp-server/
 │   │   └── domain-schemas.ts      # Domain-specific Zod validation schemas
 │   ├── mcp-server/
 │   │   ├── handlers.ts            # Business logic handlers
-│   │   ├── http-server.ts         # HTTP server setup
-│   │   ├── tools.ts               # Tool definitions and exports
-│   │   ├── resources.ts           # Resource definitions and exports
-│   │   └── prompts.ts             # Prompt functions
+│   │   ├── http-server.ts         # HTTP server setup (using createEnhancedMcpHttpServer)
+│   │   └── tools.ts               # Tool definitions and exports
 │   │
 │   └── index.ts                   # Main entry point
 ├── package.json
 └── tsconfig.json
+```
+
+## 🔄 **DATABASE-DRIVEN ARCHITECTURE (Updated Pattern)**
+
+### What Changed
+
+**Previous Pattern (Static):**
+
+```bash
+# ❌ OLD - Static files (removed)
+├── mcp-server/
+│   ├── prompts.ts     # Static prompt definitions (REMOVED)
+│   ├── resources.ts   # Static resource definitions (REMOVED)
+```
+
+**New Pattern (Database-Driven):**
+
+```bash
+# ✅ NEW - Dynamic loading from database
+├── mcp-server/
+│   ├── http-server.ts # Uses createEnhancedMcpHttpServer
+│   └── tools.ts       # Tools only - prompts/resources loaded dynamically
+```
+
+### Key Benefits of New Pattern
+
+1. **Single Source of Truth**: Database contains all prompts/resources
+2. **Zero Configuration Drift**: No hardcoded configs across servers
+3. **Hot Reloading**: Changes take effect without server restarts
+4. **Multi-tenant Ready**: Organization-specific customization
+5. **Version Control**: Full audit trail and rollback capability
+6. **Admin UI**: Web interface for managing prompts/resources
+
+### Integration with Enhanced Server Core
+
+All MCP servers now use `createEnhancedMcpHttpServer` from `@mcp/server-core`:
+
+```typescript
+// apps/[domain]-mcp-server/src/mcp-server/http-server.ts
+import { createEnhancedMcpHttpServer } from "@mcp/server-core";
+import { toolHandlers } from "./tools";
+
+const server = createEnhancedMcpHttpServer({
+  serverName: "domain-server",
+  handlers: {
+    tools: toolHandlers,
+    // Prompts and resources loaded dynamically from database
+    // via DefaultDynamicHandlerRegistry
+  },
+});
 ```
 
 ## File Naming Convention
@@ -113,7 +162,7 @@ node scripts/scaffold-mcp-server.js add github
 
 # The tool will automatically:
 # 1. Create the server directory structure
-# 2. Generate all template files
+# 2. Generate all template files with DATABASE-DRIVEN pattern
 # 3. Create input schemas in @mcp/schemas
 # 4. Register with @mcp/capabilities
 # 5. Update configuration files
@@ -121,16 +170,18 @@ node scripts/scaffold-mcp-server.js add github
 # 7. Build and validate the server
 ```
 
-### What Gets Generated
+### What Gets Generated (Updated)
 
 The scaffolding tool creates a complete, working MCP server with:
 
-- **Server Structure**: All directories and files following the standard pattern
+- **Server Structure**: All directories and files following the DATABASE-DRIVEN pattern
+- **Enhanced HTTP Server**: Uses `createEnhancedMcpHttpServer` with dynamic handlers
 - **Template Handlers**: Placeholder API handlers with proper error handling
 - **Input Schemas**: Centralized schemas in `@mcp/schemas/input-schemas/[domain].ts`
 - **Capabilities Registration**: Auto-registration in `@mcp/capabilities`
 - **Configuration**: Environment variables, TypeScript config, and dependency setup
 - **Validation**: Builds successfully and passes startup tests
+- **Database Integration**: Automatic prompts/resources loading from database
 
 ### Customization After Scaffolding
 
@@ -166,7 +217,24 @@ export interface GitHubRepoResource {
 }
 ```
 
-#### 3. Update Validation Schemas (`src/schemas/domain-schemas.ts`)
+#### 3. Update HTTP Server (`src/mcp-server/http-server.ts`)
+
+Use the enhanced server pattern:
+
+```typescript
+import { createEnhancedMcpHttpServer } from "@mcp/server-core";
+import { toolHandlers } from "./tools";
+
+export const server = createEnhancedMcpHttpServer({
+  serverName: "github-server",
+  handlers: {
+    tools: toolHandlers,
+    // Prompts and resources are loaded dynamically from database
+  },
+});
+```
+
+#### 4. Update Validation Schemas (`src/schemas/domain-schemas.ts`)
 
 Customize Zod schemas for your domain's validation needs:
 
@@ -191,6 +259,50 @@ node scripts/scaffold-mcp-server.js remove github
 node packages/dev-tools/src/cli/index.js test-server github
 ```
 
+## Managing Prompts and Resources
+
+### Database Management
+
+Prompts and resources are now managed through:
+
+1. **Database Tables**:
+   - `DefaultPrompt` / `DefaultResource` - System-wide defaults
+   - `OrganizationPrompt` / `OrganizationResource` - Custom per-organization
+
+2. **Admin UI**: `http://localhost:3000/organization/settings/prompts`
+   - Create, edit, delete prompts/resources
+   - Test prompt templates with variable substitution
+   - Version tracking and rollback
+   - Organization-specific customization
+
+3. **API Endpoints**:
+   ```bash
+   # List prompts via MCP protocol
+   curl -X POST -H "Content-Type: application/json" \
+     -H "Authorization: Bearer dev-api-key-12345" \
+     -d '{"jsonrpc":"2.0","id":1,"method":"prompts/list","params":{}}' \
+     http://localhost:37373/mcp
+   ```
+
+### Seeding Default Prompts/Resources
+
+Add system defaults via database seed scripts:
+
+```typescript
+// packages/database/prisma/seed-prompts-resources.ts
+const githubPrompts = [
+  {
+    name: "create_pull_request_workflow",
+    description: "Step-by-step workflow for creating GitHub pull requests",
+    template: [{ role: "user", content: "Help me create a pull request for {{repository}}" }],
+    arguments: {
+      repository: { type: "string", required: true, description: "Repository name" },
+    },
+    mcpServerName: "github",
+  },
+];
+```
+
 ## InputSchemas Directory Structure
 
 ```
@@ -207,30 +319,80 @@ packages/schemas/src/mcp/input-schemas/
 ### Benefits of Automated Scaffolding
 
 1. **Speed**: Create a working server in seconds, not hours
-2. **Consistency**: All servers follow identical patterns
+2. **Consistency**: All servers follow identical DATABASE-DRIVEN patterns
 3. **Validation**: Generated servers build and start successfully
 4. **Integration**: Automatic registration with gateway and capabilities
-5. **Best Practices**: Templates include proper error handling and validation
+5. **Best Practices**: Templates include database integration and dynamic loading
 
-## Benefits of This Pattern
+## Benefits of Database-Driven Pattern
 
-1. **Consistency**: All servers follow the same structure
+1. **Consistency**: All servers follow the same dynamic structure
 2. **Type Safety**: Centralized schemas ensure type safety
-3. **Reusability**: Common patterns are shared via `@mcp/schemas`
+3. **Reusability**: Common patterns are shared via `@mcp/server-core`
 4. **Maintainability**: Clear separation of concerns
-5. **Scaffolding**: Easy to create new servers
+5. **Scalability**: Database caching and multi-tenant support
+6. **Hot Reloading**: Changes take effect without deployment
+7. **Admin UI**: User-friendly management interface
 
 ## Best Practices
 
-1. **Keep domain-specific code in domain files**
-2. **Use centralized schemas for inputSchemas**
-3. **Follow the same handler pattern across servers**
-4. **Maintain consistent error handling**
-5. **Document your domain-specific APIs**
+1. **Use Enhanced HTTP Server**: Always use `createEnhancedMcpHttpServer`
+2. **No Static Config**: Never create static prompts.ts or resources.ts files
+3. **Database Integration**: Leverage the dynamic handler registry
+4. **Organization Context**: Handle multi-tenant scenarios gracefully
+5. **Version Control**: Use database versioning for prompts/resources
+6. **Admin UI First**: Manage prompts/resources through the web interface
+7. **Follow Tool Patterns**: Keep domain-specific code in domain files
+8. **Centralized Schemas**: Use `@mcp/schemas` for input validation
 
 ## Examples
 
-- **Linear Server**: Issues, Teams, Users, Projects
-- **GitHub Server**: Repos, Issues, Pull Requests, Actions
-- **Slack Server**: Messages, Channels, Users, Workspaces
-- **Notion Server**: Pages, Databases, Blocks, Users
+Current servers using the DATABASE-DRIVEN pattern:
+
+- **✅ Linear Server**: Issues, Teams, Users, Projects + Dynamic Prompts/Resources
+- **✅ Perplexity Server**: Search, Research, Compare + Dynamic Prompts/Resources
+- **✅ DevTools Server**: Chrome automation + Dynamic Prompts/Resources
+
+Future servers will follow the same pattern:
+
+- **GitHub Server**: Repos, Issues, Pull Requests, Actions + Dynamic Config
+- **Slack Server**: Messages, Channels, Users, Workspaces + Dynamic Config
+- **Notion Server**: Pages, Databases, Blocks, Users + Dynamic Config
+
+## Migration Guide
+
+If you have existing servers with static prompts/resources files:
+
+### 1. Remove Static Files
+
+```bash
+# Remove these files
+rm src/mcp-server/prompts.ts
+rm src/mcp-server/resources.ts
+```
+
+### 2. Update HTTP Server
+
+```typescript
+// Replace with enhanced server
+import { createEnhancedMcpHttpServer } from "@mcp/server-core";
+```
+
+### 3. Migrate Data to Database
+
+```bash
+# Add your prompts/resources to seed script
+vim packages/database/prisma/seed-prompts-resources.ts
+```
+
+### 4. Test Dynamic Loading
+
+```bash
+# Verify prompts/resources load from database
+curl -X POST -H "Content-Type: application/json" \
+  -H "Authorization: Bearer dev-api-key-12345" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/list","params":{}}' \
+  http://localhost:37373/mcp
+```
+
+**The database-driven pattern is now the standard for all MCP servers!** 🎉
