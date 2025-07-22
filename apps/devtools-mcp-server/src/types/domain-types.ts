@@ -136,23 +136,3 @@ interface NetworkCallFrame {
   lineNumber: number;
   columnNumber: number;
 }
-
-// ============================================================================
-// RESOURCE TYPES - For backward compatibility
-// ============================================================================
-
-export interface DevtoolsItemResource {
-  id: string;
-  title: string;
-  description: string;
-  uri: string;
-  mimeType: string;
-}
-
-export interface DevtoolsProjectResource {
-  id: string;
-  name: string;
-  description: string;
-  uri: string;
-  mimeType: string;
-}
