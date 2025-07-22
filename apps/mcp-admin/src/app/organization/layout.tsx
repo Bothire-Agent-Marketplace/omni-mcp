@@ -13,26 +13,18 @@ export default async function OrganizationLayout({
 }) {
   const { userId, orgId } = await auth();
 
-  console.log("Organization Layout Debug:", { userId, orgId });
-
   if (!userId) {
-    console.log("No userId, redirecting to sign-in");
     redirect("/sign-in");
   }
 
   if (!orgId) {
-    console.log("No orgId, redirecting to home");
     redirect("/");
   }
 
   // Get organization details for context
-  console.log("Looking up organization with clerkId:", orgId);
   const organization = await DatabaseService.getOrganizationByClerkId(orgId);
 
-  console.log("Organization found:", organization);
-
   if (!organization) {
-    console.log("Organization not found in database, redirecting to home");
     redirect("/");
   }
 
