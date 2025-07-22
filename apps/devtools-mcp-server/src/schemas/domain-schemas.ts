@@ -57,15 +57,3 @@ export const GetNetworkRequestsSchema = z.object({
 export const GetNetworkResponseSchema = z.object({
   requestId: z.string(),
 });
-
-// ============================================================================
-// PROMPT SCHEMAS
-// ============================================================================
-
-export const DevtoolsWorkflowArgsSchema = z.object({
-  task: z.string().optional(),
-});
-
-export const DevtoolsAutomationArgsSchema = z.object({
-  action: z.string().optional(),
-});

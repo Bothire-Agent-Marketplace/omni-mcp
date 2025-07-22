@@ -21,6 +21,19 @@ export function createConfigManager(
 }
 
 /**
+ * Create a development configuration with local gateway and API key
+ */
+export function createDevelopmentConfig(
+  gatewayUrl: string = "http://localhost:37373",
+  additionalServers?: Record<string, string>,
+  options?: {
+    bridgeOptions?: Partial<BridgeOptions>;
+  }
+): ConfigManager {
+  return ConfigManager.forDevelopment(gatewayUrl, additionalServers, options);
+}
+
+/**
  * Generate client configurations for common scenarios
  */
 export async function generateClientConfigs(
@@ -58,6 +71,29 @@ export async function deployConfigs(
     environment: options?.environment,
     bridgeOptions: options?.bridgeOptions,
   });
+
+  await manager.saveConfigs(options?.clients, options?.customPaths);
+}
+
+/**
+ * Deploy development configurations with local gateway and API key
+ */
+export async function deployDevelopmentConfigs(
+  gatewayUrl: string = "http://localhost:37373",
+  options?: {
+    clients?: MCPClientType[];
+    additionalServers?: Record<string, string>;
+    bridgeOptions?: Partial<BridgeOptions>;
+    customPaths?: Partial<Record<MCPClientType, string>>;
+  }
+): Promise<void> {
+  const manager = createDevelopmentConfig(
+    gatewayUrl,
+    options?.additionalServers,
+    {
+      bridgeOptions: options?.bridgeOptions,
+    }
+  );
 
   await manager.saveConfigs(options?.clients, options?.customPaths);
 }

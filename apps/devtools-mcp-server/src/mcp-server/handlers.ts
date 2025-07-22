@@ -18,8 +18,6 @@ import type {
   ConsoleLogEntry,
   NetworkRequest,
   NetworkResponse,
-  DevtoolsItemResource,
-  DevtoolsProjectResource,
 } from "../types/domain-types.js";
 import type { ChromeDevToolsClient } from "./chrome-client.js";
 
@@ -512,65 +510,6 @@ export async function handleGetNetworkResponse(
           null,
           2
         ),
-      },
-    ],
-  };
-}
-
-// ============================================================================
-// RESOURCE HANDLERS (for backward compatibility)
-// ============================================================================
-
-export async function handleDevtoolsItemsResource(
-  _client: ChromeDevToolsClient,
-  uri: string
-) {
-  const items: DevtoolsItemResource[] = [
-    {
-      id: "console-logs",
-      title: "Console Logs",
-      description: "JavaScript console output and errors",
-      uri: uri,
-      mimeType: "application/json",
-    },
-    {
-      id: "network-requests",
-      title: "Network Requests",
-      description: "HTTP requests and responses",
-      uri: uri,
-      mimeType: "application/json",
-    },
-  ];
-
-  return {
-    contents: [
-      {
-        uri: uri,
-        text: JSON.stringify(items, null, 2),
-      },
-    ],
-  };
-}
-
-export async function handleDevtoolsProjectsResource(
-  _client: ChromeDevToolsClient,
-  uri: string
-) {
-  const projects: DevtoolsProjectResource[] = [
-    {
-      id: "chrome-session",
-      name: "Chrome Browser Session",
-      description: "Current Chrome debugging session",
-      uri: uri,
-      mimeType: "application/json",
-    },
-  ];
-
-  return {
-    contents: [
-      {
-        uri: uri,
-        text: JSON.stringify(projects, null, 2),
       },
     ],
   };

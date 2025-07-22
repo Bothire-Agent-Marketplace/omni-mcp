@@ -194,7 +194,7 @@ export interface McpPromptsListResponse {
 
 // Configuration context
 export interface ConfigContext {
-  organizationId: string;
+  organizationId: string | null; // null means load only defaults
   mcpServerId: string;
 }
 

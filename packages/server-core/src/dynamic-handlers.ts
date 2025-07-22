@@ -34,12 +34,10 @@ export class DefaultDynamicHandlerRegistry implements DynamicHandlerRegistry {
   private getConfigContext(
     context?: RequestContext
   ): ConfigContext | undefined {
-    if (!context?.organization) {
-      return undefined;
-    }
-
+    // Always return a valid ConfigContext - use null organization for defaults
+    // when no organization context is available
     return {
-      organizationId: context.organization.organizationId,
+      organizationId: context?.organization?.organizationId || null,
       mcpServerId: this.mcpServerId,
     };
   }

@@ -19,8 +19,10 @@ export class ResourceManager implements IResourceManager {
    * Get all resources for an organization and server, with defaults as fallback
    */
   async getResources(context: ConfigContext): Promise<ResourceRegistry> {
+    const cacheKey = context.organizationId || "default";
+
     // Check cache first
-    const cached = this.cache.get(context.organizationId, context.mcpServerId);
+    const cached = this.cache.get(cacheKey, context.mcpServerId);
     if (cached) {
       return cached;
     }
@@ -37,7 +39,7 @@ export class ResourceManager implements IResourceManager {
     const registry = { ...defaultResources, ...customResources };
 
     // Cache the result
-    this.cache.set(context.organizationId, context.mcpServerId, registry);
+    this.cache.set(cacheKey, context.mcpServerId, registry);
 
     return registry;
   }
@@ -57,7 +59,8 @@ export class ResourceManager implements IResourceManager {
    * Invalidate cache for a specific organization and server
    */
   invalidateCache(context: ConfigContext): void {
-    this.cache.delete(context.organizationId, context.mcpServerId);
+    const cacheKey = context.organizationId || "default";
+    this.cache.delete(cacheKey, context.mcpServerId);
   }
 
   /**
@@ -97,6 +100,11 @@ export class ResourceManager implements IResourceManager {
   private async loadCustomResources(
     context: ConfigContext
   ): Promise<ResourceRegistry> {
+    // Skip custom resources if no organization context
+    if (!context.organizationId) {
+      return {};
+    }
+
     const resources = await db.organizationResource.findMany({
       where: {
         organizationId: context.organizationId,

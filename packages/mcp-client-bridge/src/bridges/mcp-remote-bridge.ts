@@ -157,13 +157,21 @@ export class MCPRemoteBridge extends BaseBridge {
     // For local development, create a bridge script file
     const bridgeScriptPath = this.createBridgeScriptFile();
 
+    const env: Record<string, string> = {
+      GATEWAY_URL: this.serverEndpoint.url,
+      DEBUG: this.options.debug ? "1" : "0",
+    };
+
+    // Add API key if available
+    const apiKey = this.serverEndpoint.headers?.["x-api-key"];
+    if (apiKey) {
+      env.MCP_API_KEY = apiKey;
+    }
+
     return {
       command: "node",
       args: [bridgeScriptPath],
-      env: {
-        GATEWAY_URL: this.serverEndpoint.url,
-        DEBUG: this.options.debug ? "1" : "0",
-      },
+      env,
     };
   }
 
@@ -187,8 +195,10 @@ export class MCPRemoteBridge extends BaseBridge {
 const { stdin, stdout, stderr } = process;
 const gatewayUrl = process.env.GATEWAY_URL + '/mcp';
 const debug = process.env.DEBUG === '1';
+const apiKey = process.env.MCP_API_KEY;
 
 if (debug) stderr.write('Starting MCP bridge to: ' + gatewayUrl + '\\n');
+if (debug && apiKey) stderr.write('Using API key: ' + apiKey.substring(0, 8) + '...\\n');
 
 let inputBuffer = '';
 
@@ -208,9 +218,14 @@ async function handleRequest(request) {
   try {
     if (debug) stderr.write('-> ' + JSON.stringify(request) + '\\n');
     
+    const headers = { 'Content-Type': 'application/json' };
+    if (apiKey) {
+      headers['x-api-key'] = apiKey;
+    }
+    
     const response = await fetch(gatewayUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(request)
     });
     

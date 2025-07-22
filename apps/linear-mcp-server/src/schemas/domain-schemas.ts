@@ -91,20 +91,3 @@ export const GetIssueInputSchema = z.object({
       "Issue identifier like 'TEAM-123' (either issueId or identifier required)"
     ),
 });
-
-// Prompt validation schemas - Update these for your specific domain prompts
-export const CreateIssueWorkflowArgsSchema = z.object({
-  teamId: z
-    .string()
-    .optional()
-    .describe("ID of the team to create the issue for"),
-  priority: z.string().optional().describe("Default priority level (0-4)"),
-});
-
-export const SprintPlanningArgsSchema = z.object({
-  teamId: z.string().optional().describe("ID of the team for sprint planning"),
-  sprintDuration: z
-    .string()
-    .optional()
-    .describe("Duration of the sprint in weeks"),
-});

@@ -20,8 +20,10 @@ export class PromptManager implements IPromptManager {
    * Get all prompts for an organization and server, with defaults as fallback
    */
   async getPrompts(context: ConfigContext): Promise<PromptRegistry> {
+    const cacheKey = context.organizationId || "default";
+
     // Check cache first
-    const cached = this.cache.get(context.organizationId, context.mcpServerId);
+    const cached = this.cache.get(cacheKey, context.mcpServerId);
     if (cached) {
       return cached;
     }
@@ -36,7 +38,7 @@ export class PromptManager implements IPromptManager {
     const registry = { ...defaultPrompts, ...customPrompts };
 
     // Cache the result
-    this.cache.set(context.organizationId, context.mcpServerId, registry);
+    this.cache.set(cacheKey, context.mcpServerId, registry);
 
     return registry;
   }
@@ -56,7 +58,8 @@ export class PromptManager implements IPromptManager {
    * Invalidate cache for a specific organization and server
    */
   invalidateCache(context: ConfigContext): void {
-    this.cache.delete(context.organizationId, context.mcpServerId);
+    const cacheKey = context.organizationId || "default";
+    this.cache.delete(cacheKey, context.mcpServerId);
   }
 
   /**
@@ -101,6 +104,11 @@ export class PromptManager implements IPromptManager {
   private async loadCustomPrompts(
     context: ConfigContext
   ): Promise<PromptRegistry> {
+    // Skip custom prompts if no organization context
+    if (!context.organizationId) {
+      return {};
+    }
+
     const prompts = await db.organizationPrompt.findMany({
       where: {
         organizationId: context.organizationId,
@@ -135,8 +143,7 @@ export class PromptManager implements IPromptManager {
             isActive: prompt.isActive,
           };
         } catch (error) {
-          console.error(`Failed to parse prompt ${prompt.name}:`, error);
-          // Skip invalid prompts
+          console.error(`Failed to parse custom prompt ${prompt.name}:`, error);
         }
       }
     }
