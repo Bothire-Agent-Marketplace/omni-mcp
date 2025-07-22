@@ -5,7 +5,6 @@ import {
   ResourceDefinition,
 } from "@mcp/config-service";
 import type {
-  DynamicHandlerRegistry,
   ToolHandler,
   ResourceHandler,
   PromptHandler,
@@ -13,13 +12,59 @@ import type {
 } from "./config.js";
 
 // ============================================================================
-// DYNAMIC HANDLER REGISTRY IMPLEMENTATION
+// DYNAMIC HANDLER REGISTRY - INTERFACE & IMPLEMENTATION
 // ============================================================================
 
 /**
- * Default dynamic handler registry that uses ConfigLoader for organization-specific configs
+ * Interface for dynamic handler registries that can load handlers based on organization context
  */
-export class DefaultDynamicHandlerRegistry implements DynamicHandlerRegistry {
+export interface DynamicHandlerRegistry {
+  /** Get tool handler for a specific tool name and organization context */
+  getToolHandler: (
+    toolName: string,
+    context?: RequestContext
+  ) => Promise<ToolHandler | undefined>;
+  /** Get resource handler for a specific URI and organization context */
+  getResourceHandler: (
+    uri: string,
+    context?: RequestContext
+  ) => Promise<ResourceHandler | undefined>;
+  /** Get prompt handler for a specific prompt name and organization context */
+  getPromptHandler: (
+    promptName: string,
+    context?: RequestContext
+  ) => Promise<PromptHandler | undefined>;
+  /** Get all available tools for a given context */
+  getAvailableTools: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+      inputSchema: unknown;
+    }>
+  >;
+  /** Get all available resources for a given context */
+  getAvailableResources: (context?: RequestContext) => Promise<
+    Array<{
+      uri: string;
+      name: string;
+      description: string;
+      mimeType?: string;
+    }>
+  >;
+  /** Get all available prompts for a given context */
+  getAvailablePrompts: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+    }>
+  >;
+}
+
+/**
+ * Database-backed implementation of DynamicHandlerRegistry
+ * Uses ConfigLoader to load organization-specific prompts and resources from database
+ */
+export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
   private configLoader: ConfigLoader;
   private mcpServerId: string;
 
@@ -282,7 +327,7 @@ export function createDynamicHandlerRegistry(
   mcpServerId: string,
   configLoader?: ConfigLoader
 ): DynamicHandlerRegistry {
-  return new DefaultDynamicHandlerRegistry(mcpServerId, configLoader);
+  return new DatabaseDynamicHandlerRegistry(mcpServerId, configLoader);
 }
 
 /**

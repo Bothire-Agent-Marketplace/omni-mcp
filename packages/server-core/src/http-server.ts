@@ -18,13 +18,13 @@ import type {
   ServerCreationOptions,
   HandlerRegistries,
   EnhancedServerCreationOptions,
-  DynamicHandlerRegistry,
   ToolHandler,
   ResourceHandler,
   PromptHandler,
   RequestContext,
   OrganizationContext,
 } from "./config.js";
+import type { DynamicHandlerRegistry } from "./dynamic-handlers.js";
 
 // ============================================================================
 // ORGANIZATION CONTEXT EXTRACTION
@@ -160,8 +160,8 @@ export function createMcpHttpServer<TClient = unknown>(
     const requestContext = extractOrganizationContext(request);
 
     try {
-      // Route to appropriate handler based on method
-      const response = await routeRequest(method, params, id, requestContext, {
+      // Route to appropriate handler based on method using unified router
+      const registry = createStaticHandlerRegistry({
         toolHandlers,
         resourceHandlers,
         promptHandlers,
@@ -169,6 +169,13 @@ export function createMcpHttpServer<TClient = unknown>(
         getAvailableResources,
         getAvailablePrompts,
       });
+      const response = await routeMcpRequest(
+        method,
+        params,
+        id,
+        requestContext,
+        registry
+      );
 
       return response;
     } catch (error: unknown) {
@@ -220,7 +227,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
   let finalDynamicHandlers = dynamicHandlers;
   if (serverKey && !dynamicHandlers) {
     const { getServerRegistry } = require("./server-registry.js");
-    const { DefaultDynamicHandlerRegistry } = require("./dynamic-handlers.js");
+    const { DatabaseDynamicHandlerRegistry } = require("./dynamic-handlers.js");
     const { ConfigLoader } = require("@mcp/config-service");
 
     const serverRegistry = getServerRegistry(logger);
@@ -229,7 +236,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     // Create dynamic handlers with server registry lookup
     const setupDynamicHandlers = async () => {
       const serverId = await serverRegistry.getServerId(serverKey);
-      return new DefaultDynamicHandlerRegistry(serverId, configLoader);
+      return new DatabaseDynamicHandlerRegistry(serverId, configLoader);
     };
 
     // For now, we'll create a lazy-loading dynamic handler
@@ -300,19 +307,25 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     const requestContext = extractOrganizationContext(request);
 
     try {
-      // Route to appropriate handler based on method
-      const response = await routeEnhancedRequest(
+      // Route to appropriate handler based on method using unified router
+      const registry = createDynamicHandlerRegistry(
+        finalDynamicHandlers,
+        fallbackHandlers,
+        {
+          getAvailableTools: async (context?: RequestContext) =>
+            normalizeToAsync(getAvailableTools(context)),
+          getAvailableResources: async (context?: RequestContext) =>
+            normalizeToAsync(getAvailableResources(context)),
+          getAvailablePrompts: async (context?: RequestContext) =>
+            normalizeToAsync(getAvailablePrompts(context)),
+        }
+      );
+      const response = await routeMcpRequest(
         method,
         params,
         id,
         requestContext,
-        {
-          dynamicHandlers: finalDynamicHandlers,
-          fallbackHandlers,
-          getAvailableTools,
-          getAvailableResources,
-          getAvailablePrompts,
-        }
+        registry
       );
 
       return response;
@@ -339,226 +352,263 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 }
 
 // ============================================================================
-// REQUEST ROUTING
+// REQUEST ROUTING - CONSOLIDATED IMPLEMENTATION
 // ============================================================================
 
 /**
- * Routes MCP requests to appropriate handlers
+ * Consolidated handler interface - all async for consistency
  */
-async function routeRequest(
-  method: string,
-  params: unknown,
-  id: string | number | undefined,
-  requestContext: RequestContext | undefined,
-  handlers: {
-    toolHandlers: Record<string, ToolHandler>;
-    resourceHandlers: Record<string, ResourceHandler>;
-    promptHandlers: Record<string, PromptHandler>;
-    getAvailableTools: (context?: RequestContext) =>
-      | Array<{
-          name: string;
-          description: string;
-          inputSchema: unknown;
-        }>
-      | Promise<
-          Array<{
-            name: string;
-            description: string;
-            inputSchema: unknown;
-          }>
-        >;
-    getAvailableResources: (context?: RequestContext) =>
-      | Array<{
-          uri: string;
-          name: string;
-          description: string;
-          mimeType?: string;
-        }>
-      | Promise<
-          Array<{
-            uri: string;
-            name: string;
-            description: string;
-            mimeType?: string;
-          }>
-        >;
-    getAvailablePrompts: (context?: RequestContext) =>
-      | Array<{
-          name: string;
-          description: string;
-        }>
-      | Promise<
-          Array<{
-            name: string;
-            description: string;
-          }>
-        >;
-  }
-): Promise<MCPJsonRpcResponse> {
-  const DEFAULT_PARAMS: Record<string, unknown> = {};
+interface McpHandlerRegistry {
+  // Handler resolution
+  resolveToolHandler: (
+    toolName: string,
+    context?: RequestContext
+  ) => Promise<ToolHandler | undefined>;
+  resolveResourceHandler: (
+    uri: string,
+    context?: RequestContext
+  ) => Promise<ResourceHandler | undefined>;
+  resolvePromptHandler: (
+    promptName: string,
+    context?: RequestContext
+  ) => Promise<PromptHandler | undefined>;
 
-  switch (method) {
-    case "tools/call": {
-      const toolParams = params as
-        | { name?: string; arguments?: Record<string, unknown> }
-        | undefined;
-      const toolName = toolParams?.name;
-      const handler =
-        toolName && typeof toolName === "string"
-          ? handlers.toolHandlers[toolName]
-          : undefined;
-
-      if (!handler || !toolName) {
-        return createMethodNotFoundErrorResponse(
-          `Tool not found: ${toolName}`,
-          id
-        );
-      }
-
-      const result = await handler(
-        toolParams?.arguments || DEFAULT_PARAMS,
-        requestContext
-      );
-      return { jsonrpc: "2.0", id, result };
-    }
-
-    case "resources/read": {
-      const resourceParams = params as { uri?: string } | undefined;
-      const uri = resourceParams?.uri;
-      const handler =
-        uri && typeof uri === "string"
-          ? handlers.resourceHandlers[uri]
-          : undefined;
-
-      if (!handler || !uri) {
-        return createMethodNotFoundErrorResponse(
-          `Resource not found: ${uri}`,
-          id
-        );
-      }
-
-      const result = await handler(uri, requestContext);
-      return { jsonrpc: "2.0", id, result };
-    }
-
-    case "prompts/get": {
-      const promptParams = params as
-        | { name?: string; arguments?: Record<string, unknown> }
-        | undefined;
-      const name = promptParams?.name;
-      const handler =
-        name && typeof name === "string"
-          ? handlers.promptHandlers[name]
-          : undefined;
-
-      if (!handler || !name) {
-        return createMethodNotFoundErrorResponse(
-          `Prompt not found: ${name}`,
-          id
-        );
-      }
-
-      const result = await handler(
-        promptParams?.arguments || DEFAULT_PARAMS,
-        requestContext
-      );
-      return { jsonrpc: "2.0", id, result };
-    }
-
-    case "tools/list": {
-      const tools = await Promise.resolve(
-        handlers.getAvailableTools(requestContext)
-      );
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: { tools },
-      };
-    }
-
-    case "resources/list": {
-      const resources = await Promise.resolve(
-        handlers.getAvailableResources(requestContext)
-      );
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: { resources },
-      };
-    }
-
-    case "prompts/list": {
-      const prompts = await Promise.resolve(
-        handlers.getAvailablePrompts(requestContext)
-      );
-      return {
-        jsonrpc: "2.0",
-        id,
-        result: { prompts },
-      };
-    }
-
-    default: {
-      return createMethodNotFoundErrorResponse(method, id);
-    }
-  }
+  // Listing functions
+  getAvailableTools: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+      inputSchema: unknown;
+    }>
+  >;
+  getAvailableResources: (context?: RequestContext) => Promise<
+    Array<{
+      uri: string;
+      name: string;
+      description: string;
+      mimeType?: string;
+    }>
+  >;
+  getAvailablePrompts: (context?: RequestContext) => Promise<
+    Array<{
+      name: string;
+      description: string;
+    }>
+  >;
 }
 
 /**
- * Routes enhanced MCP requests to dynamic handlers
+ * Utility to normalize sync/async functions to async
  */
-async function routeEnhancedRequest(
-  method: string,
-  params: unknown,
-  id: string | number | undefined,
-  requestContext: RequestContext | undefined,
-  handlers: {
-    dynamicHandlers?: DynamicHandlerRegistry;
-    fallbackHandlers?: {
-      toolHandlers: Record<string, ToolHandler>;
-      resourceHandlers: Record<string, ResourceHandler>;
-      promptHandlers: Record<string, PromptHandler>;
-    };
-    getAvailableTools: (context?: RequestContext) =>
-      | Array<{
+async function normalizeToAsync<T>(syncOrAsync: T | Promise<T>): Promise<T> {
+  return Promise.resolve(syncOrAsync);
+}
+
+/**
+ * Create handler registry from static handlers
+ */
+function createStaticHandlerRegistry(handlers: {
+  toolHandlers: Record<string, ToolHandler>;
+  resourceHandlers: Record<string, ResourceHandler>;
+  promptHandlers: Record<string, PromptHandler>;
+  getAvailableTools: (context?: RequestContext) =>
+    | Array<{
+        name: string;
+        description: string;
+        inputSchema: unknown;
+      }>
+    | Promise<
+        Array<{
           name: string;
           description: string;
           inputSchema: unknown;
         }>
-      | Promise<
-          Array<{
-            name: string;
-            description: string;
-            inputSchema: unknown;
-          }>
-        >;
-    getAvailableResources: (context?: RequestContext) =>
-      | Array<{
+      >;
+  getAvailableResources: (context?: RequestContext) =>
+    | Array<{
+        uri: string;
+        name: string;
+        description: string;
+        mimeType?: string;
+      }>
+    | Promise<
+        Array<{
           uri: string;
           name: string;
           description: string;
           mimeType?: string;
         }>
-      | Promise<
-          Array<{
-            uri: string;
-            name: string;
-            description: string;
-            mimeType?: string;
-          }>
-        >;
-    getAvailablePrompts: (context?: RequestContext) =>
-      | Array<{
+      >;
+  getAvailablePrompts: (context?: RequestContext) =>
+    | Array<{
+        name: string;
+        description: string;
+      }>
+    | Promise<
+        Array<{
           name: string;
           description: string;
         }>
-      | Promise<
-          Array<{
-            name: string;
-            description: string;
-          }>
-        >;
+      >;
+}): McpHandlerRegistry {
+  return {
+    async resolveToolHandler(toolName: string, _context?: RequestContext) {
+      return handlers.toolHandlers[toolName];
+    },
+    async resolveResourceHandler(uri: string, _context?: RequestContext) {
+      return handlers.resourceHandlers[uri];
+    },
+    async resolvePromptHandler(promptName: string, _context?: RequestContext) {
+      return handlers.promptHandlers[promptName];
+    },
+    async getAvailableTools(context?: RequestContext) {
+      return normalizeToAsync(handlers.getAvailableTools(context));
+    },
+    async getAvailableResources(context?: RequestContext) {
+      return normalizeToAsync(handlers.getAvailableResources(context));
+    },
+    async getAvailablePrompts(context?: RequestContext) {
+      return normalizeToAsync(handlers.getAvailablePrompts(context));
+    },
+  };
+}
+
+/**
+ * Create handler registry from dynamic handlers with fallback
+ */
+function createDynamicHandlerRegistry(
+  dynamicHandlers?: DynamicHandlerRegistry,
+  fallbackHandlers?: {
+    toolHandlers: Record<string, ToolHandler>;
+    resourceHandlers: Record<string, ResourceHandler>;
+    promptHandlers: Record<string, PromptHandler>;
+  },
+  customGetters?: {
+    getAvailableTools: (context?: RequestContext) => Promise<
+      Array<{
+        name: string;
+        description: string;
+        inputSchema: unknown;
+      }>
+    >;
+    getAvailableResources: (context?: RequestContext) => Promise<
+      Array<{
+        uri: string;
+        name: string;
+        description: string;
+        mimeType?: string;
+      }>
+    >;
+    getAvailablePrompts: (context?: RequestContext) => Promise<
+      Array<{
+        name: string;
+        description: string;
+      }>
+    >;
   }
+): McpHandlerRegistry {
+  return {
+    async resolveToolHandler(toolName: string, context?: RequestContext) {
+      // Try dynamic handler first
+      if (dynamicHandlers) {
+        const handler = await dynamicHandlers.getToolHandler(toolName, context);
+        if (handler) return handler;
+      }
+      // Fallback to static handler
+      return fallbackHandlers?.toolHandlers[toolName];
+    },
+    async resolveResourceHandler(uri: string, context?: RequestContext) {
+      // Try dynamic handler first
+      if (dynamicHandlers) {
+        const handler = await dynamicHandlers.getResourceHandler(uri, context);
+        if (handler) return handler;
+      }
+      // Fallback to static handler
+      return fallbackHandlers?.resourceHandlers[uri];
+    },
+    async resolvePromptHandler(promptName: string, context?: RequestContext) {
+      // Try dynamic handler first
+      if (dynamicHandlers) {
+        const handler = await dynamicHandlers.getPromptHandler(
+          promptName,
+          context
+        );
+        if (handler) return handler;
+      }
+      // Fallback to static handler
+      return fallbackHandlers?.promptHandlers[promptName];
+    },
+    async getAvailableTools(context?: RequestContext) {
+      // Use custom getters if provided (enhanced server case)
+      if (customGetters) {
+        return customGetters.getAvailableTools(context);
+      }
+
+      // Otherwise combine dynamic and static
+      const dynamicTools = dynamicHandlers
+        ? await dynamicHandlers.getAvailableTools(context)
+        : [];
+      const staticTools = fallbackHandlers
+        ? Object.keys(fallbackHandlers.toolHandlers).map((name) => ({
+            name,
+            description: `Static tool: ${name}`,
+            inputSchema: {},
+          }))
+        : [];
+
+      return [...dynamicTools, ...staticTools];
+    },
+    async getAvailableResources(context?: RequestContext) {
+      // Use custom getters if provided (enhanced server case)
+      if (customGetters) {
+        return customGetters.getAvailableResources(context);
+      }
+
+      // Otherwise combine dynamic and static
+      const dynamicResources = dynamicHandlers
+        ? await dynamicHandlers.getAvailableResources(context)
+        : [];
+      const staticResources = fallbackHandlers
+        ? Object.keys(fallbackHandlers.resourceHandlers).map((uri) => ({
+            uri,
+            name: `Static resource: ${uri}`,
+            description: `Static resource: ${uri}`,
+          }))
+        : [];
+
+      return [...dynamicResources, ...staticResources];
+    },
+    async getAvailablePrompts(context?: RequestContext) {
+      // Use custom getters if provided (enhanced server case)
+      if (customGetters) {
+        return customGetters.getAvailablePrompts(context);
+      }
+
+      // Otherwise combine dynamic and static
+      const dynamicPrompts = dynamicHandlers
+        ? await dynamicHandlers.getAvailablePrompts(context)
+        : [];
+      const staticPrompts = fallbackHandlers
+        ? Object.keys(fallbackHandlers.promptHandlers).map((name) => ({
+            name,
+            description: `Static prompt: ${name}`,
+          }))
+        : [];
+
+      return [...dynamicPrompts, ...staticPrompts];
+    },
+  };
+}
+
+/**
+ * Unified MCP request router - handles all MCP protocol methods
+ */
+async function routeMcpRequest(
+  method: string,
+  params: unknown,
+  id: string | number | undefined,
+  requestContext: RequestContext | undefined,
+  registry: McpHandlerRegistry
 ): Promise<MCPJsonRpcResponse> {
   const DEFAULT_PARAMS: Record<string, unknown> = {};
 
@@ -576,20 +626,10 @@ async function routeEnhancedRequest(
         );
       }
 
-      // Try dynamic handler first
-      let handler: ToolHandler | undefined;
-      if (handlers.dynamicHandlers) {
-        handler = await handlers.dynamicHandlers.getToolHandler(
-          toolName,
-          requestContext
-        );
-      }
-
-      // Fallback to static handler
-      if (!handler && handlers.fallbackHandlers) {
-        handler = handlers.fallbackHandlers.toolHandlers[toolName];
-      }
-
+      const handler = await registry.resolveToolHandler(
+        toolName,
+        requestContext
+      );
       if (!handler) {
         return createMethodNotFoundErrorResponse(
           `Tool not found: ${toolName}`,
@@ -615,20 +655,10 @@ async function routeEnhancedRequest(
         );
       }
 
-      // Try dynamic handler first
-      let handler: ResourceHandler | undefined;
-      if (handlers.dynamicHandlers) {
-        handler = await handlers.dynamicHandlers.getResourceHandler(
-          uri,
-          requestContext
-        );
-      }
-
-      // Fallback to static handler
-      if (!handler && handlers.fallbackHandlers) {
-        handler = handlers.fallbackHandlers.resourceHandlers[uri];
-      }
-
+      const handler = await registry.resolveResourceHandler(
+        uri,
+        requestContext
+      );
       if (!handler) {
         return createMethodNotFoundErrorResponse(
           `Resource not found: ${uri}`,
@@ -653,20 +683,7 @@ async function routeEnhancedRequest(
         );
       }
 
-      // Try dynamic handler first
-      let handler: PromptHandler | undefined;
-      if (handlers.dynamicHandlers) {
-        handler = await handlers.dynamicHandlers.getPromptHandler(
-          name,
-          requestContext
-        );
-      }
-
-      // Fallback to static handler
-      if (!handler && handlers.fallbackHandlers) {
-        handler = handlers.fallbackHandlers.promptHandlers[name];
-      }
-
+      const handler = await registry.resolvePromptHandler(name, requestContext);
       if (!handler) {
         return createMethodNotFoundErrorResponse(
           `Prompt not found: ${name}`,
@@ -682,9 +699,7 @@ async function routeEnhancedRequest(
     }
 
     case "tools/list": {
-      const tools = await Promise.resolve(
-        handlers.getAvailableTools(requestContext)
-      );
+      const tools = await registry.getAvailableTools(requestContext);
       return {
         jsonrpc: "2.0",
         id,
@@ -693,9 +708,7 @@ async function routeEnhancedRequest(
     }
 
     case "resources/list": {
-      const resources = await Promise.resolve(
-        handlers.getAvailableResources(requestContext)
-      );
+      const resources = await registry.getAvailableResources(requestContext);
       return {
         jsonrpc: "2.0",
         id,
@@ -704,9 +717,7 @@ async function routeEnhancedRequest(
     }
 
     case "prompts/list": {
-      const prompts = await Promise.resolve(
-        handlers.getAvailablePrompts(requestContext)
-      );
+      const prompts = await registry.getAvailablePrompts(requestContext);
       return {
         jsonrpc: "2.0",
         id,
@@ -719,3 +730,14 @@ async function routeEnhancedRequest(
     }
   }
 }
+
+// ============================================================================
+// EXPORT CONSOLIDATED API
+// ============================================================================
+
+export {
+  routeMcpRequest,
+  createStaticHandlerRegistry,
+  createDynamicHandlerRegistry,
+  type McpHandlerRegistry,
+};

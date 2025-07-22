@@ -4,7 +4,6 @@
 
 // Configuration types and interfaces
 export type {
-  BaseMcpServerConfig,
   McpServerConfig,
   ServerCreationOptions,
   EnhancedServerCreationOptions,
@@ -13,7 +12,6 @@ export type {
   ResourceHandler,
   PromptHandler,
   HandlerRegistries,
-  DynamicHandlerRegistry,
   OrganizationContext,
   RequestContext,
 } from "./config.js";
@@ -23,11 +21,21 @@ export {
   createMcpHttpServer,
   createEnhancedMcpHttpServer,
 } from "./http-server.js";
+
+// Consolidated server factory (RECOMMENDED)
+export {
+  createMcpServer,
+  createMcpServerWithClient,
+  createMcpServerWithoutClient,
+  type McpServerFactoryConfig,
+} from "./server-factory.js";
+
 export type { FastifyInstance } from "fastify";
 
 // Dynamic handler registry
+export type { DynamicHandlerRegistry } from "./dynamic-handlers.js";
 export {
-  DefaultDynamicHandlerRegistry,
+  DatabaseDynamicHandlerRegistry,
   createDynamicHandlerRegistry,
   createEnhancedHandlerRegistries,
 } from "./dynamic-handlers.js";
@@ -36,7 +44,7 @@ export {
 export {
   ServerRegistry,
   getServerRegistry,
-  cleanupServerRegistry
+  cleanupServerRegistry,
 } from "./server-registry.js";
 
 // Server startup utilities

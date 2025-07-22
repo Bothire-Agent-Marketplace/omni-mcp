@@ -20,14 +20,12 @@
   },
   "dependencies": {
     "@mcp/capabilities": "workspace:*",
-    "@mcp/config-service": "workspace:*",
-    "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/server-core": "workspace:*",
     "@mcp/utils": "workspace:*",
-    "chrome-remote-interface": "^0.33.3",
+    "@types/ws": "^8.5.12",
     "playwright": "^1.49.0",
-    "ws": "^8.18.3",
+    "ws": "^8.18.0",
     "zod": "^3.25.67"
   },
   "devDependencies": {
