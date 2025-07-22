@@ -19,6 +19,11 @@ const settingsNavigation = [
     href: "/organization/settings/resources",
     value: "resources",
   },
+  {
+    name: "MCP Testing",
+    href: "/organization/settings/testing",
+    value: "testing",
+  },
 ];
 
 export default function SettingsLayout({
@@ -32,7 +37,7 @@ export default function SettingsLayout({
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           {settingsNavigation.map((item) => (
             <TabsTrigger key={item.value} value={item.value} asChild>
               <Link href={item.href}>{item.name}</Link>

@@ -5,6 +5,7 @@ import { UserRepository } from "@/lib/repositories/user.repository";
 import { OrganizationService } from "@/lib/services/organization.service";
 import { PromptService } from "@/lib/services/prompt.service";
 import { ResourceService } from "@/lib/services/resource.service";
+import { TestingService } from "@/lib/services/testing.service";
 import { UserService } from "@/lib/services/user.service";
 
 /**
@@ -23,6 +24,7 @@ export class ServiceFactory {
   private static organizationService: OrganizationService;
   private static promptService: PromptService;
   private static resourceService: ResourceService;
+  private static testingService: TestingService;
 
   /**
    * Get UserRepository instance (singleton)
@@ -114,5 +116,15 @@ export class ServiceFactory {
       );
     }
     return this.resourceService;
+  }
+
+  /**
+   * Get TestingService instance (singleton)
+   */
+  static getTestingService(): TestingService {
+    if (!this.testingService) {
+      this.testingService = new TestingService();
+    }
+    return this.testingService;
   }
 }

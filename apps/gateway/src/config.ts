@@ -40,9 +40,11 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
     ),
     jwtSecret: validateSecret(process.env.JWT_SECRET, env, "JWT_SECRET"),
     mcpApiKey: process.env.MCP_API_KEY || (isProduction ? "" : DEV_API_KEY),
-    sessionTimeout: parseInt(process.env.SESSION_TIMEOUT || "3600000"), // 1 hour
+    sessionTimeout: parseInt(
+      process.env.SESSION_TIMEOUT || (isProduction ? "3600000" : "900000")
+    ), // 1 hour prod, 15 min dev
     maxConcurrentSessions: parseInt(
-      process.env.MAX_CONCURRENT_SESSIONS || (isProduction ? "500" : "100")
+      process.env.MAX_CONCURRENT_SESSIONS || (isProduction ? "500" : "500")
     ),
     rateLimitPerMinute: parseInt(
       process.env.API_RATE_LIMIT || (isProduction ? "100" : "1000")
@@ -61,7 +63,9 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
       throw new Error("ALLOWED_ORIGINS must be set in production.");
     }
     if (!config.mcpApiKey || config.mcpApiKey === DEV_API_KEY) {
-      throw new Error("MCP_API_KEY must be set in production and cannot be the development key.");
+      throw new Error(
+        "MCP_API_KEY must be set in production and cannot be the development key."
+      );
     }
   }
 

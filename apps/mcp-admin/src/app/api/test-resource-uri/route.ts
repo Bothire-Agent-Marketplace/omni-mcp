@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const TestResourceUriSchema = z.object({
-  uri: z.string().url("Invalid URI format"),
+  uri: z.url("Invalid URI format"),
 });
 
 // Format bytes to human readable format
