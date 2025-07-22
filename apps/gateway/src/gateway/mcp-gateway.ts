@@ -112,10 +112,13 @@ export class MCPGateway {
         // Create session with organization context extracted from auth headers
         const authHeader = headers.authorization || headers.Authorization;
         const apiKey = headers["x-api-key"] as string;
+        const simulateOrgHeader = headers["x-simulate-organization"] as string;
+
         session = await this.sessionManager.createSessionWithAuth(
           authHeader,
           apiKey,
-          "http"
+          "http",
+          simulateOrgHeader
         );
       }
 

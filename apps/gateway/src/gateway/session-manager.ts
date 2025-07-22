@@ -2,7 +2,10 @@ import jwt, { JwtPayload } from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
 import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
-import { OrganizationContextService, OrganizationContext } from "../services/organization-context.js";
+import {
+  OrganizationContextService,
+  OrganizationContext,
+} from "../services/organization-context.js";
 
 interface SessionJwtPayload extends JwtPayload {
   sessionId: string;
@@ -19,7 +22,10 @@ export class MCPSessionManager {
   constructor(config: GatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger;
-    this.orgContextService = new OrganizationContextService(config.jwtSecret, logger);
+    this.orgContextService = new OrganizationContextService(
+      config.jwtSecret,
+      logger
+    );
 
     // Start session cleanup interval
     this.cleanupInterval = setInterval(() => {
@@ -70,20 +76,127 @@ export class MCPSessionManager {
 
   /**
    * Create session with organization context extracted from auth headers
+   * Now supports organization context simulation for testing
    */
   async createSessionWithAuth(
     authHeader?: string,
     apiKey?: string,
-    transport: "http" | "websocket" = "http"
+    transport: "http" | "websocket" = "http",
+    simulateOrgHeader?: string
   ): Promise<Session> {
+    // First get the user's actual organization context
     const orgContext = await this.orgContextService.extractOrganizationContext(
       authHeader,
       apiKey
     );
 
     const userId = orgContext?.userClerkId || "anonymous";
-    
+
+    // Check if we're simulating a different organization context
+    if (simulateOrgHeader && orgContext) {
+      // Validate that the user has permission to simulate this organization
+      const hasPermission = await this.validateSimulationPermission(
+        orgContext,
+        simulateOrgHeader
+      );
+
+      if (hasPermission) {
+        // Create simulated organization context
+        const simulatedContext = await this.createSimulatedContext(
+          orgContext,
+          simulateOrgHeader
+        );
+
+        if (simulatedContext) {
+          const session = this.createSession(
+            userId,
+            transport,
+            simulatedContext
+          );
+          this.logger.info(
+            `Created testing session with simulated organization context`,
+            {
+              actualOrgId: orgContext.organizationClerkId,
+              simulatedOrgId: simulateOrgHeader,
+              userId: orgContext.userClerkId,
+              sessionId: session.id,
+            }
+          );
+          return session;
+        }
+      } else {
+        this.logger.warn(
+          `User attempted unauthorized organization simulation`,
+          {
+            userId: orgContext.userClerkId,
+            actualOrgId: orgContext.organizationClerkId,
+            attemptedOrgId: simulateOrgHeader,
+          }
+        );
+      }
+    }
+
     return this.createSession(userId, transport, orgContext || undefined);
+  }
+
+  /**
+   * Validate if user has permission to simulate organization context
+   * For now, allow simulation within same organization or if user is admin
+   */
+  private async validateSimulationPermission(
+    userContext: OrganizationContext,
+    simulateOrgClerkId: string
+  ): Promise<boolean> {
+    try {
+      // Allow simulation of same organization (useful for testing different contexts)
+      if (userContext.organizationClerkId === simulateOrgClerkId) {
+        return true;
+      }
+
+      // TODO: Add more sophisticated permission checking
+      // For now, we'll be restrictive and only allow same-org simulation
+      // In future, could check if user is super admin or has testing permissions
+
+      return false;
+    } catch (error) {
+      this.logger.error(
+        "Error validating simulation permission",
+        error instanceof Error ? error : new Error(String(error))
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Create simulated organization context for testing
+   */
+  private async createSimulatedContext(
+    baseContext: OrganizationContext,
+    simulateOrgClerkId: string
+  ): Promise<OrganizationContext | null> {
+    try {
+      // For same-organization simulation, return the base context
+      // This allows testing different request contexts within same org
+      if (baseContext.organizationClerkId === simulateOrgClerkId) {
+        return {
+          ...baseContext,
+          // Mark as simulated for logging/debugging
+          isSimulated: true,
+        } as OrganizationContext & { isSimulated: boolean };
+      }
+
+      // TODO: For cross-organization simulation (if permitted),
+      // we would need to look up the target organization details
+      // This would require database access and proper permission validation
+
+      return null;
+    } catch (error) {
+      this.logger.error(
+        "Error creating simulated context",
+        error instanceof Error ? error : new Error(String(error))
+      );
+      return null;
+    }
   }
 
   getSession(sessionId: string): Session | null {
