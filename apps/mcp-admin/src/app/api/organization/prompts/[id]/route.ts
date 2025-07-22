@@ -15,16 +15,8 @@ const UpdatePromptSchema = z.object({
     .min(1, "Description is required")
     .max(500, "Description must be less than 500 characters")
     .optional(),
-  template: z
-    .array(
-      z.object({
-        role: z.enum(["user", "system", "assistant"]),
-        content: z.string().min(1, "Content is required"),
-      })
-    )
-    .min(1, "At least one template message is required")
-    .optional(),
-  arguments: z.record(z.any()).optional(),
+  template: z.record(z.string(), z.unknown()).optional(),
+  arguments: z.record(z.string(), z.unknown()).optional(),
   isActive: z.boolean().optional(),
 });
 

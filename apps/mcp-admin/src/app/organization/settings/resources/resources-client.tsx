@@ -22,7 +22,6 @@ type OrganizationResource = {
   description: string;
   mimeType?: string | null;
   metadata?: Record<string, unknown>;
-  version: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
