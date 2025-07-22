@@ -132,6 +132,6 @@ function getServerIcon(serverName: string): string {
 function getServerPort(serverName: string): number {
   if (serverName.includes("Linear")) return 3001;
   if (serverName.includes("Perplexity")) return 3002;
-  if (serverName.includes("Chrome")) return 3004;
+  if (serverName.includes("Chrome")) return 3003;
   return 3000;
 }

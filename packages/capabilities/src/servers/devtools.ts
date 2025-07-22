@@ -6,7 +6,7 @@ import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
 export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "devtools",
-  port: 3004,
+  port: 3003,
   description:
     "Streamlined Chrome DevTools MCP Server focused on essential debugging: console and network monitoring with Arc browser support",
   productionUrl: "https://devtools-mcp.vercel.app",

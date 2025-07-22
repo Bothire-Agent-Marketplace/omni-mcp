@@ -14,7 +14,7 @@ const COMMON_PORTS = [
   3001, // Gateway
   3002, // Linear Server
   3003, // Perplexity Server
-  3004, // DevTools Server
+  3003, // DevTools Server
   5555, // Prisma Studio
   37373, // Gateway (production port)
 ];

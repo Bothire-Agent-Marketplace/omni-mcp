@@ -61,7 +61,7 @@ database-driven configuration, multi-tenant support, and comprehensive developer
     ┌─────▼─────┐          ┌──────▼──────┐        ┌──────▼──────┐
     │  Linear   │          │ Perplexity  │        │  DevTools   │
     │MCP Server │          │ MCP Server  │   ...  │ MCP Server  │
-    │  (3001)   │          │   (3002)    │        │   (3004)    │
+    │  (3001)   │          │   (3002)    │        │   (3003)    │
     └─────┬─────┘          └──────┬──────┘        └──────┬──────┘
           │                       │                      │
           └───────────────────────┼──────────────────────┘
@@ -132,7 +132,7 @@ database-driven configuration, multi-tenant support, and comprehensive developer
 
 #### **DevTools MCP Server (`apps/devtools-mcp-server/`)**
 
-- **Port**: `3004`
+- **Port**: `3003`
 - **Purpose**: Browser automation and testing
 - **Tools**: 40 (Chrome management, DOM, network, debugging)
 - **Resources**: 2 (browser state, test results)
@@ -589,7 +589,7 @@ services:
 
   devtools:
     image: devtools-server:dev
-    ports: ["3004:3004"]
+    ports: ["3003:3003"]
 
   database:
     image: postgres:15

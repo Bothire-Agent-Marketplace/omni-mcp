@@ -49,7 +49,7 @@ const SERVER_EXAMPLES = {
   devtools: {
     name: "Chrome DevTools MCP Server",
     description: "Browser automation and debugging tools",
-    port: 3004,
+    port: 3003,
     examples: {
       // Chrome Management
       chrome_start: { headless: false, autoConnect: true },

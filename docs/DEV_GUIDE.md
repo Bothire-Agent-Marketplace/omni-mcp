@@ -81,7 +81,7 @@ The MCP Gateway runs on `http://localhost:37373` and aggregates all MCP servers:
 
 - **Linear Server** (3001): Linear API integration
 - **Perplexity Server** (3002): AI search and research
-- **DevTools Server** (3004): Browser automation and debugging
+- **DevTools Server** (3003): Browser automation and debugging
 
 ### 🔍 Health Check & Discovery
 
@@ -279,12 +279,12 @@ curl http://localhost:37373/prompts/list \
 # Test individual servers directly
 curl http://localhost:3001/health  # Linear server
 curl http://localhost:3002/health  # Perplexity server
-curl http://localhost:3004/health  # DevTools server
+curl http://localhost:3003/health  # DevTools server
 
 # Get capabilities from specific servers
 curl http://localhost:3001/tools/list | jq '.tools[].name'
 curl http://localhost:3002/prompts/list | jq '.prompts[].name'
-curl http://localhost:3004/resources/list | jq '.resources[].uri'
+curl http://localhost:3003/resources/list | jq '.resources[].uri'
 ```
 
 #### **Error Handling Examples**
@@ -461,7 +461,7 @@ The new dev script fixes most terminal issues, but if you experience problems:
 | Gateway           | 37373 | http://localhost:37373 |
 | Linear Server     | 3001  | http://localhost:3001  |
 | Perplexity Server | 3002  | http://localhost:3002  |
-| DevTools Server   | 3004  | http://localhost:3004  |
+| DevTools Server   | 3003  | http://localhost:3003  |
 | Prisma Studio     | 5555  | http://localhost:5555  |
 
 ## 🗄️ Database Development Workflow

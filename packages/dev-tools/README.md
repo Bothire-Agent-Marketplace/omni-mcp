@@ -82,7 +82,7 @@ pnpm omni-mcp interactive
 - **perplexity_compare** - Compare multiple topics
 - **perplexity_summarize** - Text summarization
 
-### **Chrome DevTools MCP Server** (Port: 3004)
+### **Chrome DevTools MCP Server** (Port: 3003)
 
 **40 tools across 8 categories:**
 
