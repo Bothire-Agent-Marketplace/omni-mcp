@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import { platform } from "os";
 
 /**
@@ -30,6 +30,14 @@ const services = [
     color: "\x1b[43m\x1b[1m", // Yellow background, bold
     env: { ...process.env, FORCE_COLOR: "1" },
   },
+  {
+    name: "🔗 TUNNEL",
+    command: "lt",
+    args: ["--port", "3000"],
+    color: "\x1b[45m\x1b[1m", // Magenta background, bold
+    env: { ...process.env, FORCE_COLOR: "1" },
+    openUrl: true, // Special flag to auto-open URLs
+  },
 ];
 
 const processes = [];
@@ -37,6 +45,22 @@ const resetColor = "\x1b[0m";
 
 function colorize(text, color) {
   return `${color}${text}${resetColor}`;
+}
+
+function openUrl(url) {
+  try {
+    const command =
+      platform() === "darwin"
+        ? `open "${url}"`
+        : platform() === "win32"
+          ? `start "${url}"`
+          : `xdg-open "${url}"`;
+
+    execSync(command);
+    console.log(`🌍 Opened URL in browser: ${url}`);
+  } catch {
+    console.log(`🌍 URL available: ${url} (could not auto-open)`);
+  }
 }
 
 function startService(service) {
@@ -55,6 +79,16 @@ function startService(service) {
       .filter((line) => line.trim());
     lines.forEach((line) => {
       console.log(`${colorize(`[${service.name}]`, service.color)} ${line}`);
+
+      // Auto-open URLs for services that have openUrl flag
+      if (service.openUrl) {
+        // Match localtunnel URLs (https://xyz.loca.lt)
+        const urlMatch = line.match(/https:\/\/[a-z0-9]+\.loca\.lt/i);
+        if (urlMatch) {
+          const url = urlMatch[0];
+          setTimeout(() => openUrl(url), 1000); // Delay to let service start
+        }
+      }
     });
   });
 
