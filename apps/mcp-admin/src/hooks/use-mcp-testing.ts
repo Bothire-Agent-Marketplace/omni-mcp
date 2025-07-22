@@ -324,7 +324,8 @@ export function useMcpTesting({
   const runTest = async (
     operation: "tool" | "prompt" | "resource" | "health",
     target: string,
-    args: Record<string, unknown> = {}
+    args: Record<string, unknown> = {},
+    bypassCache: boolean = false
   ) => {
     if (isTestRunning) return;
 
@@ -344,6 +345,7 @@ export function useMcpTesting({
           timeout: 15000,
           validateResponse: true,
           includeMetadata: true,
+          bypassCache,
         },
       });
 
@@ -351,8 +353,9 @@ export function useMcpTesting({
       setTestHistory((prev) => [result, ...prev.slice(0, 9)]);
 
       if (result.success) {
+        const cacheStatus = result.metadata?.cached ? " (cached)" : "";
         toast.success(
-          `${operation} test completed successfully (${result.responseTime}ms)`
+          `${operation} test completed successfully (${result.responseTime}ms)${cacheStatus}`
         );
       } else {
         toast.error(
@@ -367,26 +370,26 @@ export function useMcpTesting({
     }
   };
 
-  // Test handlers
-  const handleToolTest = () => {
+  // Test handlers - now support bypass cache
+  const handleToolTest = (bypassCache: boolean = false) => {
     try {
       const args = JSON.parse(toolForm.arguments);
-      runTest("tool", toolForm.name, args);
+      runTest("tool", toolForm.name, args, bypassCache);
     } catch {
       toast.error("Invalid JSON in arguments");
     }
   };
 
-  const handlePromptTest = () => {
-    runTest("prompt", promptForm.name);
+  const handlePromptTest = (bypassCache: boolean = false) => {
+    runTest("prompt", promptForm.name, {}, bypassCache);
   };
 
-  const handleResourceTest = () => {
-    runTest("resource", resourceForm.uri);
+  const handleResourceTest = (bypassCache: boolean = false) => {
+    runTest("resource", resourceForm.uri, {}, bypassCache);
   };
 
-  const handleHealthTest = () => {
-    runTest("health", healthForm.target);
+  const handleHealthTest = (bypassCache: boolean = false) => {
+    runTest("health", healthForm.target, {}, bypassCache);
   };
 
   // Helper functions

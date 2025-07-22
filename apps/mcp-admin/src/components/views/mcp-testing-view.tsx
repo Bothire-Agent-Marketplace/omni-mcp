@@ -1,6 +1,10 @@
 "use client";
 
 import { useMcpTesting } from "@/hooks/use-mcp-testing";
+import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { AIResponseRenderer } from "@/components/ai-response-renderer";
+import { testingService } from "@/lib/services/testing.service";
+import { toast } from "sonner";
 
 import {
   Card,
@@ -20,6 +24,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -37,6 +47,8 @@ import {
   Settings,
   Info,
   AlertTriangle,
+  Trash2,
+  Timer,
 } from "lucide-react";
 import { type McpTestCapabilities } from "@/lib/services/testing.service";
 
@@ -111,6 +123,7 @@ export function McpTestingView({
 
     // Helpers
     formatResponseTime,
+    getDefaultArgsForTool,
   } = useMcpTesting({
     currentOrganization,
     initialCapabilities,
@@ -147,6 +160,17 @@ export function McpTestingView({
               <RefreshCw className="w-4 h-4 mr-2" />
             )}
             Refresh Capabilities
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              testingService.clearCache();
+              toast.success("Cache cleared successfully");
+            }}
+            size="sm"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Clear Cache
           </Button>
         </div>
       </div>
@@ -326,9 +350,13 @@ export function McpTestingView({
                     <Label htmlFor="tool-name">Tool Name</Label>
                     <Select
                       value={toolForm.name}
-                      onValueChange={(value) =>
-                        setToolForm((prev) => ({ ...prev, name: value }))
-                      }
+                      onValueChange={(value) => {
+                        const defaultArgs = getDefaultArgsForTool(value);
+                        setToolForm({
+                          name: value,
+                          arguments: JSON.stringify(defaultArgs, null, 2),
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a tool to test" />
@@ -360,18 +388,31 @@ export function McpTestingView({
                     />
                   </div>
 
-                  <Button
-                    onClick={handleToolTest}
-                    disabled={!toolForm.name || isTestRunning}
-                    className="w-full"
-                  >
-                    {isTestRunning ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Test Tool
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        disabled={!toolForm.name || isTestRunning}
+                        className="w-full"
+                      >
+                        {isTestRunning ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        Test Tool
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleToolTest(false)}>
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Test (use cache)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleToolTest(true)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Run Test (bypass cache)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="space-y-4">
@@ -430,18 +471,31 @@ export function McpTestingView({
                     </Select>
                   </div>
 
-                  <Button
-                    onClick={handlePromptTest}
-                    disabled={!promptForm.name || isTestRunning}
-                    className="w-full"
-                  >
-                    {isTestRunning ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Test Prompt
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        disabled={!promptForm.name || isTestRunning}
+                        className="w-full"
+                      >
+                        {isTestRunning ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        Test Prompt
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handlePromptTest(false)}>
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Test (use cache)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handlePromptTest(true)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Run Test (bypass cache)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="space-y-4">
@@ -503,18 +557,35 @@ export function McpTestingView({
                     </Select>
                   </div>
 
-                  <Button
-                    onClick={handleResourceTest}
-                    disabled={!resourceForm.uri || isTestRunning}
-                    className="w-full"
-                  >
-                    {isTestRunning ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Test Resource
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        disabled={!resourceForm.uri || isTestRunning}
+                        className="w-full"
+                      >
+                        {isTestRunning ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        Test Resource
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem
+                        onClick={() => handleResourceTest(false)}
+                      >
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Test (use cache)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleResourceTest(true)}
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Run Test (bypass cache)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="space-y-4">
@@ -579,18 +650,31 @@ export function McpTestingView({
                     </Select>
                   </div>
 
-                  <Button
-                    onClick={handleHealthTest}
-                    disabled={!healthForm.target || isTestRunning}
-                    className="w-full"
-                  >
-                    {isTestRunning ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Play className="w-4 h-4 mr-2" />
-                    )}
-                    Check Health
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        disabled={!healthForm.target || isTestRunning}
+                        className="w-full"
+                      >
+                        {isTestRunning ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        Check Health
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onClick={() => handleHealthTest(false)}>
+                        <Play className="w-4 h-4 mr-2" />
+                        Run Test (use cache)
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleHealthTest(true)}>
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Run Test (bypass cache)
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="space-y-4">
@@ -826,6 +910,12 @@ export function McpTestingView({
                   >
                     {lastTestResult.success ? "Success" : "Failed"}
                   </Badge>
+                  {lastTestResult.metadata?.cached && (
+                    <Badge variant="secondary" className="text-xs">
+                      <Timer className="w-3 h-3 mr-1" />
+                      Cached
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div>
@@ -835,6 +925,16 @@ export function McpTestingView({
                 <div className="flex items-center gap-2 mt-1">
                   <Clock className="w-4 h-4" />
                   {formatResponseTime(lastTestResult.responseTime)}
+                  {lastTestResult.metadata?.cached &&
+                    lastTestResult.metadata?.cacheAge && (
+                      <span className="text-xs text-muted-foreground">
+                        (cached{" "}
+                        {Math.round(
+                          (lastTestResult.metadata.cacheAge as number) / 1000
+                        )}
+                        s ago)
+                      </span>
+                    )}
                 </div>
               </div>
               <div>
@@ -867,11 +967,7 @@ export function McpTestingView({
             {!!lastTestResult.result && (
               <div className="space-y-2">
                 <Label>Response Data</Label>
-                <div className="p-4 bg-muted rounded-lg max-h-96 overflow-y-auto">
-                  <pre className="text-sm whitespace-pre-wrap break-all">
-                    {JSON.stringify(lastTestResult.result, null, 2)}
-                  </pre>
-                </div>
+                <AIResponseRenderer response={lastTestResult.result} />
               </div>
             )}
           </CardContent>
