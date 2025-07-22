@@ -7,7 +7,7 @@ of the Omni MCP project.
 
 ## 📋 **Cleanup Tasks**
 
-### **1. Component Architecture** `[Priority: High]`
+### **1. Component Architecture** `[Priority: High]` ✅ **COMPLETED**
 
 **Issue:** Large, monolithic components hurt maintainability
 
@@ -39,7 +39,7 @@ of the Omni MCP project.
 - **Improved maintainability**: Components are now under 150 lines each
 - **Better reusability**: Each component can be used independently
 
-### **2. Type Safety** `[Priority: Medium]`
+### **2. Type Safety** `[Priority: Medium]` ✅ **MAJOR PROGRESS**
 
 **Issue:** Inconsistent TypeScript usage and type safety
 
@@ -47,6 +47,9 @@ of the Omni MCP project.
 
 - [x] **Standardized Organization type usage** - All components now import from
       `@mcp/database/client`
+- [x] **Implemented standardized API response types** - Created comprehensive type system in
+      `@mcp/schemas`
+- [x] **Fixed build errors** - Resolved React context and static generation issues
 - [ ] Eliminate remaining `any` types
 - [ ] Add proper interface definitions for API responses
 - [ ] Implement stricter TypeScript configuration
@@ -61,7 +64,14 @@ of the Omni MCP project.
 - **Updated component props**: Ensured all components use full Prisma Organization type
 - **Improved type safety**: Added proper type casting and eliminated partial object creation
 
-### **3. Error Handling** `[Priority: Medium]`
+**✅ COMPLETED - Build & Runtime Fixes:**
+
+- **Resolved Next.js build errors**: Fixed React context issues in not-found page with
+  `force-dynamic`
+- **Static generation fixes**: Prevented SSR context errors during build time
+- **Clean build output**: All TypeScript compilation now passes successfully
+
+### **3. Error Handling** `[Priority: Medium]` ✅ **FOUNDATION COMPLETED**
 
 **Issue:** Inconsistent error handling patterns across services
 
@@ -88,7 +98,7 @@ of the Omni MCP project.
 - **Consistent error handling**: Proper HTTP status codes and structured error responses
 - **Foundation established**: Ready for remaining endpoint migrations
 
-### **4. API Layer** `[Priority: Medium]`
+### **4. API Layer** `[Priority: Medium]` ✅ **FOUNDATION COMPLETED**
 
 **Issue:** Inconsistent API patterns and response handling
 
@@ -96,6 +106,7 @@ of the Omni MCP project.
 
 - [x] **Standardize API request/response patterns** - Created shared response types in
       `@mcp/schemas`
+- [ ] Migrate remaining API endpoints to standardized responses
 - [ ] Implement consistent data fetching hooks
 - [ ] Add proper loading and error states
 - [ ] Optimize caching strategies
@@ -133,7 +144,7 @@ of the Omni MCP project.
 - [ ] Add performance monitoring
 - [ ] Implement proper memoization where needed
 
-### **8. Shared Types Audit & Consolidation** `[Priority: High]`
+### **8. Shared Types Audit & Consolidation** `[Priority: High]` ✅ **MAJOR PROGRESS**
 
 **Issue:** Type definitions are duplicated across apps leading to inconsistencies and maintenance
 overhead
@@ -146,6 +157,23 @@ overhead
 - ~~**API Response Patterns**: Inconsistent success/error response structures~~ ✅ **COMPLETED**
 - **Configuration Types**: Duplicated Environment and server config patterns
 - **Database Entity Types**: Repeated metadata patterns and base entity interfaces
+
+**🔍 NEW OPPORTUNITIES IDENTIFIED:**
+
+#### **High-Priority Type Improvements**
+
+- **MCP Protocol Types**: Consolidate JSON-RPC request/response patterns across servers
+- **Service Configuration Types**: Standardize server config interfaces
+- **Database Query Types**: Create shared query result and filter patterns
+- **Form Validation Types**: Unify Zod schemas across different forms
+- **Event & Webhook Types**: Standardize event payload structures
+
+#### **Medium-Priority Type Improvements**
+
+- **UI Component Props**: Create shared prop interfaces for common patterns
+- **Hook Return Types**: Standardize custom hook interfaces
+- **Utility Function Types**: Add proper typing to helper functions
+- **Environment Configuration**: Consolidate env variable types
 
 **Best Candidates for Shared Types:**
 
@@ -182,64 +210,86 @@ overhead
   // - Support for pagination, health checks, and structured errors
   ```
 
-- [ ] **Error Handling Types**
+- [ ] **MCP Protocol Types** `[NEW - High Priority]`
   ```typescript
-  // Unify error structures from:
-  // - MCP protocol errors (MCPErrorResponse)
-  // - HTTP API errors (various patterns)
-  // - Database operation errors
+  // Consolidate JSON-RPC patterns across all MCP servers:
+  // - apps/linear-mcp-server/src/mcp-server/handlers.ts
+  // - apps/perplexity-mcp-server/src/mcp-server/handlers.ts
+  // - apps/devtools-mcp-server/src/mcp-server/handlers.ts
+  // - packages/server-core/src/http-server.ts
   ```
 
 #### **Configuration & Environment**
 
-- [ ] **Base Configuration Types**
+- [ ] **Base Configuration Types** `[Updated Priority: High]`
 
   ```typescript
   // Consolidate from:
   // - packages/server-core/src/config.ts (BaseMcpServerConfig)
   // - apps/*/src/config/config.ts (server-specific configs)
   // - packages/utils/src/validation.ts (Environment)
+  // - apps/gateway/src/config.ts (GatewayConfig)
   ```
 
-- [ ] **Database Entity Patterns**
+- [ ] **Service Registry Types** `[NEW - Medium Priority]`
+  ```typescript
+  // Standardize service registration patterns:
+  // - packages/capabilities/src/mcp-server-registry.ts
+  // - apps/gateway/src/config/server-registry.ts
+  // - packages/server-core/src/server-registry.ts
+  ```
+
+#### **Database & Query Patterns**
+
+- [ ] **Database Entity Patterns** `[Updated Priority: Medium]`
+
   ```typescript
   // Standardize metadata patterns:
   // - Json metadata fields across all entities
   // - Audit trail patterns (createdAt, updatedAt, deletedAt)
   // - UUID primary key patterns
+  // - Soft delete patterns
   ```
 
-#### **Testing & Development Types**
-
-- [ ] **Testing Response Types**
+- [ ] **Query Result Types** `[NEW - Medium Priority]`
   ```typescript
-  // Consolidate testing patterns:
-  // - apps/mcp-admin testing service types
-  // - packages/dev-tools response patterns
-  // - Common test fixture structures
+  // Create shared query interfaces:
+  // - Pagination result wrappers
+  // - Filter and sort parameter types
+  // - Relationship loading patterns
+  ```
+
+#### **Form & Validation Types**
+
+- [ ] **Zod Schema Patterns** `[NEW - High Priority]`
+  ```typescript
+  // Consolidate validation schemas:
+  // - apps/mcp-admin/src/app/api/organization/*/route.ts (multiple schemas)
+  // - Shared field validation (email, UUID, URL patterns)
+  // - Error message standardization
   ```
 
 **Implementation Plan:**
 
-1. **Phase 3.1: Core Session & Organization Types**
+1. **Phase 3.1: Core Session & Organization Types** ✅ **COMPLETED**
    - [x] ~~Create shared session management types~~ (Session types to be addressed separately)
    - [x] **Standardize organization context interfaces** ✅ **COMPLETED**
    - [x] **Migrate gateway and database consumers** ✅ **COMPLETED**
 
-2. **Phase 3.2: API Response Standardization**
+2. **Phase 3.2: API Response Standardization** ✅ **FOUNDATION COMPLETED**
    - [x] **Define standard success/error response patterns** ✅ **COMPLETED**
    - [x] **Create shared HTTP and MCP response types** ✅ **COMPLETED**
    - [ ] Migrate all API routes to use shared patterns (in progress)
 
-3. **Phase 3.3: Configuration & Environment Types**
-   - Consolidate Environment type definition
-   - Create base configuration interfaces
-   - Standardize server configuration patterns
+3. **Phase 3.3: MCP Protocol & Configuration Types** `[NEXT PRIORITY]`
+   - [ ] Consolidate JSON-RPC request/response patterns
+   - [ ] Standardize server configuration interfaces
+   - [ ] Create shared environment type definitions
 
-4. **Phase 3.4: Database Entity Patterns**
-   - Create base entity interfaces with common fields
-   - Standardize metadata JSON patterns
-   - Create shared audit trail types
+4. **Phase 3.4: Form Validation & Database Patterns**
+   - [ ] Unify Zod schemas across forms
+   - [ ] Create base entity interfaces with common fields
+   - [ ] Standardize query result and filter types
 
 **Success Metrics:**
 
@@ -248,20 +298,29 @@ overhead
 - [x] **Standardized API responses across all endpoints** ✅ **FOUNDATION COMPLETED**
 - [ ] Consolidated Environment type usage
 - [x] **90%+ type reuse for common patterns** ✅ **API RESPONSES COMPLETED**
+- [ ] Zero duplicate MCP protocol types
+- [ ] Unified configuration interfaces across all services
 
 ## 🏗️ **Implementation Strategy**
 
 ### **Phase 1: Component Refactoring** ✅ **COMPLETED**
 
-1. Break down large components
-2. Create reusable UI patterns
-3. Implement proper separation of concerns
+1. ✅ Break down large components
+2. ✅ Create reusable UI patterns
+3. ✅ Implement proper separation of concerns
 
-### **Phase 2: Shared Types & Schema Consolidation** ✅ **IN PROGRESS**
+### **Phase 2: Shared Types & Schema Consolidation** ✅ **MAJOR PROGRESS**
 
 1. [x] **Audit and implement shared types in @/schemas** ✅ **API RESPONSES COMPLETED**
 2. [x] **Standardize API response patterns across all apps** ✅ **FOUNDATION COMPLETED**
-3. [ ] Consolidate configuration base types
+3. [ ] Consolidate configuration base types `[IN PROGRESS]`
+
+### **Phase 3: Advanced Type Standardization** `[CURRENT PHASE]`
+
+1. [ ] MCP Protocol type consolidation
+2. [ ] Service configuration standardization
+3. [ ] Form validation schema unification
+4. [ ] Database query pattern standardization
 
 ## 🧪 **Testing Strategy**
 
@@ -272,14 +331,16 @@ overhead
 
 ## 📊 **Success Metrics**
 
-- [ ] Zero unused dependencies
+- [x] **Zero unused dependencies** ✅ **COMPLETED** (Knip audits passing)
 - [x] **All components under 500 lines** ✅ **COMPLETED**
 - [x] **80%+ TypeScript strict mode compliance** ✅ **COMPLETED**
+- [x] **Clean builds with no errors** ✅ **COMPLETED**
 - [ ] Zero duplicate Session type definitions
 - [x] **Single source of truth for Organization context** ✅ **COMPLETED**
 - [x] **Standardized API responses across all endpoints** ✅ **FOUNDATION COMPLETED**
 - [x] **90%+ type reuse for common patterns** ✅ **API RESPONSES COMPLETED**
 - [ ] Consolidated Environment type usage
+- [ ] Zero duplicate MCP protocol types `[NEW METRIC]`
 - [ ] Improved developer onboarding time
 
 ## 🔄 **Continuous Improvement**
