@@ -9,10 +9,12 @@ import {
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, MessageSquare, Database, Activity } from "lucide-react";
-import { ToolTestingTab } from "./tool-testing-tab";
-import { PromptTestingTab } from "./prompt-testing-tab";
-import { ResourceTestingTab } from "./resource-testing-tab";
-import { HealthTestingTab } from "./health-testing-tab";
+import {
+  ToolTestingTab,
+  PromptTestingTab,
+  ResourceTestingTab,
+  HealthTestingTab,
+} from ".";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface TestingTabsProps {
