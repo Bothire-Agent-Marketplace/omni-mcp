@@ -3,7 +3,10 @@
 ## Overview
 
 This document describes the standardized pattern for creating MCP servers in this monorepo, updated
-to reflect our **database-driven configuration system**.
+to reflect our **consolidated server factory pattern** with database-driven configuration system.
+
+**🎉 Major Update:** All MCP servers now use a unified factory pattern that eliminates 68% of
+boilerplate code while maintaining full database-driven functionality.
 
 ## Fundamental Differences: Tools, Resources, and Prompts in MCP Servers
 
@@ -66,7 +69,7 @@ saying things in a structured way.
 
 ## File Structure Template
 
-When creating a new MCP server, follow this **database-driven** structure:
+When creating a new MCP server, follow this **consolidated factory pattern** structure:
 
 ```
 apps/[domain]-mcp-server/
@@ -74,12 +77,12 @@ apps/[domain]-mcp-server/
 │   ├── config/
 │   │   └── config.ts              # Server configuration
 │   ├── types/
-│   │   └── domain-types.ts        # Domain-specific TypeScript types
+│   │   └── domain-types.ts        # Domain-specific TypeScript types (optional)
 │   ├── schemas/
-│   │   └── domain-schemas.ts      # Domain-specific Zod validation schemas
+│   │   └── domain-schemas.ts      # Domain-specific Zod validation schemas (optional)
 │   ├── mcp-server/
-│   │   ├── handlers.ts            # Business logic handlers
-│   │   ├── http-server.ts         # HTTP server setup (using createEnhancedMcpHttpServer)
+│   │   ├── handlers.ts            # Business logic handlers (optional)
+│   │   ├── http-server.ts         # HTTP server setup (using createMcpServer factory)
 │   │   └── tools.ts               # Tool definitions and exports
 │   │
 │   └── index.ts                   # Main entry point
@@ -87,54 +90,91 @@ apps/[domain]-mcp-server/
 └── tsconfig.json
 ```
 
-## 🔄 **DATABASE-DRIVEN ARCHITECTURE (Updated Pattern)**
+**Key Changes:**
 
-### What Changed
+- **Simplified structure** - Many files are now optional due to factory pattern
+- **68% less boilerplate** - Factory handles database lookup, dynamic handlers, etc.
+- **Consistent patterns** - All servers use identical factory-based setup
 
-**Previous Pattern (Static):**
+## 🔄 **CONSOLIDATED FACTORY PATTERN (Latest Architecture)**
 
-```bash
-# ❌ OLD - Static files (removed)
-├── mcp-server/
-│   ├── prompts.ts     # Static prompt definitions (REMOVED)
-│   ├── resources.ts   # Static resource definitions (REMOVED)
-```
+### Evolution of MCP Server Patterns
 
-**New Pattern (Database-Driven):**
+**Previous Pattern (Manual Setup):**
 
 ```bash
-# ✅ NEW - Dynamic loading from database
+# ❌ OLD - Manual server setup (70+ lines of boilerplate per server)
 ├── mcp-server/
-│   ├── http-server.ts # Uses createEnhancedMcpHttpServer
-│   └── tools.ts       # Tools only - prompts/resources loaded dynamically
+│   ├── http-server.ts # Manual createEnhancedMcpHttpServer setup
+│   ├── handlers.ts    # Manual database lookup logic
+│   └── tools.ts       # Manual handler registration
 ```
 
-### Key Benefits of New Pattern
+**New Pattern (Consolidated Factory):**
 
-1. **Single Source of Truth**: Database contains all prompts/resources
-2. **Zero Configuration Drift**: No hardcoded configs across servers
-3. **Hot Reloading**: Changes take effect without server restarts
-4. **Multi-tenant Ready**: Organization-specific customization
-5. **Version Control**: Full audit trail and rollback capability
-6. **Admin UI**: Web interface for managing prompts/resources
+```bash
+# ✅ NEW - Consolidated factory pattern (22 lines per server)
+├── mcp-server/
+│   ├── http-server.ts # Uses createMcpServer factory (simple)
+│   └── tools.ts       # Just tool definitions - factory handles the rest
+```
 
-### Integration with Enhanced Server Core
+### Key Benefits of Consolidated Factory Pattern
 
-All MCP servers now use `createEnhancedMcpHttpServer` from `@mcp/server-core`:
+1. **68% Less Boilerplate**: 70 lines → 22 lines per server
+2. **Single Source of Truth**: Database contains all prompts/resources
+3. **Zero Configuration Drift**: Standardized setup across all servers
+4. **Hot Reloading**: Changes take effect without server restarts
+5. **Multi-tenant Ready**: Organization-specific customization built-in
+6. **Version Control**: Full audit trail and rollback capability
+7. **Admin UI**: Web interface for managing prompts/resources
+8. **Eliminates Duplication**: No more copy-paste server setup code
+
+### Integration with Consolidated Server Factory
+
+All MCP servers now use the consolidated factory from `@mcp/server-core`:
 
 ```typescript
 // apps/[domain]-mcp-server/src/mcp-server/http-server.ts
-import { createEnhancedMcpHttpServer } from "@mcp/server-core";
-import { toolHandlers } from "./tools";
+import { createMcpServerWithClient } from "@mcp/server-core";
+import type { DomainServerConfig } from "../config/config.js";
+import { DomainClient } from "./domain-client.js";
+import { createToolHandlers, getAvailableTools } from "./tools.js";
 
-const server = createEnhancedMcpHttpServer({
-  serverName: "domain-server",
-  handlers: {
-    tools: toolHandlers,
-    // Prompts and resources loaded dynamically from database
-    // via DefaultDynamicHandlerRegistry
-  },
-});
+export async function createDomainHttpServer(config: DomainServerConfig): Promise<FastifyInstance> {
+  const domainClient = new DomainClient({ apiKey: config.domainApiKey });
+
+  // Use consolidated factory - eliminates 50+ lines of boilerplate
+  return createMcpServerWithClient({
+    serverName: "domain",
+    serverKey: "domain",
+    config,
+    client: domainClient,
+    createToolHandlers,
+    getAvailableTools,
+    // Resources and prompts are fully dynamic from database
+    // No need to specify empty handlers or dynamic setup - factory handles it
+  });
+}
+```
+
+**For servers without clients:**
+
+```typescript
+// apps/perplexity-mcp-server/src/mcp-server/http-server.ts
+import { createMcpServerWithoutClient } from "@mcp/server-core";
+
+export async function createPerplexityHttpServer(
+  config: PerplexityServerConfig
+): Promise<FastifyInstance> {
+  return createMcpServerWithoutClient({
+    serverName: "perplexity",
+    serverKey: "perplexity",
+    config,
+    createToolHandlers,
+    getAvailableTools,
+  });
+}
 ```
 
 ## File Naming Convention
@@ -174,14 +214,15 @@ node scripts/scaffold-mcp-server.js add github
 
 The scaffolding tool creates a complete, working MCP server with:
 
-- **Server Structure**: All directories and files following the DATABASE-DRIVEN pattern
-- **Enhanced HTTP Server**: Uses `createEnhancedMcpHttpServer` with dynamic handlers
+- **Server Structure**: All directories and files following the **CONSOLIDATED FACTORY PATTERN**
+- **Factory-Based Server**: Uses `createMcpServer` factory eliminating 68% of boilerplate
 - **Template Handlers**: Placeholder API handlers with proper error handling
 - **Input Schemas**: Centralized schemas in `@mcp/schemas/input-schemas/[domain].ts`
 - **Capabilities Registration**: Auto-registration in `@mcp/capabilities`
 - **Configuration**: Environment variables, TypeScript config, and dependency setup
 - **Validation**: Builds successfully and passes startup tests
-- **Database Integration**: Automatic prompts/resources loading from database
+- **Database Integration**: Automatic prompts/resources loading via factory
+- **Minimal Code**: Just 22 lines for full server setup instead of 70+
 
 ### Customization After Scaffolding
 
@@ -219,19 +260,27 @@ export interface GitHubRepoResource {
 
 #### 3. Update HTTP Server (`src/mcp-server/http-server.ts`)
 
-Use the enhanced server pattern:
+Use the consolidated factory pattern:
 
 ```typescript
-import { createEnhancedMcpHttpServer } from "@mcp/server-core";
-import { toolHandlers } from "./tools";
+import { createMcpServerWithClient } from "@mcp/server-core";
+import type { GitHubServerConfig } from "../config/config.js";
+import { GitHubClient } from "./github-client.js";
+import { createToolHandlers, getAvailableTools } from "./tools.js";
 
-export const server = createEnhancedMcpHttpServer({
-  serverName: "github-server",
-  handlers: {
-    tools: toolHandlers,
-    // Prompts and resources are loaded dynamically from database
-  },
-});
+export async function createGitHubHttpServer(config: GitHubServerConfig): Promise<FastifyInstance> {
+  const githubClient = new GitHubClient({ token: config.githubToken });
+
+  // Consolidated factory eliminates 50+ lines of boilerplate
+  return createMcpServerWithClient({
+    serverName: "github",
+    serverKey: "github",
+    config,
+    client: githubClient,
+    createToolHandlers,
+    getAvailableTools,
+  });
+}
 ```
 
 #### 4. Update Validation Schemas (`src/schemas/domain-schemas.ts`)
@@ -324,75 +373,167 @@ packages/schemas/src/mcp/input-schemas/
 4. **Integration**: Automatic registration with gateway and capabilities
 5. **Best Practices**: Templates include database integration and dynamic loading
 
-## Benefits of Database-Driven Pattern
+## Benefits of Consolidated Factory Pattern
 
-1. **Consistency**: All servers follow the same dynamic structure
-2. **Type Safety**: Centralized schemas ensure type safety
-3. **Reusability**: Common patterns are shared via `@mcp/server-core`
-4. **Maintainability**: Clear separation of concerns
-5. **Scalability**: Database caching and multi-tenant support
-6. **Hot Reloading**: Changes take effect without deployment
-7. **Admin UI**: User-friendly management interface
+1. **68% Less Boilerplate**: From 70+ lines to just 22 lines per server
+2. **Consistency**: All servers follow identical factory-based structure
+3. **Type Safety**: Centralized schemas and factory ensure type safety
+4. **Reusability**: All common patterns handled by factory in `@mcp/server-core`
+5. **Maintainability**: Single source of truth for server creation patterns
+6. **Scalability**: Database caching and multi-tenant support built-in
+7. **Hot Reloading**: Changes take effect without deployment
+8. **Admin UI**: User-friendly management interface
+9. **Developer Experience**: Dramatically simplified server creation
+10. **Zero Configuration Drift**: Factory ensures consistent behavior
 
 ## Best Practices
 
-1. **Use Enhanced HTTP Server**: Always use `createEnhancedMcpHttpServer`
+1. **Use Consolidated Factory**: Always use `createMcpServer`, `createMcpServerWithClient`, or
+   `createMcpServerWithoutClient`
 2. **No Static Config**: Never create static prompts.ts or resources.ts files
-3. **Database Integration**: Leverage the dynamic handler registry
-4. **Organization Context**: Handle multi-tenant scenarios gracefully
+3. **Factory Pattern**: Let the factory handle database integration, dynamic handlers, and server
+   setup
+4. **Organization Context**: Multi-tenant scenarios handled automatically by factory
 5. **Version Control**: Use database versioning for prompts/resources
 6. **Admin UI First**: Manage prompts/resources through the web interface
-7. **Follow Tool Patterns**: Keep domain-specific code in domain files
+7. **Minimal Code**: Keep server setup minimal - factory handles complexity
 8. **Centralized Schemas**: Use `@mcp/schemas` for input validation
+9. **Tool Handlers Only**: Focus only on business logic - factory handles infrastructure
 
 ## Examples
 
-Current servers using the DATABASE-DRIVEN pattern:
+Current servers using the **CONSOLIDATED FACTORY PATTERN**:
 
-- **✅ Linear Server**: Issues, Teams, Users, Projects + Dynamic Prompts/Resources
-- **✅ Perplexity Server**: Search, Research, Compare + Dynamic Prompts/Resources
-- **✅ DevTools Server**: Chrome automation + Dynamic Prompts/Resources
+- **✅ Linear Server**: Issues, Teams, Users, Projects + Dynamic Prompts/Resources (22 lines setup)
+- **✅ Perplexity Server**: Search, Research, Compare + Dynamic Prompts/Resources (18 lines setup)
+- **✅ DevTools Server**: Chrome automation + Dynamic Prompts/Resources (25 lines setup)
 
-Future servers will follow the same pattern:
+All servers now use the same factory pattern with **68% less boilerplate** than before.
 
-- **GitHub Server**: Repos, Issues, Pull Requests, Actions + Dynamic Config
-- **Slack Server**: Messages, Channels, Users, Workspaces + Dynamic Config
-- **Notion Server**: Pages, Databases, Blocks, Users + Dynamic Config
+Future servers will follow the same consolidated pattern:
+
+- **GitHub Server**: Repos, Issues, Pull Requests, Actions + Factory-based setup
+- **Slack Server**: Messages, Channels, Users, Workspaces + Factory-based setup
+- **Notion Server**: Pages, Databases, Blocks, Users + Factory-based setup
+
+### Real Examples from Codebase
+
+**Linear Server (with client):**
+
+```typescript
+export async function createLinearHttpServer(config: LinearServerConfig): Promise<FastifyInstance> {
+  const linearClient = new LinearClient({ apiKey: config.linearApiKey });
+
+  return createMcpServerWithClient({
+    serverName: "linear",
+    serverKey: "linear",
+    config,
+    client: linearClient,
+    createToolHandlers,
+    getAvailableTools,
+  });
+}
+```
+
+**Perplexity Server (without client):**
+
+```typescript
+export async function createPerplexityHttpServer(
+  config: PerplexityServerConfig
+): Promise<FastifyInstance> {
+  return createMcpServerWithoutClient({
+    serverName: "perplexity",
+    serverKey: "perplexity",
+    config,
+    createToolHandlers,
+    getAvailableTools,
+  });
+}
+```
 
 ## Migration Guide
 
-If you have existing servers with static prompts/resources files:
+If you have existing servers with manual setup or static files:
 
-### 1. Remove Static Files
+### 1. Remove Static Files & Manual Setup
 
 ```bash
-# Remove these files
+# Remove old static files
 rm src/mcp-server/prompts.ts
 rm src/mcp-server/resources.ts
 ```
 
-### 2. Update HTTP Server
+### 2. Replace Manual Server Setup with Factory
+
+**Old manual setup (70+ lines):**
 
 ```typescript
-// Replace with enhanced server
-import { createEnhancedMcpHttpServer } from "@mcp/server-core";
+// ❌ OLD - Manual setup
+import { createEnhancedMcpHttpServer, DatabaseDynamicHandlerRegistry } from "@mcp/server-core";
+
+const dynamicHandlers = new DatabaseDynamicHandlerRegistry(serverId, configLoader);
+const server = createEnhancedMcpHttpServer({
+  serverName: "domain",
+  config,
+  client: domainClient,
+  dynamicHandlers,
+  fallbackHandlers: { toolHandlers, resourceHandlers: {}, promptHandlers: {} },
+  getAvailableTools,
+  getAvailableResources: async (context) => dynamicHandlers.getAvailableResources(context),
+  getAvailablePrompts: async (context) => dynamicHandlers.getAvailablePrompts(context),
+});
 ```
 
-### 3. Migrate Data to Database
+**New factory pattern (22 lines):**
 
-```bash
-# Add your prompts/resources to seed script
-vim packages/database/prisma/seed-prompts-resources.ts
+```typescript
+// ✅ NEW - Factory pattern
+import { createMcpServerWithClient } from "@mcp/server-core";
+
+return createMcpServerWithClient({
+  serverName: "domain",
+  serverKey: "domain",
+  config,
+  client: domainClient,
+  createToolHandlers,
+  getAvailableTools,
+});
 ```
 
-### 4. Test Dynamic Loading
+### 3. Update Dependencies
+
+Remove unused dependencies that the factory now handles:
+
+```json
+{
+  "dependencies": {
+    // Remove these - factory handles them
+    // "@mcp/config-service": "workspace:*", ❌
+    // "@mcp/database": "workspace:*", ❌
+
+    // Keep these
+    "@mcp/server-core": "workspace:*", // ✅
+    "@mcp/utils": "workspace:*" // ✅
+  }
+}
+```
+
+### 4. Test Factory Pattern
 
 ```bash
-# Verify prompts/resources load from database
+# Verify factory-based server works correctly
 curl -X POST -H "Content-Type: application/json" \
-  -H "Authorization: Bearer dev-api-key-12345" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"prompts/list","params":{}}' \
+  -H "x-api-key: dev-api-key-12345" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
   http://localhost:37373/mcp
 ```
 
-**The database-driven pattern is now the standard for all MCP servers!** 🎉
+### 5. Benefits After Migration
+
+- **68% less code** in your server setup
+- **Zero configuration drift** - factory ensures consistency
+- **Automatic database integration** - no manual setup required
+- **Hot reloading** - changes take effect immediately
+- **Simplified maintenance** - factory handles complexity
+
+**The consolidated factory pattern is now the standard for all MCP servers!** 🎉

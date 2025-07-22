@@ -1,7 +1,7 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { PERPLEXITY_SERVER } from "@mcp/capabilities";
-import type { BaseMcpServerConfig } from "@mcp/server-core";
+import type { McpServerConfig } from "@mcp/server-core";
 // Environment removed - not used in this file
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
@@ -13,7 +13,7 @@ const SERVICE_PATH = join(__dirname, "..", "..");
 // Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
 
-export interface PerplexityServerConfig extends BaseMcpServerConfig {
+export interface PerplexityServerConfig extends McpServerConfig {
   perplexityApiKey: string;
   baseUrl: string;
   maxRetries: number;
