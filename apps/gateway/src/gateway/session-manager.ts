@@ -27,10 +27,13 @@ export class MCPSessionManager {
       logger
     );
 
-    // Start session cleanup interval
+    // Start session cleanup interval - more frequent in development
+    const cleanupInterval = config.env === "production" ? 60000 : 30000; // 1 min prod, 30 sec dev
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions();
-    }, 60000); // Clean up every minute
+    }, cleanupInterval);
+
+    this.logger.debug(`Session cleanup interval set to ${cleanupInterval}ms`);
   }
 
   async shutdown(): Promise<void> {
@@ -75,8 +78,41 @@ export class MCPSessionManager {
   }
 
   /**
+   * Find existing session for user and organization context
+   */
+  private findExistingSession(
+    userId: string,
+    organizationClerkId?: string,
+    transport: "http" | "websocket" = "http"
+  ): Session | null {
+    for (const session of this.sessions.values()) {
+      // Match user, organization, and transport
+      if (
+        session.userId === userId &&
+        session.organizationClerkId === organizationClerkId &&
+        session.transport === transport
+      ) {
+        // Check if session is still valid (not expired)
+        const now = new Date();
+        const timeSinceLastActivity =
+          now.getTime() - session.lastActivity.getTime();
+
+        if (timeSinceLastActivity < this.config.sessionTimeout) {
+          // Update last activity and return existing session
+          session.lastActivity = now;
+          this.logger.debug(
+            `Reusing existing session: ${session.id} for user: ${userId}`
+          );
+          return session;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Create session with organization context extracted from auth headers
-   * Now supports organization context simulation for testing
+   * Now supports organization context simulation for testing and session reuse
    */
   async createSessionWithAuth(
     authHeader?: string,
@@ -91,6 +127,9 @@ export class MCPSessionManager {
     );
 
     const userId = orgContext?.userClerkId || "anonymous";
+
+    // Determine final organization context (with simulation support)
+    let finalOrgContext = orgContext;
 
     // Check if we're simulating a different organization context
     if (simulateOrgHeader && orgContext) {
@@ -108,21 +147,12 @@ export class MCPSessionManager {
         );
 
         if (simulatedContext) {
-          const session = this.createSession(
-            userId,
-            transport,
-            simulatedContext
-          );
-          this.logger.info(
-            `Created testing session with simulated organization context`,
-            {
-              actualOrgId: orgContext.organizationClerkId,
-              simulatedOrgId: simulateOrgHeader,
-              userId: orgContext.userClerkId,
-              sessionId: session.id,
-            }
-          );
-          return session;
+          finalOrgContext = simulatedContext;
+          this.logger.info(`Using simulated organization context`, {
+            actualOrgId: orgContext.organizationClerkId,
+            simulatedOrgId: simulateOrgHeader,
+            userId: orgContext.userClerkId,
+          });
         }
       } else {
         this.logger.warn(
@@ -136,7 +166,19 @@ export class MCPSessionManager {
       }
     }
 
-    return this.createSession(userId, transport, orgContext || undefined);
+    // Try to find existing session first
+    const existingSession = this.findExistingSession(
+      userId,
+      finalOrgContext?.organizationClerkId,
+      transport
+    );
+
+    if (existingSession) {
+      return existingSession;
+    }
+
+    // Create new session if none exists
+    return this.createSession(userId, transport, finalOrgContext || undefined);
   }
 
   /**
@@ -278,6 +320,33 @@ export class MCPSessionManager {
     return this.sessions.size < this.config.maxConcurrentSessions;
   }
 
+  /**
+   * Get session statistics for monitoring
+   */
+  getSessionStats(): {
+    total: number;
+    limit: number;
+    byTransport: { http: number; websocket: number };
+    byUser: Record<string, number>;
+  } {
+    const stats = {
+      total: this.sessions.size,
+      limit: this.config.maxConcurrentSessions,
+      byTransport: { http: 0, websocket: 0 },
+      byUser: {} as Record<string, number>,
+    };
+
+    for (const session of this.sessions.values()) {
+      // Count by transport
+      stats.byTransport[session.transport]++;
+
+      // Count by user
+      stats.byUser[session.userId] = (stats.byUser[session.userId] || 0) + 1;
+    }
+
+    return stats;
+  }
+
   private cleanupExpiredSessions(): void {
     const now = new Date();
     const expiredSessions: string[] = [];
@@ -298,6 +367,24 @@ export class MCPSessionManager {
 
     if (expiredSessions.length > 0) {
       this.logger.info(`Cleaned up ${expiredSessions.length} expired sessions`);
+    }
+
+    // Log session stats periodically (every 10 cleanups in dev)
+    if (this.config.env !== "production") {
+      const stats = this.getSessionStats();
+      if (stats.total > stats.limit * 0.8) {
+        // Log when >80% capacity
+        this.logger.warn(
+          `High session usage: ${stats.total}/${stats.limit}`,
+          stats
+        );
+      } else if (stats.total > 10) {
+        // Log stats when we have more than 10 sessions
+        this.logger.debug(
+          `Session stats: ${stats.total}/${stats.limit}`,
+          stats
+        );
+      }
     }
   }
 }
