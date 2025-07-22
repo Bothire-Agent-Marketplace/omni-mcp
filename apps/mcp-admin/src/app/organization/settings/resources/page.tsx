@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DatabaseService } from "@/lib/db-service";
-import { ResourcesClient } from "./resources-client";
+import { ResourcesView } from "@/components/views/resources-view";
 
 export default async function ResourcesPage() {
   const { userId, orgId } = await auth();
@@ -22,9 +22,9 @@ export default async function ResourcesPage() {
     DatabaseService.getMcpServers(),
   ]);
 
-  // Pass data as props to client component
+  // Pass data as props to view component
   return (
-    <ResourcesClient
+    <ResourcesView
       resources={resources}
       defaultResources={defaultResources}
       mcpServers={mcpServers}

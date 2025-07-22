@@ -489,6 +489,18 @@ export class DatabaseService {
   }
 
   /**
+   * Get user by Clerk ID
+   */
+  static async getUserByClerkId(clerkId: string) {
+    return await prisma.user.findUnique({
+      where: {
+        clerkId,
+        deletedAt: null,
+      },
+    });
+  }
+
+  /**
    * Get user's organizations and roles
    */
   static async getUserOrganizations(userId: string) {

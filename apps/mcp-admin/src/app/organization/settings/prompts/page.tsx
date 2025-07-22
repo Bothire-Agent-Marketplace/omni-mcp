@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DatabaseService } from "@/lib/db-service";
-import { PromptsClient } from "./prompts-client";
+import { PromptsView } from "@/components/views/prompts-view";
 
 export default async function PromptsPage() {
   const { userId, orgId } = await auth();
@@ -22,9 +22,9 @@ export default async function PromptsPage() {
     DatabaseService.getMcpServers(),
   ]);
 
-  // Pass data as props to client component
+  // Pass data as props to view component
   return (
-    <PromptsClient
+    <PromptsView
       prompts={prompts}
       defaultPrompts={defaultPrompts}
       mcpServers={mcpServers}
