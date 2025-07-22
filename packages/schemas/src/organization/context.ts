@@ -2,7 +2,7 @@
  * Organization context types for request handling across services
  * These extend the base Prisma Organization type with context-specific fields
  */
-import type { Organization } from "@mcp/database";
+import type { Organization } from "@mcp/database/client";
 
 /**
  * Base organization context for request handling
@@ -47,17 +47,6 @@ export interface EnabledService {
   serverKey: string;
   enabled?: boolean;
   config?: Record<string, unknown>;
-}
-
-/**
- * Minimal organization info for UI components
- * Matches what most React components actually need
- */
-export interface OrganizationInfo {
-  id: string;
-  clerkId: string;
-  name: string;
-  slug?: string;
 }
 
 /**
