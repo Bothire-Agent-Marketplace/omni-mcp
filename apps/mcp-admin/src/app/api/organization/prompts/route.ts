@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/db";
 import { DatabaseService } from "@/lib/db-service";
 
 // Schema for creating/updating prompts
@@ -71,6 +72,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Look up the user by their Clerk ID to get the internal UUID
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const body = await request.json();
     const validatedData = PromptSchema.parse(body);
 
@@ -81,7 +91,7 @@ export async function POST(request: NextRequest) {
       description: validatedData.description,
       template: validatedData.template,
       arguments: validatedData.arguments,
-      createdBy: userId,
+      createdBy: user.id, // Use the internal user UUID instead of Clerk ID
     });
 
     return NextResponse.json({
