@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createSuccessResponse, createErrorResponse } from "@mcp/schemas";
 
 const TestResourceUriSchema = z.object({
-  uri: z.url("Invalid URI format"),
+  uri: z.string().url("Invalid URI format"),
 });
 
-// Format bytes to human readable format
+// Helper function to format bytes
 function formatBytes(bytes: number): string {
-  if (bytes === 0) return "0 Bytes";
-  const k = 1024;
   const sizes = ["Bytes", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  if (bytes === 0) return "0 Bytes";
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return Math.round((bytes / Math.pow(1024, i)) * 100) / 100 + " " + sizes[i];
 }
 
 export async function POST(request: NextRequest) {
@@ -21,10 +21,13 @@ export async function POST(request: NextRequest) {
 
     // Only test HTTP/HTTPS URLs for security
     if (!uri.match(/^https?:\/\/.+/i)) {
-      return NextResponse.json({
-        success: false,
-        error: "Only HTTP and HTTPS URLs can be tested for security reasons",
-      });
+      return NextResponse.json(
+        createErrorResponse(
+          "Only HTTP and HTTPS URLs can be tested for security reasons",
+          "Security validation failed"
+        ),
+        { status: 400 }
+      );
     }
 
     // Test the URI accessibility
@@ -43,10 +46,13 @@ export async function POST(request: NextRequest) {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        return NextResponse.json({
-          success: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        });
+        return NextResponse.json(
+          createErrorResponse(
+            `HTTP ${response.status}: ${response.statusText}`,
+            "Resource request failed"
+          ),
+          { status: 400 }
+        );
       }
 
       // Extract metadata from headers
@@ -61,62 +67,78 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      return NextResponse.json({
-        success: true,
-        contentType,
-        size,
-        status: response.status,
-        statusText: response.statusText,
-      });
+      return NextResponse.json(
+        createSuccessResponse(
+          {
+            contentType,
+            size,
+            status: response.status,
+            statusText: response.statusText,
+          },
+          "Resource accessibility test completed successfully"
+        )
+      );
     } catch (fetchError) {
       clearTimeout(timeoutId);
 
       if (fetchError instanceof Error) {
         if (fetchError.name === "AbortError") {
-          return NextResponse.json({
-            success: false,
-            error: "Request timeout - resource took too long to respond",
-          });
+          return NextResponse.json(
+            createErrorResponse(
+              "Request timeout - resource took too long to respond",
+              "Connection timeout"
+            ),
+            { status: 408 }
+          );
         }
 
         // Handle different types of network errors
         if (fetchError.message.includes("fetch")) {
-          return NextResponse.json({
-            success: false,
-            error: "Network error - unable to reach the resource",
-          });
+          return NextResponse.json(
+            createErrorResponse(
+              "Network error - unable to reach the resource",
+              "Network connectivity issue"
+            ),
+            { status: 503 }
+          );
         }
 
-        return NextResponse.json({
-          success: false,
-          error: `Connection error: ${fetchError.message}`,
-        });
+        return NextResponse.json(
+          createErrorResponse(
+            `Connection error: ${fetchError.message}`,
+            "Connection failed"
+          ),
+          { status: 503 }
+        );
       }
 
-      return NextResponse.json({
-        success: false,
-        error: "Unknown error occurred while testing the resource",
-      });
+      return NextResponse.json(
+        createErrorResponse(
+          "Unknown error occurred while testing the resource",
+          "Unexpected error"
+        ),
+        { status: 500 }
+      );
     }
   } catch (error) {
     console.error("Error testing resource URI:", error);
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid request format",
-          details: error.issues,
-        },
+        createErrorResponse(
+          "Invalid request format",
+          "Validation failed",
+          error.issues
+        ),
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      {
-        success: false,
-        error: "Internal server error while testing resource URI",
-      },
+      createErrorResponse(
+        "Internal server error while testing resource URI",
+        "Server error"
+      ),
       { status: 500 }
     );
   }

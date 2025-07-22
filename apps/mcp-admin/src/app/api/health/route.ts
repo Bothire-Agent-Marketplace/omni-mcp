@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { createHealthResponse } from "@mcp/schemas";
 import { checkDbHealth } from "@/lib/db";
 
 export async function GET() {
@@ -6,16 +7,19 @@ export async function GET() {
     // Check database health
     const isDbHealthy = await checkDbHealth();
 
-    // Basic health check response
-    const health = {
-      status: "ok",
-      timestamp: new Date().toISOString(),
-      database: {
-        status: isDbHealthy ? "healthy" : "unhealthy",
-        connected: isDbHealthy,
+    // Create standardized health check response
+    const health = createHealthResponse(
+      isDbHealthy ? "ok" : "degraded",
+      {
+        database: {
+          status: isDbHealthy ? "healthy" : "unhealthy",
+          connected: isDbHealthy,
+          lastCheck: new Date().toISOString(),
+        },
       },
-      environment: process.env.NODE_ENV || "development",
-    };
+      process.env.NODE_ENV || "development",
+      process.env.npm_package_version
+    );
 
     // Return appropriate status code
     const status = isDbHealthy ? 200 : 503;
@@ -24,17 +28,18 @@ export async function GET() {
   } catch (error) {
     console.error("Health check failed:", error);
 
-    return NextResponse.json(
+    const errorResponse = createHealthResponse(
+      "error",
       {
-        status: "error",
-        timestamp: new Date().toISOString(),
         database: {
           status: "unhealthy",
           connected: false,
+          details: error instanceof Error ? error.message : "Unknown error",
         },
-        error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 503 }
+      process.env.NODE_ENV || "development"
     );
+
+    return NextResponse.json(errorResponse, { status: 503 });
   }
 }
