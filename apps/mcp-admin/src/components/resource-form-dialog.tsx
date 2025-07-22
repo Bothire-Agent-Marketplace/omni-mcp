@@ -473,8 +473,8 @@ export function ResourceFormDialog({
                   <div>
                     <h4 className="font-medium text-lg">Resource Testing</h4>
                     <p className="text-sm text-muted-foreground">
-                      Test your resource URI to verify it's accessible and get
-                      metadata
+                      Test your resource URI to verify it&apos;s accessible and
+                      get metadata
                     </p>
                   </div>
 

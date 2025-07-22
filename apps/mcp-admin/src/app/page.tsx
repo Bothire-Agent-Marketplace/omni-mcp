@@ -20,10 +20,11 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
-  const { memberships } = userWithOrgs;
+  // Safely access memberships with fallback to empty array
+  const memberships = userWithOrgs?.memberships || [];
 
   // Convert database format to match the view component interface
-  const formattedMemberships = memberships.map((membership) => ({
+  const formattedMemberships = Array.isArray(memberships) ? memberships.map((membership) => ({
     id: membership.id,
     role: membership.role,
     organization: {
@@ -31,10 +32,10 @@ export default async function HomePage() {
       name: membership.organization.name,
       membersCount: 0, // This could be populated if needed
     },
-  }));
+  })) : [];
 
   // If user has no organizations, show onboarding
-  if (formattedMemberships.length === 0) {
+  if (!formattedMemberships || formattedMemberships.length === 0) {
     return <OnboardingView />;
   }
 

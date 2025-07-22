@@ -55,9 +55,16 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdateResourceSchema.parse(body);
 
+    // Convert null mimeType to undefined to match service interface
+    const serviceData = {
+      ...validatedData,
+      mimeType:
+        validatedData.mimeType === null ? undefined : validatedData.mimeType,
+    };
+
     const updatedResource = await resourceService.updateResource(
       id,
-      validatedData
+      serviceData
     );
 
     return NextResponse.json({
