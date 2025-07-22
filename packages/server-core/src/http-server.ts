@@ -5,7 +5,14 @@ import fastify, {
   FastifyRequest,
 } from "fastify";
 import { ZodError } from "zod";
-import { MCPRequest, MCPResponse, MCPErrorResponse } from "@mcp/schemas";
+import {
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
+  createInvalidRequestErrorResponse,
+  createInvalidParamsErrorResponse,
+  createInternalErrorResponse,
+  createMethodNotFoundErrorResponse,
+} from "@mcp/schemas";
 import { createMcpLogger } from "@mcp/utils";
 import type {
   ServerCreationOptions,
@@ -41,7 +48,7 @@ function extractOrganizationContext(
   if (orgId && orgClerkId && orgName && orgSlug) {
     const organization: OrganizationContext = {
       organizationId: orgId,
-      clerkId: orgClerkId,
+      organizationClerkId: orgClerkId,
       name: orgName,
       slug: orgSlug,
     };
@@ -67,7 +74,7 @@ function extractOrganizationContext(
       if (payload.org) {
         const organization: OrganizationContext = {
           organizationId: payload.org.id,
-          clerkId: payload.org.clerk_id,
+          organizationClerkId: payload.org.clerk_id,
           name: payload.org.name,
           slug: payload.org.slug,
         };
@@ -141,16 +148,11 @@ export function createMcpHttpServer<TClient = unknown>(
 
   // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { jsonrpc, method, params, id } = request.body as MCPRequest;
+    const { jsonrpc, method, params, id } = request.body as MCPJsonRpcRequest;
 
     // Validate JSON-RPC format
     if (jsonrpc !== "2.0") {
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32600, message: "Invalid Request" },
-      };
-      reply.status(400).send(errorResponse);
+      reply.status(400).send(createInvalidRequestErrorResponse(id));
       return;
     }
 
@@ -176,31 +178,15 @@ export function createMcpHttpServer<TClient = unknown>(
           .map((err) => `${err.path.join(".")}: ${err.message}`)
           .join(", ");
 
-        const errorResponse: MCPErrorResponse = {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32602,
-            message: "Invalid params",
-            data: `Validation failed: ${validationErrors}`,
-          },
-        };
-        reply.status(400).send(errorResponse);
+        reply
+          .status(400)
+          .send(createInvalidParamsErrorResponse(validationErrors, id));
         return;
       }
 
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32603,
-          message: "Internal server error",
-          data: errorMessage,
-        },
-      };
-      reply.status(500).send(errorResponse);
+      reply.status(500).send(createInternalErrorResponse(errorMessage, id));
     }
   });
 
@@ -302,16 +288,11 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 
   // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { jsonrpc, method, params, id } = request.body as MCPRequest;
+    const { jsonrpc, method, params, id } = request.body as MCPJsonRpcRequest;
 
     // Validate JSON-RPC format
     if (jsonrpc !== "2.0") {
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: { code: -32600, message: "Invalid Request" },
-      };
-      reply.status(400).send(errorResponse);
+      reply.status(400).send(createInvalidRequestErrorResponse(id));
       return;
     }
 
@@ -342,31 +323,15 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
           .map((err) => `${err.path.join(".")}: ${err.message}`)
           .join(", ");
 
-        const errorResponse: MCPErrorResponse = {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32602,
-            message: "Invalid params",
-            data: `Validation failed: ${validationErrors}`,
-          },
-        };
-        reply.status(400).send(errorResponse);
+        reply
+          .status(400)
+          .send(createInvalidParamsErrorResponse(validationErrors, id));
         return;
       }
 
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      const errorResponse: MCPErrorResponse = {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32603,
-          message: "Internal server error",
-          data: errorMessage,
-        },
-      };
-      reply.status(500).send(errorResponse);
+      reply.status(500).send(createInternalErrorResponse(errorMessage, id));
     }
   });
 
@@ -429,7 +394,7 @@ async function routeRequest(
           }>
         >;
   }
-): Promise<MCPResponse> {
+): Promise<MCPJsonRpcResponse> {
   const DEFAULT_PARAMS: Record<string, unknown> = {};
 
   switch (method) {
@@ -444,14 +409,10 @@ async function routeRequest(
           : undefined;
 
       if (!handler || !toolName) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Tool not found: ${toolName}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Tool not found: ${toolName}`,
+          id
+        );
       }
 
       const result = await handler(
@@ -470,14 +431,10 @@ async function routeRequest(
           : undefined;
 
       if (!handler || !uri) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Resource not found: ${uri}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Resource not found: ${uri}`,
+          id
+        );
       }
 
       const result = await handler(uri, requestContext);
@@ -495,14 +452,10 @@ async function routeRequest(
           : undefined;
 
       if (!handler || !name) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Prompt not found: ${name}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Prompt not found: ${name}`,
+          id
+        );
       }
 
       const result = await handler(
@@ -546,14 +499,7 @@ async function routeRequest(
     }
 
     default: {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32601,
-          message: `Method not found: ${method}`,
-        },
-      };
+      return createMethodNotFoundErrorResponse(method, id);
     }
   }
 }
@@ -613,7 +559,7 @@ async function routeEnhancedRequest(
           }>
         >;
   }
-): Promise<MCPResponse> {
+): Promise<MCPJsonRpcResponse> {
   const DEFAULT_PARAMS: Record<string, unknown> = {};
 
   switch (method) {
@@ -624,14 +570,10 @@ async function routeEnhancedRequest(
       const toolName = toolParams?.name;
 
       if (!toolName || typeof toolName !== "string") {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Tool not found: ${toolName}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Tool not found: ${toolName}`,
+          id
+        );
       }
 
       // Try dynamic handler first
@@ -649,14 +591,10 @@ async function routeEnhancedRequest(
       }
 
       if (!handler) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Tool not found: ${toolName}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Tool not found: ${toolName}`,
+          id
+        );
       }
 
       const result = await handler(
@@ -671,14 +609,10 @@ async function routeEnhancedRequest(
       const uri = resourceParams?.uri;
 
       if (!uri || typeof uri !== "string") {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Resource not found: ${uri}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Resource not found: ${uri}`,
+          id
+        );
       }
 
       // Try dynamic handler first
@@ -696,14 +630,10 @@ async function routeEnhancedRequest(
       }
 
       if (!handler) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Resource not found: ${uri}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Resource not found: ${uri}`,
+          id
+        );
       }
 
       const result = await handler(uri, requestContext);
@@ -717,14 +647,10 @@ async function routeEnhancedRequest(
       const name = promptParams?.name;
 
       if (!name || typeof name !== "string") {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Prompt not found: ${name}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Prompt not found: ${name}`,
+          id
+        );
       }
 
       // Try dynamic handler first
@@ -742,14 +668,10 @@ async function routeEnhancedRequest(
       }
 
       if (!handler) {
-        return {
-          jsonrpc: "2.0",
-          id,
-          error: {
-            code: -32601,
-            message: `Prompt not found: ${name}`,
-          },
-        };
+        return createMethodNotFoundErrorResponse(
+          `Prompt not found: ${name}`,
+          id
+        );
       }
 
       const result = await handler(
@@ -793,14 +715,7 @@ async function routeEnhancedRequest(
     }
 
     default: {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32601,
-          message: `Method not found: ${method}`,
-        },
-      };
+      return createMethodNotFoundErrorResponse(method, id);
     }
   }
 }

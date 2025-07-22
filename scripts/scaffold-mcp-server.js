@@ -765,7 +765,7 @@ function generateConfigTemplate(domain) {
 import { fileURLToPath } from "url";
 import { ${domain.toUpperCase()}_SERVER } from "@mcp/capabilities";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
-import type { Environment } from "@mcp/utils";
+import type { Environment } from "@mcp/schemas";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
 

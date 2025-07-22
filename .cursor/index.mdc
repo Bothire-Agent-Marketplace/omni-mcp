@@ -9,3 +9,4 @@ alwaysApply: true
 - Don't create scripts without asking
 - Assume all servers are always running with hot reloading during development
 - use pnpm not npm
+- dont worry about backwards compatibility when refactoring.

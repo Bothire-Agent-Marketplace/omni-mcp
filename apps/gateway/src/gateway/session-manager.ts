@@ -1,25 +1,27 @@
-import jwt, { JwtPayload } from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import { Session, GatewayConfig, IWebSocket } from "@mcp/schemas";
+import {
+  Session,
+  McpGatewayConfig,
+  IWebSocket,
+  SessionJwtPayload,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 import {
   OrganizationContextService,
   OrganizationContext,
 } from "../services/organization-context.js";
 
-interface SessionJwtPayload extends JwtPayload {
-  sessionId: string;
-  timestamp: number;
-}
+// SessionJwtPayload now imported from @mcp/schemas
 
 export class MCPSessionManager {
   private logger: McpLogger;
   private sessions = new Map<string, Session>();
-  private config: GatewayConfig;
+  private config: McpGatewayConfig;
   private cleanupInterval: NodeJS.Timeout;
   private orgContextService: OrganizationContextService;
 
-  constructor(config: GatewayConfig, logger: McpLogger) {
+  constructor(config: McpGatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger;
     this.orgContextService = new OrganizationContextService(

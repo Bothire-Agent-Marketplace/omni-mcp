@@ -1,15 +1,22 @@
 import { EventEmitter } from "events";
 import fetch from "node-fetch";
-import { ServerConfig, ServerInstance, HealthStatus } from "@mcp/schemas";
+import {
+  McpServerRuntimeConfig,
+  ServerInstance,
+  HealthStatus,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
 export class MCPServerManager extends EventEmitter {
   private logger: McpLogger;
   private servers = new Map<string, ServerInstance>();
   private healthCheckIntervals = new Map<string, NodeJS.Timeout>();
-  private serverConfigs: Record<string, ServerConfig>;
+  private serverConfigs: Record<string, McpServerRuntimeConfig>;
 
-  constructor(serverConfigs: Record<string, ServerConfig>, logger: McpLogger) {
+  constructor(
+    serverConfigs: Record<string, McpServerRuntimeConfig>,
+    logger: McpLogger
+  ) {
     super();
     this.logger = logger;
     this.serverConfigs = serverConfigs;
@@ -145,7 +152,9 @@ export class MCPServerManager extends EventEmitter {
   }
 
   // Helper to get original config, if needed
-  private getServerConfig(serverId: string): ServerConfig | undefined {
+  private getServerConfig(
+    serverId: string
+  ): McpServerRuntimeConfig | undefined {
     return this.serverConfigs[serverId];
   }
 }

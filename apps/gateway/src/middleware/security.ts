@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
@@ -337,11 +336,4 @@ function validateMCPRequest(body: unknown): {
     valid: errors.length === 0,
     errors,
   };
-}
-
-/**
- * Generate a cryptographically secure API key
- */
-export function generateSecureApiKey(): string {
-  return `mcp_${randomBytes(32).toString("hex")}`;
 }

@@ -1,7 +1,13 @@
-import { MCPRequest, MCPResponse, Session, GatewayConfig } from "@mcp/schemas";
+import {
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
+  Session,
+  McpGatewayConfig,
+  isJsonRpcErrorResponse,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
-import { MCPServerManager } from "../server-manager.js";
 import { MCPProtocolAdapter } from "../protocol-adapter.js";
+import { MCPServerManager } from "../server-manager.js";
 
 /**
  * Handles request routing to appropriate MCP servers
@@ -9,13 +15,13 @@ import { MCPProtocolAdapter } from "../protocol-adapter.js";
  */
 export class MCPRequestRouter {
   private logger: McpLogger;
-  private config: GatewayConfig;
+  private config: McpGatewayConfig;
   private serverManager: MCPServerManager;
   private protocolAdapter: MCPProtocolAdapter;
   private capabilityMap = new Map<string, string[]>();
 
   constructor(
-    config: GatewayConfig,
+    config: McpGatewayConfig,
     serverManager: MCPServerManager,
     protocolAdapter: MCPProtocolAdapter,
     logger: McpLogger
@@ -32,9 +38,9 @@ export class MCPRequestRouter {
    * Route and execute a request on the appropriate MCP server
    */
   async routeAndExecuteRequest(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     session: Session
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     const requestId = `req_${Date.now()}_${Math.random()
       .toString(36)
       .substr(2, 9)}`;
@@ -155,10 +161,10 @@ export class MCPRequestRouter {
   }
 
   private async executeOnServer(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     session: Session,
     serverInstance: { id: string; url: string }
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     // Prepare headers with organization context
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -179,10 +185,10 @@ export class MCPRequestRouter {
       body: JSON.stringify(request),
     });
 
-    const mcpResponse = (await response.json()) as MCPResponse;
+    const mcpResponse = (await response.json()) as MCPJsonRpcResponse;
 
     // If the server returned an error, forward it directly (including validation errors)
-    if (!response.ok || mcpResponse.error) {
+    if (!response.ok || isJsonRpcErrorResponse(mcpResponse)) {
       return mcpResponse;
     }
 
@@ -200,7 +206,7 @@ export class MCPRequestRouter {
     );
   }
 
-  private getCapabilityToResolve(request: MCPRequest): string {
+  private getCapabilityToResolve(request: MCPJsonRpcRequest): string {
     const { method, params } = request;
 
     // For tool calls, route based on the specific tool name
@@ -222,9 +228,9 @@ export class MCPRequestRouter {
   }
 
   private createRoutingErrorResponse(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     capability: string
-  ): MCPResponse {
+  ): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -237,9 +243,9 @@ export class MCPRequestRouter {
   }
 
   private createServerUnavailableResponse(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     serverId: string
-  ): MCPResponse {
+  ): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -252,9 +258,9 @@ export class MCPRequestRouter {
   }
 
   private createExecutionErrorResponse(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     error: unknown
-  ): MCPResponse {
+  ): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,

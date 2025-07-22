@@ -185,35 +185,18 @@ export type PromptMessage = z.infer<typeof PromptMessageSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
 export type PromptResponse = z.infer<typeof PromptResponseSchema>;
 
-// Response Types
-export const McpSuccessResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.unknown(),
-  timestamp: z.string().optional(),
-  executionTime: z.number().optional(),
-});
+// Re-export unified response types from API layer
+export type {
+  McpSuccessResponse,
+  McpErrorResponse,
+  McpResponse,
+} from "../api/index.js";
 
-export const McpErrorResponseSchema = z.object({
-  success: z.literal(false),
-  error: z.string(),
-  timestamp: z.string().optional(),
-  executionTime: z.number().optional(),
-});
+export {
+  McpSuccessResponseSchema,
+  McpErrorResponseSchema,
+  McpResponseSchema,
+} from "../api/index.js";
 
-export type McpResponse<_T = unknown> = z.infer<
-  typeof McpSuccessResponseSchema | typeof McpErrorResponseSchema
->;
-
-// Server Configuration Types
-export const McpServerConfigSchema = z.object({
-  name: z.string(),
-  version: z.string(),
-  description: z.string().optional(),
-  capabilities: z.object({
-    tools: z.boolean().optional().default(false),
-    resources: z.boolean().optional().default(false),
-    prompts: z.boolean().optional().default(false),
-  }),
-});
-
-export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+// Server configuration schema moved to packages/schemas/src/mcp/configuration.ts
+// Import McpServerConfig and McpServerConfigSchema from @mcp/schemas instead

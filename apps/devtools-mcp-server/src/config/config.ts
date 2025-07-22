@@ -1,8 +1,8 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { DEVTOOLS_SERVER } from "@mcp/capabilities";
+import type { Environment } from "@mcp/schemas";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
-import type { Environment } from "@mcp/utils";
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort } from "@mcp/utils/validation.js";
 

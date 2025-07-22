@@ -1,22 +1,7 @@
-import type { Environment } from "@mcp/utils";
+import type { McpServerConfig, OrganizationContext } from "@mcp/schemas";
 
-// ============================================================================
-// ORGANIZATION CONTEXT TYPES
-// ============================================================================
-
-/**
- * Organization context passed to handlers
- */
-export interface OrganizationContext {
-  /** Organization ID from the database */
-  organizationId: string;
-  /** Organization Clerk ID */
-  clerkId: string;
-  /** Organization name */
-  name: string;
-  /** Organization slug */
-  slug: string;
-}
+// Re-export the unified OrganizationContext for backward compatibility
+export type { OrganizationContext };
 
 /**
  * Request context containing organization and user information
@@ -35,27 +20,13 @@ export interface RequestContext {
 // ============================================================================
 
 /**
+ * @deprecated Import from @mcp/schemas instead
  * Base configuration interface that all MCP servers should extend
  */
-export interface BaseMcpServerConfig {
-  /** Server port number */
-  port: number;
-  /** Server host (default: localhost) */
-  host: string;
-  /** Log level for the server */
-  logLevel: string;
-  /** Environment (development, production, test) */
-  env: Environment;
-}
+export type BaseMcpServerConfig = McpServerConfig;
 
-/**
- * Generic MCP server configuration with optional client-specific config
- */
-export interface McpServerConfig<TClientConfig = Record<string, unknown>>
-  extends BaseMcpServerConfig {
-  /** Client-specific configuration */
-  client?: TClientConfig;
-}
+// Re-export consolidated types from @mcp/schemas for backward compatibility
+export type { McpServerConfig };
 
 /**
  * Server creation options for the generic HTTP server factory
@@ -64,7 +35,7 @@ export interface ServerCreationOptions<TClient = unknown> {
   /** Unique server name for logging and identification */
   serverName: string;
   /** Server configuration */
-  config: BaseMcpServerConfig;
+  config: McpServerConfig;
   /** Optional client instance (e.g., LinearClient, API client, etc.) */
   client?: TClient;
   /** Tool handlers registry */
@@ -82,7 +53,7 @@ export interface ServerStartupOptions {
   /** Server name for logging */
   serverName: string;
   /** Server configuration */
-  config: BaseMcpServerConfig;
+  config: McpServerConfig;
   /** Function that creates the Fastify server instance */
   createServer: () => Promise<import("fastify").FastifyInstance>;
 }

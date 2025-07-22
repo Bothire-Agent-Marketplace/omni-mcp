@@ -1,4 +1,9 @@
-import { MCPRequest, MCPResponse, Session, GatewayConfig } from "@mcp/schemas";
+import {
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
+  Session,
+  McpGatewayConfig,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
 // MCP Protocol Types
@@ -31,9 +36,9 @@ interface MCPPrompt {
  */
 export class MCPProtocolHandler {
   private logger: McpLogger;
-  private config: GatewayConfig;
+  private config: McpGatewayConfig;
 
-  constructor(config: GatewayConfig, logger: McpLogger) {
+  constructor(config: McpGatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger.fork("protocol-handler");
   }
@@ -57,9 +62,9 @@ export class MCPProtocolHandler {
    * Handle core MCP protocol methods
    */
   async handleProtocolMethod(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     session?: Session
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     switch (request.method) {
       case "initialize":
         return this.handleInitialize(request);
@@ -84,7 +89,7 @@ export class MCPProtocolHandler {
     }
   }
 
-  private handleInitialize(request: MCPRequest): MCPResponse {
+  private handleInitialize(request: MCPJsonRpcRequest): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -103,7 +108,7 @@ export class MCPProtocolHandler {
     };
   }
 
-  private handleInitialized(request: MCPRequest): MCPResponse {
+  private handleInitialized(request: MCPJsonRpcRequest): MCPJsonRpcResponse {
     // This is a notification, no response needed
     return {
       jsonrpc: "2.0",
@@ -112,7 +117,9 @@ export class MCPProtocolHandler {
     };
   }
 
-  private async handleToolsList(request: MCPRequest): Promise<MCPResponse> {
+  private async handleToolsList(
+    request: MCPJsonRpcRequest
+  ): Promise<MCPJsonRpcResponse> {
     try {
       const tools = await this.getAvailableTools();
       return {
@@ -125,7 +132,9 @@ export class MCPProtocolHandler {
     }
   }
 
-  private async handleResourcesList(request: MCPRequest): Promise<MCPResponse> {
+  private async handleResourcesList(
+    request: MCPJsonRpcRequest
+  ): Promise<MCPJsonRpcResponse> {
     try {
       const resources = await this.getAvailableResources();
       return {
@@ -139,9 +148,9 @@ export class MCPProtocolHandler {
   }
 
   private async handlePromptsList(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     session?: Session
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     try {
       const prompts = await this.getAvailablePrompts(session);
       return {
@@ -154,7 +163,7 @@ export class MCPProtocolHandler {
     }
   }
 
-  private handlePing(request: MCPRequest): MCPResponse {
+  private handlePing(request: MCPJsonRpcRequest): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -162,7 +171,7 @@ export class MCPProtocolHandler {
     };
   }
 
-  private handleUnknownMethod(request: MCPRequest): MCPResponse {
+  private handleUnknownMethod(request: MCPJsonRpcRequest): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -356,7 +365,7 @@ export class MCPProtocolHandler {
   private createErrorResponse(
     requestId: string | number | undefined,
     error: unknown
-  ): MCPResponse {
+  ): MCPJsonRpcResponse {
     return {
       jsonrpc: "2.0",
       id: requestId,

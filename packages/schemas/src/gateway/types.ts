@@ -1,34 +1,4 @@
-export interface ServerConfig {
-  type: "mcp";
-  url: string; // URL of the standalone MCP server
-  capabilities: string[];
-  description: string;
-  healthCheckInterval: number;
-  requiresAuth: boolean;
-  maxRetries: number;
-}
-
-export interface MCPServersRuntimeConfig {
-  [key: string]: ServerConfig;
-}
-
-export interface GatewayConfig {
-  env: "development" | "production" | "test";
-  port: number;
-  host: string;
-  allowedOrigins: string[];
-  jwtSecret: string;
-  mcpApiKey: string;
-  sessionTimeout: number;
-  maxConcurrentSessions: number;
-  rateLimitPerMinute: number;
-  requireApiKey: boolean;
-  enableRateLimit: boolean;
-  maxRequestSizeMb: number;
-  corsCredentials: boolean;
-  securityHeaders: boolean;
-  mcpServers: MCPServersRuntimeConfig;
-}
+import type { MCPJsonRpcResponse } from "../mcp/protocol.js";
 
 export interface ServerInstance {
   id: string;
@@ -40,44 +10,54 @@ export interface ServerInstance {
   capabilities: string[];
 }
 
-export interface Session {
+// ============================================================================
+// SESSION MANAGEMENT TYPES (UNIFIED)
+// ============================================================================
+
+/**
+ * Core session data - shared between runtime and database
+ */
+export interface BaseSession {
   id: string;
   userId: string;
-  organizationId?: string; // Add organization context
-  organizationClerkId?: string; // Add Clerk organization ID for lookups
+  organizationId?: string;
+  organizationClerkId?: string;
   createdAt: Date;
-  lastActivity: Date;
+  lastActivity?: Date;
+}
+
+/**
+ * Runtime session for active connections (gateway)
+ * Extends base session with connection-specific data
+ */
+export interface Session extends BaseSession {
+  lastActivity: Date; // Required for runtime sessions
   serverConnections: Map<string, ServerInstance>;
   transport: "http" | "websocket";
   connection?: IWebSocket;
 }
 
-export interface MCPRequest {
-  jsonrpc: "2.0";
-  id?: string | number;
-  method: string;
-  params?: Record<string, unknown>;
+/**
+ * Database session structure (matches Prisma model)
+ * For session persistence and cross-request continuity
+ */
+export interface DatabaseSession extends BaseSession {
+  sessionToken: string;
+  metadata: Record<string, unknown>;
+  expiresAt: Date;
+  updatedAt: Date;
 }
 
-export interface MCPResponse<T = unknown> {
-  jsonrpc: "2.0";
-  id?: string | number;
-  result?: T;
-  error?: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
-}
-
-export interface MCPErrorResponse {
-  jsonrpc: "2.0";
-  id?: string | number;
-  error: {
-    code: number;
-    message: string;
-    data?: unknown;
-  };
+/**
+ * JWT session payload for token-based authentication
+ */
+export interface SessionJwtPayload {
+  sessionId: string;
+  userId: string;
+  organizationId?: string;
+  organizationClerkId?: string;
+  timestamp: number;
+  expiresAt: number;
 }
 
 export interface IWebSocket {
@@ -128,46 +108,13 @@ export interface GatewayHTTPResponse extends HTTPResponse {
   sessionToken?: string;
 }
 
-// Fastify JSON Schemas for validation
-export const MCPRequestSchema = {
-  type: "object",
-  properties: {
-    jsonrpc: { type: "string", const: "2.0" },
-    id: { type: ["string", "number"] },
-    method: { type: "string" },
-    params: { type: "object" },
-  },
-  required: ["jsonrpc", "method"],
-  additionalProperties: false,
-} as const;
-
-export const HealthCheckResponseSchema = {
-  type: "object",
-  properties: {
-    status: { type: "string" },
-    timestamp: { type: "string" },
-    servers: { type: "object" },
-  },
-  required: ["status", "timestamp", "servers"],
-  additionalProperties: false,
-} as const;
-
-export const ErrorResponseSchema = {
-  type: "object",
-  properties: {
-    error: { type: "string" },
-    message: { type: "string" },
-    details: { type: "object" },
-  },
-  required: ["error", "message"],
-  additionalProperties: false,
-} as const;
+// Deprecated schemas removed - use unified schemas from @mcp/schemas
 
 // Fastify Route Generic Interfaces
 export interface MCPRouteGeneric {
   Body: HTTPRequestBody;
   Headers: HTTPHeaders;
-  Reply: GatewayHTTPResponse | MCPResponse;
+  Reply: GatewayHTTPResponse | MCPJsonRpcResponse;
 }
 
 export interface HealthRouteGeneric {

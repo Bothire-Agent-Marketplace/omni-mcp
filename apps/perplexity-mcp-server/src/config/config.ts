@@ -2,6 +2,7 @@ import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { PERPLEXITY_SERVER } from "@mcp/capabilities";
 import type { BaseMcpServerConfig } from "@mcp/server-core";
+// Environment removed - not used in this file
 import { detectEnvironment, loadEnvironment } from "@mcp/utils/env-loader.js";
 import { validatePort, validateSecret } from "@mcp/utils/validation.js";
 
