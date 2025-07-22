@@ -1,16 +1,11 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import type { Organization } from "@mcp/database";
 import {
   testingService,
   type McpTestCapabilities,
   type McpTestResult,
 } from "@/lib/services/testing.service";
-
-interface Organization {
-  id: string;
-  clerkId: string;
-  name: string;
-}
 
 interface TestFixtureItem {
   name?: string;
