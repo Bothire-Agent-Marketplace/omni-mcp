@@ -21,7 +21,7 @@ type OrganizationResource = {
   name: string;
   description: string;
   mimeType?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: unknown;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -43,7 +43,7 @@ type DefaultResource = {
   name: string;
   description: string;
   mimeType?: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: unknown;
   createdAt: Date;
   updatedAt: Date;
   mcpServer: {
