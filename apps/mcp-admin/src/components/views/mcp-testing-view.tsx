@@ -867,8 +867,8 @@ export function McpTestingView({
             {!!lastTestResult.result && (
               <div className="space-y-2">
                 <Label>Response Data</Label>
-                <div className="p-4 bg-muted rounded-lg">
-                  <pre className="text-sm overflow-x-auto">
+                <div className="p-4 bg-muted rounded-lg max-h-96 overflow-y-auto">
+                  <pre className="text-sm whitespace-pre-wrap break-all">
                     {JSON.stringify(lastTestResult.result, null, 2)}
                   </pre>
                 </div>
