@@ -14,6 +14,10 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
     useState<DefaultPrompt | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isDefaultDialogOpen, setIsDefaultDialogOpen] = useState(false);
+  const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState<OrganizationPrompt | null>(
+    null
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const handleViewPrompt = (prompt: OrganizationPrompt) => {
@@ -24,6 +28,26 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
   const handleViewDefaultPrompt = (prompt: DefaultPrompt) => {
     setSelectedDefaultPrompt(prompt);
     setIsDefaultDialogOpen(true);
+  };
+
+  const handleCreatePrompt = () => {
+    setEditingPrompt(null);
+    setIsFormDialogOpen(true);
+  };
+
+  const handleEditPrompt = (prompt: OrganizationPrompt) => {
+    setEditingPrompt(prompt);
+    setIsFormDialogOpen(true);
+  };
+
+  const handleSavePrompt = (prompt: OrganizationPrompt) => {
+    if (editingPrompt) {
+      // Update existing prompt
+      setPrompts((prev) => prev.map((p) => (p.id === prompt.id ? prompt : p)));
+    } else {
+      // Add new prompt
+      setPrompts((prev) => [prompt, ...prev]);
+    }
   };
 
   const copyFromDefault = async (
@@ -111,8 +135,10 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
   const closeDialogs = () => {
     setIsViewDialogOpen(false);
     setIsDefaultDialogOpen(false);
+    setIsFormDialogOpen(false);
     setSelectedPrompt(null);
     setSelectedDefaultPrompt(null);
+    setEditingPrompt(null);
   };
 
   return {
@@ -120,13 +146,18 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
     prompts,
     selectedPrompt,
     selectedDefaultPrompt,
+    editingPrompt,
     isViewDialogOpen,
     isDefaultDialogOpen,
+    isFormDialogOpen,
     isLoading,
 
     // Actions
     handleViewPrompt,
     handleViewDefaultPrompt,
+    handleCreatePrompt,
+    handleEditPrompt,
+    handleSavePrompt,
     copyFromDefault,
     deletePrompt,
     closeDialogs,
@@ -137,5 +168,6 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
     // Setters for dialog control
     setIsViewDialogOpen,
     setIsDefaultDialogOpen,
+    setIsFormDialogOpen,
   };
 }

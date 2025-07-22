@@ -3,6 +3,9 @@ import { redirect } from "next/navigation";
 import { DatabaseService } from "@/lib/db-service";
 import { Separator } from "@/components/ui/separator";
 
+// Force dynamic rendering for all organization routes
+export const dynamic = "force-dynamic";
+
 export default async function OrganizationLayout({
   children,
 }: {
@@ -25,9 +28,9 @@ export default async function OrganizationLayout({
   // Get organization details for context
   console.log("Looking up organization with clerkId:", orgId);
   const organization = await DatabaseService.getOrganizationByClerkId(orgId);
-  
+
   console.log("Organization found:", organization);
-  
+
   if (!organization) {
     console.log("Organization not found in database, redirecting to home");
     redirect("/");
@@ -47,4 +50,4 @@ export default async function OrganizationLayout({
       </div>
     </div>
   );
-} 
+}
