@@ -1,8 +1,8 @@
 // Use Prisma's generated types with includes - they automatically handle relationships
 import type { Prisma, McpServer as PrismaMcpServer } from "@mcp/database";
 
-// Organization prompt with included relationships (matches DatabaseService.getOrganizationPrompts)
-export type OrganizationPrompt = Prisma.OrganizationPromptGetPayload<{
+// Organization resource with included relationships (matches DatabaseService.getOrganizationResources)
+export type OrganizationResource = Prisma.OrganizationResourceGetPayload<{
   include: {
     mcpServer: true;
     createdByUser: {
@@ -15,8 +15,8 @@ export type OrganizationPrompt = Prisma.OrganizationPromptGetPayload<{
   };
 }>;
 
-// Default prompt with included relationships (matches DatabaseService.getDefaultPrompts)
-export type DefaultPrompt = Prisma.DefaultPromptGetPayload<{
+// Default resource with included relationships (matches DatabaseService.getDefaultResources)
+export type DefaultResource = Prisma.DefaultResourceGetPayload<{
   include: {
     mcpServer: true;
   };

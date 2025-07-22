@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PromptFormDialog } from "@/components/ui/prompt-form-dialog";
 import { usePrompts } from "@/hooks/use-prompts";
 import type {
   OrganizationPrompt,
@@ -38,7 +39,7 @@ interface PromptsClientProps {
 export function PromptsClient({
   prompts: initialPrompts,
   defaultPrompts,
-  mcpServers: _mcpServers,
+  mcpServers,
   organizationId: _organizationId,
   userId: _userId,
 }: PromptsClientProps) {
@@ -46,16 +47,22 @@ export function PromptsClient({
     prompts,
     selectedPrompt,
     selectedDefaultPrompt,
+    editingPrompt,
     isViewDialogOpen,
     isDefaultDialogOpen,
+    isFormDialogOpen,
     isLoading,
     handleViewPrompt,
     handleViewDefaultPrompt,
+    handleCreatePrompt,
+    handleEditPrompt,
+    handleSavePrompt,
     copyFromDefault,
     deletePrompt,
     formatUserName,
     setIsViewDialogOpen,
     setIsDefaultDialogOpen,
+    setIsFormDialogOpen,
   } = usePrompts({ initialPrompts });
 
   const handleCopyFromDefault = async (defaultPrompt: DefaultPrompt) => {
@@ -88,7 +95,7 @@ export function PromptsClient({
             </span>
           </p>
         </div>
-        <Button disabled={isLoading}>
+        <Button onClick={handleCreatePrompt} disabled={isLoading}>
           <Plus className="w-4 h-4 mr-2" />
           Create Prompt
         </Button>
@@ -143,7 +150,12 @@ export function PromptsClient({
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" disabled={isLoading}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditPrompt(prompt)}
+                          disabled={isLoading}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button
@@ -217,6 +229,15 @@ export function PromptsClient({
           </Table>
         </CardContent>
       </Card>
+
+      {/* Create/Edit Prompt Dialog */}
+      <PromptFormDialog
+        open={isFormDialogOpen}
+        onOpenChange={setIsFormDialogOpen}
+        prompt={editingPrompt}
+        mcpServers={mcpServers}
+        onSave={handleSavePrompt}
+      />
 
       {/* View Custom Prompt Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>

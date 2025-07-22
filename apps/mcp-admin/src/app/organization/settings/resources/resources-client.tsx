@@ -13,53 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-
-// Simplified types for resources (we can extract these later)
-type OrganizationResource = {
-  id: string;
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string | null;
-  metadata?: unknown;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  mcpServer: {
-    id: string;
-    name: string;
-    serverKey: string;
-  };
-  createdByUser?: {
-    email: string;
-    firstName?: string | null;
-    lastName?: string | null;
-  } | null;
-};
-
-type DefaultResource = {
-  id: string;
-  uri: string;
-  name: string;
-  description: string;
-  mimeType?: string | null;
-  metadata?: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-  mcpServer: {
-    id: string;
-    name: string;
-    serverKey: string;
-  };
-};
-
-type McpServer = {
-  id: string;
-  name: string;
-  serverKey: string;
-  description?: string | null;
-  isActive: boolean;
-};
+import type {
+  OrganizationResource,
+  DefaultResource,
+  McpServer,
+} from "@/types/resources";
 
 interface ResourcesClientProps {
   resources: OrganizationResource[];

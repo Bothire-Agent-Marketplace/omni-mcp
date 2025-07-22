@@ -1,12 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Smart Database Reset Script
- * Automatically backs up essential data before reset and restores after
+ * Database Reset Script
+ * Performs a clean database reset without backing up or restoring data
  */
 
 import { spawn } from "child_process";
-import { backupEssentialData, restoreEssentialData } from "./backup-restore.js";
 
 async function runCommand(command: string, args: string[]): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -26,33 +25,21 @@ async function runCommand(command: string, args: string[]): Promise<void> {
   });
 }
 
-async function smartReset() {
-  console.log("🔄 Starting smart database reset...");
+async function resetDatabase() {
+  console.log("🔄 Starting clean database reset...");
 
   try {
-    // Step 1: Backup essential data
-    console.log("\n📦 Step 1: Backing up essential data...");
-    await backupEssentialData();
-
-    // Step 2: Reset the database
-    console.log("\n🗑️  Step 2: Resetting database...");
+    // Reset the database completely
+    console.log("\n🗑️  Resetting database...");
     await runCommand("npx", ["prisma", "migrate", "reset", "--force"]);
 
-    // Step 3: Restore essential data
-    console.log("\n🔄 Step 3: Restoring essential data...");
-    await restoreEssentialData();
-
-    console.log("\n✅ Smart reset completed successfully!");
-    console.log(
-      "Your database has been reset but your users, organizations, and memberships are preserved."
-    );
+    console.log("\n✅ Database reset completed successfully!");
+    console.log("Your database has been completely reset to a clean state.");
   } catch (error) {
-    console.error("\n❌ Smart reset failed:", error);
-    console.log("\n🚨 Your database may be in an inconsistent state.");
-    console.log("You can try to restore manually with: pnpm db:restore");
+    console.error("\n❌ Database reset failed:", error);
     process.exit(1);
   }
 }
 
-// Run the smart reset
-smartReset().catch(console.error);
+// Run the reset
+resetDatabase().catch(console.error);
