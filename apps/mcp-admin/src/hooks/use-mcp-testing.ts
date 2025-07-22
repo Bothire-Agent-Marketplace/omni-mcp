@@ -94,6 +94,7 @@ export function useMcpTesting({
   // Default arguments for different tools
   const getDefaultArgsForTool = (toolName: string) => {
     const defaultArgs: Record<string, unknown> = {
+      // Perplexity AI Tools
       perplexity_search: {
         query: "What is MCP (Model Context Protocol)?",
         model: "sonar-pro",
@@ -102,6 +103,18 @@ export function useMcpTesting({
         topic: "Model Context Protocol architecture",
         depth: "detailed",
       },
+      perplexity_compare: {
+        items: ["React", "Vue.js"],
+        criteria: ["Performance", "Learning curve", "Ecosystem"],
+        context: "Frontend frameworks for web development",
+      },
+      perplexity_summarize: {
+        content: "https://docs.anthropic.com/mcp/introduction",
+        length: "medium",
+        format: "bullet_points",
+      },
+
+      // Linear Tools
       linear_search_issues: {
         query: "bug report",
         limit: 5,
@@ -109,16 +122,67 @@ export function useMcpTesting({
       linear_get_teams: {
         limit: 10,
       },
+      linear_get_users: {
+        limit: 10,
+        includeInactive: false,
+      },
+      linear_get_projects: {
+        limit: 10,
+        includeCompleted: false,
+      },
+      linear_get_issue: {
+        issueId: "OMN-123",
+      },
+
+      // Chrome Management Tools
+      chrome_start: {
+        headless: false,
+        userDataDir: "",
+        debugPort: 9222,
+      },
+      chrome_connect: {
+        debugPort: 9222,
+        timeout: 5000,
+      },
+      chrome_connect_existing: {
+        debugPort: 9222,
+        timeout: 5000,
+      },
       chrome_navigate: {
         url: "https://example.com",
         waitForLoad: true,
       },
       chrome_status: {
-        random_string: "check_status",
+        includeTabs: true,
+      },
+      chrome_close: {
+        force: false,
+      },
+
+      // Console Tools
+      console_logs: {
+        limit: 50,
+        levels: ["log", "warn", "error"],
       },
       console_execute: {
         code: "document.title",
         awaitPromise: false,
+      },
+      console_clear: {},
+
+      // Network Tools
+      network_requests: {
+        limit: 20,
+        filter: "all",
+        includeResponses: false,
+      },
+      network_set_domain_filter: {
+        domain: "api.example.com",
+      },
+      network_clear_domain_filter: {},
+      network_response: {
+        requestId: "network-request-id-123",
+        includeBody: true,
       },
     };
 

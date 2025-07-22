@@ -53,6 +53,7 @@ function generateTestFixtures(category: string, _count: number) {
 
   if (category === "all" || category === "tools") {
     fixtures.tools = [
+      // Perplexity AI Tools
       {
         name: "perplexity_search",
         description: "Search using Perplexity AI",
@@ -62,6 +63,25 @@ function generateTestFixtures(category: string, _count: number) {
         },
       },
       {
+        name: "perplexity_research",
+        description: "Research a topic comprehensively",
+        validArgs: {
+          topic: "Model Context Protocol architecture",
+          depth: "detailed",
+        },
+      },
+      {
+        name: "perplexity_compare",
+        description: "Compare multiple items",
+        validArgs: {
+          items: ["React", "Vue.js"],
+          criteria: ["Performance", "Learning curve"],
+          context: "Frontend frameworks",
+        },
+      },
+
+      // Linear Tools
+      {
         name: "linear_search_issues",
         description: "Search Linear issues",
         validArgs: {
@@ -70,11 +90,50 @@ function generateTestFixtures(category: string, _count: number) {
         },
       },
       {
+        name: "linear_get_teams",
+        description: "Get Linear teams",
+        validArgs: {
+          limit: 10,
+        },
+      },
+      {
+        name: "linear_get_issue",
+        description: "Get specific Linear issue",
+        validArgs: {
+          issueId: "OMN-123",
+        },
+      },
+
+      // Chrome Tools
+      {
         name: "chrome_navigate",
         description: "Navigate Chrome to URL",
         validArgs: {
           url: "https://example.com",
           waitForLoad: true,
+        },
+      },
+      {
+        name: "chrome_status",
+        description: "Get Chrome status",
+        validArgs: {
+          includeTabs: true,
+        },
+      },
+      {
+        name: "console_execute",
+        description: "Execute JavaScript in browser",
+        validArgs: {
+          code: "document.title",
+          awaitPromise: false,
+        },
+      },
+      {
+        name: "network_requests",
+        description: "Get network requests",
+        validArgs: {
+          limit: 20,
+          filter: "all",
         },
       },
     ];
