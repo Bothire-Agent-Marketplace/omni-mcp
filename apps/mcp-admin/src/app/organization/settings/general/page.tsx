@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,8 @@ export default async function GeneralSettingsPage() {
     redirect("/sign-in");
   }
 
-  const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+  const organizationService = ServiceFactory.getOrganizationService();
+  const organization = await organizationService.getOrganizationByClerkId(orgId);
 
   if (!organization) {
     redirect("/");

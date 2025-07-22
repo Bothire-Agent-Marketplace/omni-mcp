@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OnboardingView } from "@/components/views/onboarding-view";
 
@@ -12,13 +12,15 @@ export default async function HomePage() {
     redirect("/sign-in");
   }
 
-  // First get the user record using Clerk ID, then get their organizations
-  const user = await DatabaseService.getUserByClerkId(userId);
-  if (!user) {
+  // Use the new UserService to get user with organizations
+  const userService = ServiceFactory.getUserService();
+  const userWithOrgs = await userService.getUserWithOrganizations(userId);
+
+  if (!userWithOrgs) {
     redirect("/sign-in");
   }
 
-  const userMemberships = await DatabaseService.getUserOrganizations(user.id);
+  const { memberships: userMemberships } = userWithOrgs;
 
   // Convert database format to match the view component interface
   const formattedMemberships = userMemberships.map((membership) => ({

@@ -1,8 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from "@/lib/db";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 // Schema for updating prompts
 const UpdatePromptSchema = z.object({
@@ -33,10 +32,11 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userService = ServiceFactory.getUserService();
+    const promptService = ServiceFactory.getPromptService();
+
     // Look up the user by their Clerk ID to get the internal UUID
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -46,11 +46,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdatePromptSchema.parse(body);
 
-    const updatedPrompt = await DatabaseService.updateOrganizationPrompt(
-      id,
-      validatedData,
-      user.id // Use the internal user UUID instead of Clerk ID
-    );
+    const updatedPrompt = await promptService.updatePrompt(id, validatedData);
 
     return NextResponse.json({
       prompt: updatedPrompt,
@@ -90,17 +86,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const userService = ServiceFactory.getUserService();
+    const promptService = ServiceFactory.getPromptService();
+
     // Look up the user by their Clerk ID to get the internal UUID
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-    });
+    const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const { id } = await params;
-    await DatabaseService.deleteOrganizationPrompt(id, user.id); // Use the internal user UUID
+    await promptService.deletePrompt(id);
 
     return NextResponse.json({
       success: true,

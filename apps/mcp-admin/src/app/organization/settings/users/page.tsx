@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { DatabaseService } from "@/lib/db-service";
+import { ServiceFactory } from "@/lib/services/service.factory";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -21,14 +21,16 @@ export default async function UsersManagementPage() {
     redirect("/sign-in");
   }
 
-  const organization = await DatabaseService.getOrganizationByClerkId(orgId);
+  const organizationService = ServiceFactory.getOrganizationService();
+
+  const organization = await organizationService.getOrganizationByClerkId(orgId);
 
   if (!organization) {
     redirect("/");
   }
 
   // Get organization members
-  const members = await DatabaseService.getOrganizationMembers(organization.id);
+  const members = await organizationService.getOrganizationMembers(organization.id);
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
