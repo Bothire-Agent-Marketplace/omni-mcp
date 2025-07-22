@@ -1,10 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// STREAMLINED DEVTOOLS SCHEMAS - Essential Debugging Only
-// ============================================================================
-
-// Chrome Management Schemas
 export const StartChromeSchema = z.object({
   port: z.number().min(1024).max(65535).optional().default(9222),
   headless: z.boolean().optional().default(false),

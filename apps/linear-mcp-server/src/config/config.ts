@@ -10,7 +10,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SERVICE_PATH = join(__dirname, "..");
 
-// Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
 
 export interface LinearServerConfig extends McpServerConfig {

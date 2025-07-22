@@ -18,7 +18,7 @@ export const BaseMCPClientConfigSchema = z.object({
   description: z.string().optional(),
   command: z.string(),
   args: z.array(z.string()),
-  env: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
   cwd: z.string().optional(),
 });
 
@@ -28,7 +28,7 @@ export type BaseMCPClientConfig = z.infer<typeof BaseMCPClientConfigSchema>;
  * Cursor-specific MCP configuration
  */
 export const CursorMCPConfigSchema = z.object({
-  mcpServers: z.record(BaseMCPClientConfigSchema),
+  mcpServers: z.record(z.string(), BaseMCPClientConfigSchema),
 });
 
 export type CursorMCPConfig = z.infer<typeof CursorMCPConfigSchema>;
@@ -37,7 +37,7 @@ export type CursorMCPConfig = z.infer<typeof CursorMCPConfigSchema>;
  * Claude Desktop-specific MCP configuration
  */
 export const ClaudeDesktopMCPConfigSchema = z.object({
-  mcpServers: z.record(BaseMCPClientConfigSchema),
+  mcpServers: z.record(z.string(), BaseMCPClientConfigSchema),
   globalShortcut: z.string().optional(),
 });
 
@@ -67,7 +67,7 @@ export const BridgeOptionsSchema = z.object({
   timeout: z.number().optional(),
   allowHttp: z.boolean().optional(),
   transport: z.enum(["http-first", "sse-only", "http-only"]).optional(),
-  headers: z.record(z.string()).optional(),
+  headers: z.record(z.string(), z.string()).optional(),
   staticOAuthClientMetadata: z.string().optional(),
   staticOAuthClientInfo: z.string().optional(),
 });
@@ -98,7 +98,7 @@ export function applyBridgeDefaults(
     timeout: options.timeout ?? 30000,
     allowHttp: options.allowHttp ?? false,
     transport: options.transport ?? "http-first",
-    headers: options.headers ?? {},
+    headers: (options.headers as Record<string, string>) ?? {},
     staticOAuthClientMetadata: options.staticOAuthClientMetadata,
     staticOAuthClientInfo: options.staticOAuthClientInfo,
   };
@@ -112,7 +112,7 @@ export const ServerEndpointSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   authRequired: z.boolean().default(false),
-  headers: z.record(z.string()).default({}),
+  headers: z.record(z.string(), z.string()).default({}),
   environment: z
     .enum(["development", "staging", "production"])
     .default("development"),
@@ -124,7 +124,7 @@ export type ServerEndpoint = z.infer<typeof ServerEndpointSchema>;
  * Complete client bridge configuration
  */
 export const ClientBridgeConfigSchema = z.object({
-  servers: z.record(ServerEndpointSchema),
+  servers: z.record(z.string(), ServerEndpointSchema),
   clients: z.array(z.enum(["cursor", "claude-desktop"])),
   environment: z
     .enum(["development", "staging", "production"])

@@ -4,7 +4,6 @@ import boxen from "boxen";
 import chalk from "chalk";
 import { program } from "commander";
 
-// Display banner
 console.log(
   boxen(
     `${chalk.blue.bold("🚀 Omni MCP")} ${chalk.gray("Development CLI")}\n${chalk.yellow(
@@ -19,13 +18,11 @@ console.log(
   )
 );
 
-// Configure CLI
 program
   .name("omni-mcp")
   .description("🚀 Omni MCP Server Capability Showcase & Testing CLI")
   .version("1.0.0");
 
-// Showcase Command - Main feature
 program
   .command("showcase")
   .alias("show")
@@ -42,7 +39,6 @@ program
     await showcaseCapabilities(server || "all", options);
   });
 
-// Quick Test Command
 program
   .command("test")
   .alias("t")
@@ -54,7 +50,6 @@ program
     await quickTest(options);
   });
 
-// Health Check Command
 program
   .command("health")
   .alias("h")
@@ -65,7 +60,6 @@ program
     await checkHealth(options);
   });
 
-// Call Tool Command (simplified)
 program
   .command("call")
   .alias("c")
@@ -78,7 +72,6 @@ program
     await callTool(toolName, options);
   });
 
-// Interactive Mode (simplified)
 program
   .command("interactive")
   .alias("i")
@@ -89,7 +82,6 @@ program
     await interactiveMode(options);
   });
 
-// Help improvements
 program.addHelpText(
   "after",
   `
@@ -119,7 +111,6 @@ ${chalk.yellow("Documentation:")}
 `
 );
 
-// Global error handling
 process.on("uncaughtException", (error) => {
   console.error(
     boxen(chalk.red(`❌ Uncaught Exception:\n${error.message}`), {
@@ -146,5 +137,4 @@ process.on("unhandledRejection", (reason) => {
   process.exit(1);
 });
 
-// Parse and execute
 program.parse();

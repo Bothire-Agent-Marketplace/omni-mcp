@@ -26,17 +26,12 @@ import type {
 } from "./config.js";
 import type { DynamicHandlerRegistry } from "./dynamic-handlers.js";
 
-// ============================================================================
-// ORGANIZATION CONTEXT EXTRACTION
-// ============================================================================
-
 /**
  * Extract organization context from request headers
  */
 function extractOrganizationContext(
   request: FastifyRequest
 ): RequestContext | undefined {
-  // Try to extract organization context from various header formats
   const orgId = request.headers["x-organization-id"] as string;
   const orgClerkId = request.headers["x-organization-clerk-id"] as string;
   const orgName = request.headers["x-organization-name"] as string;
@@ -44,7 +39,6 @@ function extractOrganizationContext(
   const userId = request.headers["x-user-id"] as string;
   const requestId = request.headers["x-request-id"] as string;
 
-  // If we have at least the organization ID, create the context
   if (orgId && orgClerkId && orgName && orgSlug) {
     const organization: OrganizationContext = {
       organizationId: orgId,
@@ -60,12 +54,10 @@ function extractOrganizationContext(
     };
   }
 
-  // Try to extract from JWT token in Authorization header
   const authHeader = request.headers.authorization;
   if (authHeader && authHeader.startsWith("Bearer ")) {
     try {
       const token = authHeader.substring(7);
-      // Parse JWT token to extract organization context
       // This is a simplified version - in production, you'd use a proper JWT library
       const payload = JSON.parse(
         Buffer.from(token.split(".")[1], "base64").toString()
@@ -90,13 +82,8 @@ function extractOrganizationContext(
     }
   }
 
-  // Return undefined if no organization context found
   return undefined;
 }
-
-// ============================================================================
-// GENERIC MCP HTTP SERVER FACTORY
-// ============================================================================
 
 /**
  * Creates a generic MCP HTTP server with standard protocol handling
@@ -156,11 +143,9 @@ export function createMcpHttpServer<TClient = unknown>(
       return;
     }
 
-    // Extract organization context from request headers
     const requestContext = extractOrganizationContext(request);
 
     try {
-      // Route to appropriate handler based on method using unified router
       const registry = createStaticHandlerRegistry({
         toolHandlers,
         resourceHandlers,
@@ -181,9 +166,7 @@ export function createMcpHttpServer<TClient = unknown>(
     } catch (error: unknown) {
       // Handle Zod validation errors specifically
       if (error instanceof ZodError) {
-        const validationErrors = error.errors
-          .map((err) => `${err.path.join(".")}: ${err.message}`)
-          .join(", ");
+        const validationErrors = error.format()._errors.join(", ");
 
         reply
           .status(400)
@@ -233,7 +216,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     const serverRegistry = getServerRegistry(logger);
     const configLoader = new ConfigLoader();
 
-    // Create dynamic handlers with server registry lookup
     const setupDynamicHandlers = async () => {
       const serverId = await serverRegistry.getServerId(serverKey);
       return new DatabaseDynamicHandlerRegistry(serverId, configLoader);
@@ -270,10 +252,8 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 
   const server = fastify({ logger: false }); // Disable default logger to use our own
 
-  // Register CORS
   server.register(cors);
 
-  // Global error handler
   server.setErrorHandler(
     (error: Error, request: FastifyRequest, reply: FastifyReply) => {
       logger.error("Unhandled error:", error);
@@ -288,27 +268,23 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     }
   );
 
-  // Health check endpoint
   server.get("/health", async () => {
     return { status: "ok" };
   });
 
   // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
-    const { jsonrpc, method, params, id } = request.body as MCPJsonRpcRequest;
+    const { method, params, id, jsonrpc } = request.body as MCPJsonRpcRequest;
 
-    // Validate JSON-RPC format
     if (jsonrpc !== "2.0") {
       reply.status(400).send(createInvalidRequestErrorResponse(id));
       return;
     }
 
-    // Extract organization context from request headers
     const requestContext = extractOrganizationContext(request);
 
     try {
-      // Route to appropriate handler based on method using unified router
-      const registry = createDynamicHandlerRegistry(
+      const registry = assembleMcpHandlerRegistry(
         finalDynamicHandlers,
         fallbackHandlers,
         {
@@ -332,9 +308,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     } catch (error: unknown) {
       // Handle Zod validation errors specifically
       if (error instanceof ZodError) {
-        const validationErrors = error.errors
-          .map((err) => `${err.path.join(".")}: ${err.message}`)
-          .join(", ");
+        const validationErrors = error.format()._errors.join(", ");
 
         reply
           .status(400)
@@ -350,10 +324,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 
   return server;
 }
-
-// ============================================================================
-// REQUEST ROUTING - CONSOLIDATED IMPLEMENTATION
-// ============================================================================
 
 /**
  * Consolidated handler interface - all async for consistency
@@ -476,7 +446,7 @@ function createStaticHandlerRegistry(handlers: {
 /**
  * Create handler registry from dynamic handlers with fallback
  */
-function createDynamicHandlerRegistry(
+function assembleMcpHandlerRegistry(
   dynamicHandlers?: DynamicHandlerRegistry,
   fallbackHandlers?: {
     toolHandlers: Record<string, ToolHandler>;
@@ -510,91 +480,95 @@ function createDynamicHandlerRegistry(
   return {
     async resolveToolHandler(toolName: string, context?: RequestContext) {
       // Try dynamic handler first
-      if (dynamicHandlers) {
-        const handler = await dynamicHandlers.getToolHandler(toolName, context);
-        if (handler) return handler;
+      const dynamicHandler = await dynamicHandlers?.getToolHandler?.(
+        toolName,
+        context
+      );
+      if (dynamicHandler) {
+        return dynamicHandler;
       }
       // Fallback to static handler
-      return fallbackHandlers?.toolHandlers[toolName];
+      return fallbackHandlers?.toolHandlers?.[toolName];
     },
+
     async resolveResourceHandler(uri: string, context?: RequestContext) {
       // Try dynamic handler first
-      if (dynamicHandlers) {
-        const handler = await dynamicHandlers.getResourceHandler(uri, context);
-        if (handler) return handler;
+      const dynamicHandler = await dynamicHandlers?.getResourceHandler?.(
+        uri,
+        context
+      );
+      if (dynamicHandler) {
+        return dynamicHandler;
       }
       // Fallback to static handler
-      return fallbackHandlers?.resourceHandlers[uri];
+      return fallbackHandlers?.resourceHandlers?.[uri];
     },
+
     async resolvePromptHandler(promptName: string, context?: RequestContext) {
       // Try dynamic handler first
-      if (dynamicHandlers) {
-        const handler = await dynamicHandlers.getPromptHandler(
-          promptName,
-          context
-        );
-        if (handler) return handler;
+      const dynamicHandler = await dynamicHandlers?.getPromptHandler?.(
+        promptName,
+        context
+      );
+      if (dynamicHandler) {
+        return dynamicHandler;
       }
       // Fallback to static handler
-      return fallbackHandlers?.promptHandlers[promptName];
+      return fallbackHandlers?.promptHandlers?.[promptName];
     },
+
     async getAvailableTools(context?: RequestContext) {
       // Use custom getters if provided (enhanced server case)
-      if (customGetters) {
+      if (customGetters?.getAvailableTools) {
         return customGetters.getAvailableTools(context);
       }
 
       // Otherwise combine dynamic and static
-      const dynamicTools = dynamicHandlers
-        ? await dynamicHandlers.getAvailableTools(context)
-        : [];
-      const staticTools = fallbackHandlers
-        ? Object.keys(fallbackHandlers.toolHandlers).map((name) => ({
-            name,
-            description: `Static tool: ${name}`,
-            inputSchema: {},
-          }))
-        : [];
-
+      const dynamicTools =
+        (await dynamicHandlers?.getAvailableTools?.(context)) || [];
+      const staticTools = Object.keys(fallbackHandlers?.toolHandlers || {}).map(
+        (name) => ({
+          name,
+          description: "", // Static handlers don't have descriptions here
+          inputSchema: {},
+        })
+      );
       return [...dynamicTools, ...staticTools];
     },
+
     async getAvailableResources(context?: RequestContext) {
       // Use custom getters if provided (enhanced server case)
-      if (customGetters) {
+      if (customGetters?.getAvailableResources) {
         return customGetters.getAvailableResources(context);
       }
 
       // Otherwise combine dynamic and static
-      const dynamicResources = dynamicHandlers
-        ? await dynamicHandlers.getAvailableResources(context)
-        : [];
-      const staticResources = fallbackHandlers
-        ? Object.keys(fallbackHandlers.resourceHandlers).map((uri) => ({
-            uri,
-            name: `Static resource: ${uri}`,
-            description: `Static resource: ${uri}`,
-          }))
-        : [];
-
+      const dynamicResources =
+        (await dynamicHandlers?.getAvailableResources?.(context)) || [];
+      const staticResources = Object.keys(
+        fallbackHandlers?.resourceHandlers || {}
+      ).map((uri) => ({
+        uri,
+        name: uri,
+        description: "",
+      }));
       return [...dynamicResources, ...staticResources];
     },
+
     async getAvailablePrompts(context?: RequestContext) {
       // Use custom getters if provided (enhanced server case)
-      if (customGetters) {
+      if (customGetters?.getAvailablePrompts) {
         return customGetters.getAvailablePrompts(context);
       }
-
       // Otherwise combine dynamic and static
-      const dynamicPrompts = dynamicHandlers
-        ? await dynamicHandlers.getAvailablePrompts(context)
-        : [];
-      const staticPrompts = fallbackHandlers
-        ? Object.keys(fallbackHandlers.promptHandlers).map((name) => ({
-            name,
-            description: `Static prompt: ${name}`,
-          }))
-        : [];
-
+      const dynamicPrompts =
+        (await dynamicHandlers?.getAvailablePrompts?.(context)) || [];
+      const staticPrompts = Object.keys(
+        fallbackHandlers?.promptHandlers || {}
+      ).map((name) => ({
+        name,
+        description: "",
+      }));
       return [...dynamicPrompts, ...staticPrompts];
     },
   };
@@ -731,13 +705,9 @@ async function routeMcpRequest(
   }
 }
 
-// ============================================================================
-// EXPORT CONSOLIDATED API
-// ============================================================================
-
 export {
   routeMcpRequest,
   createStaticHandlerRegistry,
-  createDynamicHandlerRegistry,
+  assembleMcpHandlerRegistry,
   type McpHandlerRegistry,
 };

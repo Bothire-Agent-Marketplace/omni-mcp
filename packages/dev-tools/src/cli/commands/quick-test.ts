@@ -38,7 +38,6 @@ export async function quickTest(options: QuickTestOptions): Promise<void> {
   console.log();
 
   try {
-    // Get all available tools
     const toolsResponse = await client.listTools();
     const toolsResult = isJsonRpcSuccessResponse(toolsResponse)
       ? (toolsResponse.result as { tools?: Tool[] })

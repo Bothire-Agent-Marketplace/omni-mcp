@@ -167,8 +167,8 @@ export const McpServerConfigSchema = z.object({
   baseUrl: z.string().url().optional(),
   timeout: z.number().int().positive().optional(),
   maxRetries: z.number().int().min(0).max(10).optional(),
-  metadata: z.record(z.unknown()).optional(),
-  client: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+  client: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -199,7 +199,7 @@ export const McpGatewayConfigSchema = McpServerConfigSchema.extend({
   maxRequestSizeMb: z.number().int().positive(),
   corsCredentials: z.boolean(),
   securityHeaders: z.boolean(),
-  mcpServers: z.record(McpServerRuntimeConfigSchema),
+  mcpServers: z.record(z.string(), McpServerRuntimeConfigSchema),
 });
 
 /**
@@ -274,11 +274,9 @@ export function validateServerConfig<T extends McpServerConfig>(
   const result = schema.safeParse(config);
 
   if (!result.success) {
-    const errors = result.error.errors.map(
-      (err) => `${err.path.join(".")}: ${err.message}`
-    );
+    const errors = result.error.format();
     throw new Error(
-      `Server configuration validation failed: ${errors.join(", ")}`
+      `Server configuration validation failed: ${JSON.stringify(errors, null, 2)}`
     );
   }
 

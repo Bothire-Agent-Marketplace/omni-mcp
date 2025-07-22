@@ -2,7 +2,6 @@
 // PERPLEXITY MCP SERVER - Domain Types
 // ============================================================================
 
-// Perplexity API Request/Response Types
 export interface PerplexityMessage {
   role: "system" | "user" | "assistant";
   content: string;

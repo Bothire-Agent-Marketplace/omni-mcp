@@ -18,27 +18,27 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/helmet": "^11.1.1",
-    "@fastify/rate-limit": "^9.1.0",
-    "@fastify/sensible": "^5.6.0",
-    "@fastify/websocket": "^10.0.1",
+    "@fastify/cors": "^11.0.1",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/sensible": "^6.0.3",
+    "@fastify/websocket": "^11.2.0",
     "@mcp/capabilities": "workspace:*",
     "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",
-    "fastify": "^4.28.1",
+    "fastify": "^5.4.0",
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.0.8",
+    "@types/node": "^24.1.0",
     "@types/uuid": "^10.0.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.4"
   },
   "vitest": {
     "environment": "node",

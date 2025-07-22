@@ -4,46 +4,53 @@ import { ServiceFactory } from "@/lib/services/service.factory";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OnboardingView } from "@/components/views/onboarding-view";
 
-// Server Component for data fetching
+// Force dynamic rendering to avoid build-time database calls
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const { userId, orgId } = await auth();
+  try {
+    const { userId, orgId } = await auth();
 
-  if (!userId) {
-    redirect("/sign-in");
-  }
+    if (!userId) {
+      redirect("/sign-in");
+    }
 
-  // Use the new UserService to get user with organizations
-  const userService = ServiceFactory.getUserService();
-  const userWithOrgs = await userService.getUserWithOrganizations(userId);
+    const userService = ServiceFactory.getUserService();
+    const userWithOrgs = await userService.getUserWithOrganizations(userId);
 
-  if (!userWithOrgs) {
-    redirect("/sign-in");
-  }
+    if (!userWithOrgs) {
+      redirect("/sign-in");
+    }
 
-  // Safely access memberships with fallback to empty array
-  const memberships = userWithOrgs?.memberships || [];
+    // Safely access memberships with fallback to empty array
+    const memberships = userWithOrgs?.memberships || [];
 
-  // Convert database format to match the view component interface
-  const formattedMemberships = Array.isArray(memberships) ? memberships.map((membership) => ({
-    id: membership.id,
-    role: membership.role,
-    organization: {
-      id: membership.organization.clerkId, // Use Clerk ID for client-side operations
-      name: membership.organization.name,
-      membersCount: 0, // This could be populated if needed
-    },
-  })) : [];
+    // Convert database format to match the view component interface
+    const formattedMemberships = Array.isArray(memberships)
+      ? memberships.map((membership) => ({
+          id: membership.id,
+          role: membership.role,
+          organization: {
+            id: membership.organization.clerkId,
+            name: membership.organization.name,
+            membersCount: 0,
+          },
+        }))
+      : [];
 
-  // If user has no organizations, show onboarding
-  if (!formattedMemberships || formattedMemberships.length === 0) {
+    if (!formattedMemberships || formattedMemberships.length === 0) {
+      return <OnboardingView />;
+    }
+
+    return (
+      <DashboardView
+        userMemberships={formattedMemberships}
+        activeOrgId={orgId || null}
+      />
+    );
+  } catch (error) {
+    console.error("Error loading dashboard:", error);
+    // Fallback to onboarding if there are any issues
     return <OnboardingView />;
   }
-
-  // User has organizations - show dashboard
-  return (
-    <DashboardView
-      userMemberships={formattedMemberships}
-      activeOrgId={orgId || null}
-    />
-  );
 }

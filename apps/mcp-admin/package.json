@@ -14,7 +14,7 @@
     "db:seed": "pnpm --filter @mcp/database db:seed"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.25.0",
+    "@clerk/nextjs": "^6.25.4",
     "@hookform/resolvers": "^5.1.1",
     "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
@@ -52,7 +52,7 @@
     "input-otp": "^1.4.2",
     "katex": "^0.16.22",
     "lucide-react": "^0.525.0",
-    "next": "15.4.1",
+    "next": "15.4.3",
     "next-themes": "^0.4.6",
     "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.30.0",
@@ -74,15 +74,15 @@
     "zod": "^4.0.5"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.1",
-    "tailwindcss": "^4",
+    "@eslint/eslintrc": "^3.3.1",
+    "@tailwindcss/postcss": "^4.1.11",
+    "@types/node": "^24.1.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "eslint": "^9.31.0",
+    "eslint-config-next": "15.4.3",
+    "tailwindcss": "^4.1.11",
     "tw-animate-css": "^1.3.5",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }

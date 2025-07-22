@@ -12,8 +12,6 @@ import {
   OrganizationContext,
 } from "../services/organization-context.js";
 
-// SessionJwtPayload now imported from @mcp/schemas
-
 export class MCPSessionManager {
   private logger: McpLogger;
   private sessions = new Map<string, Session>();
@@ -30,7 +28,7 @@ export class MCPSessionManager {
     );
 
     // Start session cleanup interval - more frequent in development
-    const cleanupInterval = config.env === "production" ? 60000 : 30000; // 1 min prod, 30 sec dev
+    const cleanupInterval = config.env === "production" ? 60000 : 30000;
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions();
     }, cleanupInterval);
@@ -41,7 +39,6 @@ export class MCPSessionManager {
   async shutdown(): Promise<void> {
     clearInterval(this.cleanupInterval);
 
-    // Close all WebSocket connections
     for (const session of this.sessions.values()) {
       if (session.connection) {
         session.connection.close();
@@ -88,7 +85,6 @@ export class MCPSessionManager {
     transport: "http" | "websocket" = "http"
   ): Session | null {
     for (const session of this.sessions.values()) {
-      // Match user, organization, and transport
       if (
         session.userId === userId &&
         session.organizationClerkId === organizationClerkId &&
@@ -100,7 +96,6 @@ export class MCPSessionManager {
           now.getTime() - session.lastActivity.getTime();
 
         if (timeSinceLastActivity < this.config.sessionTimeout) {
-          // Update last activity and return existing session
           session.lastActivity = now;
           this.logger.debug(
             `Reusing existing session: ${session.id} for user: ${userId}`
@@ -122,7 +117,6 @@ export class MCPSessionManager {
     transport: "http" | "websocket" = "http",
     simulateOrgHeader?: string
   ): Promise<Session> {
-    // First get the user's actual organization context
     const orgContext = await this.orgContextService.extractOrganizationContext(
       authHeader,
       apiKey
@@ -133,16 +127,13 @@ export class MCPSessionManager {
     // Determine final organization context (with simulation support)
     let finalOrgContext = orgContext;
 
-    // Check if we're simulating a different organization context
     if (simulateOrgHeader && orgContext) {
-      // Validate that the user has permission to simulate this organization
       const hasPermission = await this.validateSimulationPermission(
         orgContext,
         simulateOrgHeader
       );
 
       if (hasPermission) {
-        // Create simulated organization context
         const simulatedContext = await this.createSimulatedContext(
           orgContext,
           simulateOrgHeader

@@ -111,14 +111,12 @@ export class MCPRequestRouter {
       });
 
       try {
-        // Execute request on server
         const mcpResponse = await this.executeOnServer(
           request,
           session,
           serverInstance
         );
 
-        // Log successful response
         const duration = Date.now() - startTime;
         this.logger.mcpResponse(request.method, requestId, true, duration, {
           sessionId: session.id,
@@ -165,12 +163,10 @@ export class MCPRequestRouter {
     session: Session,
     serverInstance: { id: string; url: string }
   ): Promise<MCPJsonRpcResponse> {
-    // Prepare headers with organization context
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    // Add organization context headers if available
     if (session.organizationId) {
       headers["x-organization-id"] = session.organizationId;
     }

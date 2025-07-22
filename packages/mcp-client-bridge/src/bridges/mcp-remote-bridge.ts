@@ -164,7 +164,7 @@ export class MCPRemoteBridge extends BaseBridge {
 
     // Add API key if available
     const apiKey = this.serverEndpoint.headers?.["x-api-key"];
-    if (apiKey) {
+    if (typeof apiKey === "string") {
       env.MCP_API_KEY = apiKey;
     }
 

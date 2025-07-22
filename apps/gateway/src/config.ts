@@ -14,17 +14,13 @@ import {
 } from "@mcp/utils/validation.js";
 import { ALL_MCP_SERVERS } from "./config/server-registry.js";
 
-// Well-known development API key for easy local testing
 const DEV_API_KEY = "dev-api-key-12345";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const SERVICE_PATH = join(__dirname, "..");
 
-// Load environment variables from .env files
 loadEnvironment(SERVICE_PATH);
-
-// Gateway configuration removed - now using shared type from @mcp/schemas
 
 async function createGatewayConfig(): Promise<McpGatewayConfig> {
   const env: Environment = detectEnvironment();

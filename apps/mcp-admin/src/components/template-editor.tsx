@@ -39,7 +39,6 @@ export function TemplateEditor({
   const [validations, setValidations] = useState<VariableValidation[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Extract variables from template
   useEffect(() => {
     const variableRegex = /\{\{(\s*\w+\s*)\}\}/g;
     const foundVariables: string[] = [];
@@ -55,7 +54,6 @@ export function TemplateEditor({
     setVariables(foundVariables);
   }, [value]);
 
-  // Validate variables against schema
   useEffect(() => {
     const validations: VariableValidation[] = variables.map((variable) => {
       const argDef = argumentsSchema.find((arg) => arg.name === variable);

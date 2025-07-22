@@ -16,10 +16,6 @@ export interface RequestContext {
   requestId?: string;
 }
 
-// ============================================================================
-// BASE MCP SERVER CONFIGURATION
-// ============================================================================
-
 // Re-export consolidated types from @mcp/schemas for backward compatibility
 export type { McpServerConfig };
 

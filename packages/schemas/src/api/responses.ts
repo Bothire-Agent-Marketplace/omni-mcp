@@ -17,7 +17,7 @@ export const ApiSuccessResponseSchema = z.object({
   data: z.unknown().optional(),
   message: z.string().optional(),
   timestamp: z.string().optional(),
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
   executionTime: z.number().optional(), // Added for MCP protocol compatibility
 });
 
@@ -78,6 +78,7 @@ export const ApiHealthStatusSchema = z.object({
   timestamp: z.string(),
   services: z
     .record(
+      z.string(),
       z.object({
         status: z.enum(["healthy", "unhealthy", "unknown"]),
         connected: z.boolean().optional(),

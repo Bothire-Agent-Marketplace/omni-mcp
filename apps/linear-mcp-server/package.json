@@ -19,14 +19,15 @@
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "@linear/sdk": "^24.0.0",
+    "@linear/sdk": "^53.0.0",
     "@mcp/capabilities": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/server-core": "workspace:*",
     "@mcp/utils": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.0.8",
+    "@types/node": "^24.1.0",
+    "fastify": "^5.4.0",
     "tsx": "^4.20.3",
     "typescript": "^5.8.3"
   },

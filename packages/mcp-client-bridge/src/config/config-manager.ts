@@ -40,7 +40,7 @@ export class ConfigManager {
     // Load servers if provided
     if (config?.servers) {
       Object.entries(config.servers).forEach(([name, endpoint]) => {
-        this.addServer(name, endpoint);
+        this.addServer(name, endpoint as ServerEndpoint);
       });
     }
   }
