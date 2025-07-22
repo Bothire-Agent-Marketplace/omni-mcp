@@ -255,6 +255,15 @@ model Session {
   @@map("sessions")
 }
 
+model WebhookEvent {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventId     String   @unique @map("event_id") // svix-id from webhook headers
+  eventType   String   @map("event_type") // e.g., "user.created", "organization.updated"
+  processedAt DateTime @default(now()) @map("processed_at")
+  
+  @@map("webhook_events")
+}
+
 // Enums
 
 enum MembershipRole {

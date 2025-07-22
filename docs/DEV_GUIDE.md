@@ -141,3 +141,34 @@ The new dev script fixes most terminal issues, but if you experience problems:
 | Perplexity Server | 3003  | http://localhost:3003  |
 | DevTools Server   | 3004  | http://localhost:3004  |
 | Prisma Studio     | 5555  | http://localhost:5555  |
+
+## 🗄️ Database Development Workflow
+
+### **When Users/Data Changes Frequently**
+
+```bash
+# Smart reset (preserves users/orgs, resets everything else)
+pnpm db:reset
+
+# Full reset (nuclear option)
+pnpm db:reset:force
+
+# After schema changes
+pnpm db:migrate
+pnpm db:seed:prompts  # Re-seed prompts/resources only
+```
+
+### **Clerk Webhook Issues**
+
+If you see P2002 unique constraint errors:
+
+```bash
+# Quick fix: Reset database
+pnpm db:reset
+
+# Or check webhook logs
+curl http://localhost:3000/api/health
+```
+
+**Pro Tip**: The `smart-reset` preserves your Clerk users and organizations while resetting prompts,
+resources, and other data. Perfect for development!
