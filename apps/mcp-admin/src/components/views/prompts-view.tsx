@@ -1,8 +1,17 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Edit, Trash2, Eye, Copy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
@@ -13,6 +22,8 @@ import {
 } from "@/components/ui/table";
 import { CreatePromptButton } from "../forms/create-prompt-button";
 import { PromptActions } from "../forms/prompt-actions";
+import { PromptViewer } from "@/components/ui/prompt-viewer";
+import { toast } from "sonner";
 import type {
   OrganizationPrompt,
   DefaultPrompt,
@@ -34,6 +45,42 @@ export function PromptsView({
   organizationId,
   userId,
 }: PromptsViewProps) {
+  const [selectedDefaultPrompt, setSelectedDefaultPrompt] =
+    useState<DefaultPrompt | null>(null);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+
+  const handleViewDefaultPrompt = (prompt: DefaultPrompt) => {
+    setSelectedDefaultPrompt(prompt);
+    setIsViewDialogOpen(true);
+  };
+
+  const handleCopyDefaultPrompt = async (prompt: DefaultPrompt) => {
+    try {
+      // Extract template content for copying
+      let templateContent = "";
+      if (typeof prompt.template === "string") {
+        templateContent = prompt.template;
+      } else if (Array.isArray(prompt.template)) {
+        templateContent = prompt.template
+          .map((item) => {
+            if (item && typeof item === "object" && "content" in item) {
+              return (item as { content: string }).content;
+            }
+            return JSON.stringify(item);
+          })
+          .join("\n\n");
+      } else {
+        templateContent = JSON.stringify(prompt.template, null, 2);
+      }
+
+      await navigator.clipboard.writeText(templateContent);
+      toast.success(`"${prompt.name}" template copied to clipboard!`);
+    } catch (error) {
+      console.error("Failed to copy prompt:", error);
+      toast.error("Failed to copy prompt template");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -159,11 +206,21 @@ export function PromptsView({
                         {prompt.description}
                       </p>
                       <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-8 px-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2"
+                          onClick={() => handleViewDefaultPrompt(prompt)}
+                        >
                           <Eye className="h-3 w-3 mr-1" />
                           View
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-8 px-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 px-2"
+                          onClick={() => handleCopyDefaultPrompt(prompt)}
+                        >
                           <Copy className="h-3 w-3 mr-1" />
                           Copy
                         </Button>
@@ -176,6 +233,25 @@ export function PromptsView({
           )}
         </CardContent>
       </Card>
+
+      {/* View Default Prompt Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
+          <DialogHeader className="border-b pb-4 flex-shrink-0">
+            <DialogTitle className="text-xl">
+              {selectedDefaultPrompt?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-6 min-h-0">
+            {selectedDefaultPrompt && (
+              <PromptViewer
+                prompt={selectedDefaultPrompt}
+                showActions={false}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

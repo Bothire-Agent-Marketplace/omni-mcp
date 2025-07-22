@@ -316,9 +316,9 @@ loading.tsx          # Loading UI (Server Component)
 error.tsx            # Error UI (Client Component)
 not-found.tsx        # 404 UI (Server Component)
 
-PageView.tsx         # View component (Server/Client as needed)
-InteractiveWidget.tsx # Client component
-ServerWidget.tsx     # Server component (when explicit)
+page-view.tsx         # View component (Server/Client as needed)
+interactive-widget.tsx # Client component
+server-widget.tsx     # Server component (when explicit)
 ```
 
 ## Common Patterns

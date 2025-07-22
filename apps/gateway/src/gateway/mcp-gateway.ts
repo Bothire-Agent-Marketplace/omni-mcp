@@ -112,7 +112,11 @@ export class MCPGateway {
         // Create session with organization context extracted from auth headers
         const authHeader = headers.authorization || headers.Authorization;
         const apiKey = headers["x-api-key"] as string;
-        session = await this.sessionManager.createSessionWithAuth(authHeader, apiKey, "http");
+        session = await this.sessionManager.createSessionWithAuth(
+          authHeader,
+          apiKey,
+          "http"
+        );
       }
 
       // Convert HTTP request to MCP format
@@ -240,7 +244,7 @@ export class MCPGateway {
     try {
       // Handle core MCP protocol methods directly in the gateway
       if (this.isProtocolMethod(request.method)) {
-        return await this.handleProtocolMethod(request);
+        return await this.handleProtocolMethod(request, session);
       }
 
       // Resolve capability to server for tool calls and other methods
@@ -441,7 +445,8 @@ export class MCPGateway {
   }
 
   private async handleProtocolMethod(
-    request: MCPRequest
+    request: MCPRequest,
+    session?: Session
   ): Promise<MCPResponse> {
     switch (request.method) {
       case "initialize":
@@ -493,7 +498,7 @@ export class MCPGateway {
           jsonrpc: "2.0",
           id: request.id,
           result: {
-            prompts: await this.getAvailablePrompts(),
+            prompts: await this.getAvailablePrompts(session),
           },
         };
 
@@ -590,7 +595,7 @@ export class MCPGateway {
     return allResources;
   }
 
-  private async getAvailablePrompts(): Promise<MCPPrompt[]> {
+  private async getAvailablePrompts(session?: Session): Promise<MCPPrompt[]> {
     const allPrompts: MCPPrompt[] = [];
 
     // Fetch prompts from all servers (not just healthy ones) in development
@@ -619,6 +624,74 @@ export class MCPGateway {
         this.logger.warn(`Failed to fetch prompts from ${serverId}:`, {
           error: error instanceof Error ? error.message : String(error),
           serverId,
+        });
+      }
+    }
+
+    // Fetch custom prompts from database if we have organization context
+    if (session?.organizationId) {
+      try {
+        const { PrismaClient } = await import("@mcp/database/client");
+        const prisma = new PrismaClient();
+
+        const customPrompts = await prisma.organizationPrompt.findMany({
+          where: {
+            organizationId: session.organizationId,
+          },
+          include: {
+            mcpServer: true,
+          },
+        });
+
+        // Convert database prompts to MCP format
+        const mcpCustomPrompts: MCPPrompt[] = customPrompts.map((prompt) => {
+          // Parse arguments from the stored JSON
+          let arguments_array: Array<{
+            name: string;
+            description: string;
+            required?: boolean;
+          }> = [];
+
+          try {
+            const argsSchema = prompt.arguments as Record<string, unknown>;
+            if (argsSchema && typeof argsSchema === "object") {
+              arguments_array = Object.entries(argsSchema).map(
+                ([name, config]: [string, unknown]) => ({
+                  name,
+                  description:
+                    (config as { description?: string }).description || "",
+                  required:
+                    (config as { required?: boolean }).required || false,
+                })
+              );
+            }
+          } catch (error) {
+            this.logger.warn(
+              `Failed to parse arguments for custom prompt ${prompt.name}:`,
+              {
+                error: error instanceof Error ? error.message : String(error),
+              }
+            );
+          }
+
+          return {
+            name: `custom_${prompt.name}`, // Prefix to distinguish from default prompts
+            description: prompt.description,
+            arguments: arguments_array,
+          };
+        });
+
+        allPrompts.push(...mcpCustomPrompts);
+
+        await prisma.$disconnect();
+
+        this.logger.info(
+          `Added ${mcpCustomPrompts.length} custom prompts for organization ${session.organizationId}`
+        );
+      } catch (error) {
+        this.logger.warn("Failed to fetch custom prompts from database:", {
+          error: error instanceof Error ? error.message : String(error),
+          organizationId: session.organizationId,
         });
       }
     }
