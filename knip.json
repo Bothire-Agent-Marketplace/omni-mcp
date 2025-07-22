@@ -73,5 +73,5 @@
     }
   },
   "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "dev-servers.config.js.example", ".github/**"],
-  "ignoreBinaries": ["ngrok", "pkill"]
+  "ignoreBinaries": ["ngrok", "pkill", "lt"]
 }
