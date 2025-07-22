@@ -148,45 +148,51 @@ export function transformOrganizationResource(
 // ============================================================================
 
 /**
- * MCP tools/list response format
+ * Generic MCP list response format with pagination
  */
-export interface McpToolsListResponse {
-  tools: Array<{
-    name: string;
-    description: string;
-    inputSchema: unknown;
-  }>;
+export interface McpListResponse<T> {
+  items: T[];
   nextCursor?: string;
 }
 
 /**
- * MCP resources/list response format
+ * MCP tool definition
  */
-export interface McpResourcesListResponse {
-  resources: Array<{
-    uri: string;
-    name: string;
-    description: string;
-    mimeType?: string;
-  }>;
-  nextCursor?: string;
+export interface McpTool {
+  name: string;
+  description: string;
+  inputSchema: unknown;
 }
 
 /**
- * MCP prompts/list response format
+ * MCP resource definition
  */
-export interface McpPromptsListResponse {
-  prompts: Array<{
+export interface McpResource {
+  uri: string;
+  name: string;
+  description: string;
+  mimeType?: string;
+}
+
+/**
+ * MCP prompt definition
+ */
+export interface McpPrompt {
+  name: string;
+  description: string;
+  arguments?: Array<{
     name: string;
     description: string;
-    arguments?: Array<{
-      name: string;
-      description: string;
-      required?: boolean;
-    }>;
+    required?: boolean;
   }>;
-  nextCursor?: string;
 }
+
+/**
+ * Specific MCP list response types
+ */
+export type McpToolsListResponse = McpListResponse<McpTool>;
+export type McpResourcesListResponse = McpListResponse<McpResource>;
+export type McpPromptsListResponse = McpListResponse<McpPrompt>;
 
 // ============================================================================
 // EXISTING TYPES (Keep for backward compatibility)

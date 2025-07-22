@@ -12,18 +12,14 @@ import {
   MCPRouteGeneric,
   HealthRouteGeneric,
   WebSocketRouteGeneric,
-  MCPRequestSchema,
-  HealthCheckResponseSchema,
-  ErrorResponseSchema,
+  MCPJsonRpcRequestSchema,
+  // Deprecated schemas removed - use unified response schemas instead
   HTTPHeaders,
 } from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import { getGatewayConfig } from "./config.js";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
-import {
-  registerSecurityMiddleware,
-  generateSecureApiKey,
-} from "./middleware/security.js";
+import { registerSecurityMiddleware } from "./middleware/security.js";
 
 // Helper function to convert Fastify headers to our HTTPHeaders type
 function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
@@ -120,7 +116,7 @@ async function createServer(): Promise<FastifyInstance> {
       {
         schema: {
           response: {
-            200: HealthCheckResponseSchema,
+            200: {}, // Use standard response - no schema needed
           },
         },
       },
@@ -213,12 +209,12 @@ async function createServer(): Promise<FastifyInstance> {
       "/mcp",
       {
         schema: {
-          body: MCPRequestSchema,
+          body: MCPJsonRpcRequestSchema,
           response: {
-            400: ErrorResponseSchema,
-            401: ErrorResponseSchema,
-            404: ErrorResponseSchema,
-            500: ErrorResponseSchema,
+            400: {}, // Use standard error response
+            401: {}, // Use standard error response
+            404: {}, // Use standard error response
+            500: {}, // Use standard error response
           },
         },
       },

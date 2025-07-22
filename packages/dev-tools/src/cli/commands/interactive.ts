@@ -1,5 +1,5 @@
 import * as readline from "readline";
-import { Tool, Resource, Prompt } from "@mcp/schemas";
+import { Tool, Resource, Prompt, isJsonRpcSuccessResponse } from "@mcp/schemas";
 import { MCPClient } from "../../utils/mcp-client.js";
 
 interface InteractiveOptions {
@@ -40,12 +40,16 @@ export async function interactiveMode(
           client.listPrompts(),
         ]);
 
-      tools = (toolsResponse.result as { tools?: Tool[] })?.tools || [];
-      resources =
-        (resourcesResponse.result as { resources?: Resource[] })?.resources ||
-        [];
-      prompts =
-        (promptsResponse.result as { prompts?: Prompt[] })?.prompts || [];
+      tools = isJsonRpcSuccessResponse(toolsResponse)
+        ? (toolsResponse.result as { tools?: Tool[] })?.tools || []
+        : [];
+      resources = isJsonRpcSuccessResponse(resourcesResponse)
+        ? (resourcesResponse.result as { resources?: Resource[] })?.resources ||
+          []
+        : [];
+      prompts = isJsonRpcSuccessResponse(promptsResponse)
+        ? (promptsResponse.result as { prompts?: Prompt[] })?.prompts || []
+        : [];
 
       capabilitiesLoaded = true;
       console.log(

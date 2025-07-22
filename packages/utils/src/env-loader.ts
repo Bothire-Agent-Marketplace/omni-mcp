@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { join, dirname } from "path";
 import { config } from "dotenv";
-import type { Environment } from "./validation.js";
+import type { Environment } from "@mcp/schemas";
 
 // Re-export Environment type for convenience
 export type { Environment };

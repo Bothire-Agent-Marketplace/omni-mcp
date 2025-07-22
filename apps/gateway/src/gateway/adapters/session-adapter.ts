@@ -1,4 +1,9 @@
-import { Session, GatewayConfig, HTTPHeaders, IWebSocket } from "@mcp/schemas";
+import {
+  Session,
+  McpGatewayConfig,
+  HTTPHeaders,
+  IWebSocket,
+} from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 import { MCPSessionManager } from "../session-manager.js";
 
@@ -10,7 +15,7 @@ export class SessionAdapter {
   private logger: McpLogger;
   private sessionManager: MCPSessionManager;
 
-  constructor(config: GatewayConfig, logger: McpLogger) {
+  constructor(config: McpGatewayConfig, logger: McpLogger) {
     this.logger = logger.fork("session-adapter");
     this.sessionManager = new MCPSessionManager(
       config,

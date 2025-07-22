@@ -1,5 +1,5 @@
 import chalk from "chalk";
-import { Tool } from "@mcp/schemas";
+import { Tool, isJsonRpcSuccessResponse } from "@mcp/schemas";
 import { MCPClient } from "../../utils/mcp-client.js";
 
 interface HealthOptions {
@@ -39,7 +39,9 @@ export async function checkHealth(options: HealthOptions): Promise<void> {
   console.log(chalk.blue("🔧 Server Health..."));
   try {
     const toolsResponse = await client.listTools();
-    const toolsResult = toolsResponse.result as { tools?: Tool[] };
+    const toolsResult = isJsonRpcSuccessResponse(toolsResponse)
+      ? (toolsResponse.result as { tools?: Tool[] })
+      : { tools: [] };
     const allTools = toolsResult?.tools || [];
 
     if (allTools.length === 0) {

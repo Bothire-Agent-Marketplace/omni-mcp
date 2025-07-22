@@ -1,4 +1,4 @@
-import { MCPResponse } from "@mcp/schemas";
+import { MCPJsonRpcResponse } from "@mcp/schemas";
 
 export class MCPClient {
   private baseUrl: string;
@@ -15,7 +15,7 @@ export class MCPClient {
   private async makeRequest(
     method: string,
     params?: unknown
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     const request: {
       jsonrpc: string;
       method: string;
@@ -46,32 +46,38 @@ export class MCPClient {
     return response.json();
   }
 
-  async listTools(): Promise<MCPResponse> {
+  async listTools(): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("tools/list");
   }
 
-  async listResources(): Promise<MCPResponse> {
+  async listResources(): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("resources/list");
   }
 
-  async listPrompts(): Promise<MCPResponse> {
+  async listPrompts(): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("prompts/list");
   }
 
-  async callTool(name: string, args: unknown = {}): Promise<MCPResponse> {
+  async callTool(
+    name: string,
+    args: unknown = {}
+  ): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("tools/call", {
       name,
       arguments: args,
     });
   }
 
-  async readResource(uri: string): Promise<MCPResponse> {
+  async readResource(uri: string): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("resources/read", {
       uri,
     });
   }
 
-  async getPrompt(name: string, args: unknown = {}): Promise<MCPResponse> {
+  async getPrompt(
+    name: string,
+    args: unknown = {}
+  ): Promise<MCPJsonRpcResponse> {
     return this.makeRequest("prompts/get", {
       name,
       arguments: args,

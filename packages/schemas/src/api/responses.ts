@@ -18,6 +18,7 @@ export const ApiSuccessResponseSchema = z.object({
   message: z.string().optional(),
   timestamp: z.string().optional(),
   meta: z.record(z.unknown()).optional(),
+  executionTime: z.number().optional(), // Added for MCP protocol compatibility
 });
 
 export type ApiSuccessResponse<T = unknown> = {
@@ -26,6 +27,7 @@ export type ApiSuccessResponse<T = unknown> = {
   message?: string;
   timestamp?: string;
   meta?: Record<string, unknown>;
+  executionTime?: number; // Added for MCP protocol compatibility
 };
 
 // ============================================================================

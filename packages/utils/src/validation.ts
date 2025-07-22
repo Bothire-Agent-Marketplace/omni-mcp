@@ -1,6 +1,5 @@
 import { z, ZodIssue } from "zod";
-
-export type Environment = "development" | "production" | "test";
+import type { Environment } from "@mcp/schemas";
 
 // Zod schema for port validation
 const PortSchema = z.coerce

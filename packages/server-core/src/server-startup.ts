@@ -1,4 +1,5 @@
-import { createMcpLogger, type Environment } from "@mcp/utils";
+import type { Environment } from "@mcp/schemas";
+import { createMcpLogger } from "@mcp/utils";
 import type { ServerStartupOptions } from "./config.js";
 
 // ============================================================================

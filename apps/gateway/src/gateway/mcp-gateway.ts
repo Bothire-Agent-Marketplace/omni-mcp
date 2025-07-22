@@ -1,7 +1,7 @@
 import {
-  GatewayConfig,
-  MCPRequest,
-  MCPResponse,
+  McpGatewayConfig,
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
   Session,
   HealthStatus,
   IWebSocket,
@@ -10,11 +10,11 @@ import {
   GatewayHTTPResponse,
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
-import { MCPProtocolAdapter } from "./protocol-adapter.js";
-import { MCPServerManager } from "./server-manager.js";
+import { SessionAdapter } from "./adapters/session-adapter.js";
 import { MCPProtocolHandler } from "./core/protocol-handler.js";
 import { MCPRequestRouter } from "./core/request-router.js";
-import { SessionAdapter } from "./adapters/session-adapter.js";
+import { MCPProtocolAdapter } from "./protocol-adapter.js";
+import { MCPServerManager } from "./server-manager.js";
 
 /**
  * Refactored MCP Gateway - Main orchestrator
@@ -26,7 +26,7 @@ import { SessionAdapter } from "./adapters/session-adapter.js";
  */
 export class MCPGateway {
   private logger: McpLogger;
-  private config: GatewayConfig;
+  private config: McpGatewayConfig;
 
   // Core components
   private serverManager: MCPServerManager;
@@ -35,7 +35,7 @@ export class MCPGateway {
   private requestRouter: MCPRequestRouter;
   private sessionAdapter: SessionAdapter;
 
-  constructor(config: GatewayConfig, logger: McpLogger) {
+  constructor(config: McpGatewayConfig, logger: McpLogger) {
     this.config = config;
     this.logger = logger;
 
@@ -100,7 +100,7 @@ export class MCPGateway {
   async handleHttpRequest(
     requestBody: unknown,
     headers: HTTPHeaders
-  ): Promise<GatewayHTTPResponse | MCPResponse> {
+  ): Promise<GatewayHTTPResponse | MCPJsonRpcResponse> {
     try {
       // Get or create session with organization context
       const session = await this.sessionAdapter.getOrCreateSession(headers);
@@ -167,8 +167,9 @@ export class MCPGateway {
             error instanceof Error ? error : new Error(String(error))
           );
 
-          const errorResponse: MCPResponse = {
+          const errorResponse: MCPJsonRpcResponse = {
             jsonrpc: "2.0",
+            id: undefined,
             error: {
               code: -32603,
               message: "Internal error",
@@ -215,9 +216,9 @@ export class MCPGateway {
   }
 
   private async routeRequest(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     session: Session
-  ): Promise<MCPResponse> {
+  ): Promise<MCPJsonRpcResponse> {
     // Handle core MCP protocol methods directly
     if (this.protocolHandler.isProtocolMethod(request.method)) {
       return await this.protocolHandler.handleProtocolMethod(request, session);

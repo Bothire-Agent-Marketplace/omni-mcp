@@ -1,7 +1,7 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { buildMCPServersConfig } from "packages/utils/src/mcp-server-configs.js";
-import { GatewayConfig } from "@mcp/schemas";
+import { McpGatewayConfig } from "@mcp/schemas";
 import {
   detectEnvironment,
   loadEnvironment,
@@ -26,14 +26,15 @@ loadEnvironment(SERVICE_PATH);
 
 // Gateway configuration removed - now using shared type from @mcp/schemas
 
-async function createGatewayConfig(): Promise<GatewayConfig> {
+async function createGatewayConfig(): Promise<McpGatewayConfig> {
   const env: Environment = detectEnvironment();
   const isProduction = env === "production";
 
-  const config: GatewayConfig = {
+  const config: McpGatewayConfig = {
     env,
     port: validatePort(process.env.GATEWAY_PORT, 37373),
     host: process.env.GATEWAY_HOST || "0.0.0.0",
+    logLevel: process.env.LOG_LEVEL || "info",
     allowedOrigins: parseOrigins(
       process.env.ALLOWED_ORIGINS ||
         (isProduction ? "" : "http://localhost:8080")
@@ -72,6 +73,6 @@ async function createGatewayConfig(): Promise<GatewayConfig> {
   return config;
 }
 
-export async function getGatewayConfig(): Promise<GatewayConfig> {
+export async function getGatewayConfig(): Promise<McpGatewayConfig> {
   return await createGatewayConfig();
 }

@@ -4,22 +4,15 @@
 import { existsSync } from "fs";
 import { join } from "path";
 import type { MCPServerDefinition } from "@mcp/capabilities";
-import type { Environment } from "./validation.js";
+import type {
+  Environment,
+  McpServerRuntimeConfig,
+  McpServersRuntimeConfig,
+} from "@mcp/schemas";
 
-// Type definitions for the Gateway's runtime view of an MCP server
-export interface MCPServerRuntimeConfig {
-  type: "mcp";
-  url: string;
-  capabilities: string[];
-  description: string;
-  healthCheckInterval: number;
-  requiresAuth: boolean;
-  maxRetries: number;
-}
-
-export interface MCPServersRuntimeConfig {
-  [key: string]: MCPServerRuntimeConfig;
-}
+// Re-export for backward compatibility
+export type MCPServerRuntimeConfig = McpServerRuntimeConfig;
+export type MCPServersRuntimeConfig = McpServersRuntimeConfig;
 
 /**
  * Load development server configuration if it exists

@@ -1,5 +1,5 @@
 import winston from "winston";
-import type { Environment } from "./validation.js";
+import type { Environment } from "@mcp/schemas";
 
 // MCP-compliant logger interface
 export interface McpLogContext {

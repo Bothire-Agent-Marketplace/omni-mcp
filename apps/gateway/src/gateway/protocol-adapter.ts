@@ -1,9 +1,11 @@
 import {
-  MCPRequest,
-  MCPResponse,
+  MCPJsonRpcRequest,
+  MCPJsonRpcResponse,
   IWebSocket,
   HTTPRequestBody,
   HTTPResponse,
+  isJsonRpcErrorResponse,
+  isJsonRpcSuccessResponse,
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
@@ -14,15 +16,15 @@ export class MCPProtocolAdapter {
     this.logger = logger;
   }
 
-  handleHttpToMCP(requestBody: HTTPRequestBody): MCPRequest {
+  handleHttpToMCP(requestBody: HTTPRequestBody): MCPJsonRpcRequest {
     if (!requestBody || requestBody.jsonrpc !== "2.0" || !requestBody.method) {
       throw new Error("Invalid JSON-RPC request");
     }
     return requestBody;
   }
 
-  handleMCPToHttp(mcpResponse: MCPResponse): HTTPResponse {
-    if (mcpResponse.error) {
+  handleMCPToHttp(mcpResponse: MCPJsonRpcResponse): HTTPResponse {
+    if (isJsonRpcErrorResponse(mcpResponse)) {
       return {
         success: false,
         error: mcpResponse.error.message,
@@ -30,14 +32,23 @@ export class MCPProtocolAdapter {
         data: mcpResponse.error.data,
       };
     }
-    return {
-      success: true,
-      data: mcpResponse.result,
-      id: mcpResponse.id,
-    };
+
+    if (isJsonRpcSuccessResponse(mcpResponse)) {
+      return {
+        success: true,
+        data: mcpResponse.result,
+        id: mcpResponse.id,
+      };
+    }
+
+    // This should never happen with properly typed responses
+    throw new Error("Invalid MCP response format");
   }
 
-  handleWebSocketMessage(ws: IWebSocket, message: string): MCPRequest | null {
+  handleWebSocketMessage(
+    ws: IWebSocket,
+    message: string
+  ): MCPJsonRpcRequest | null {
     try {
       const parsedMessage = JSON.parse(message);
       if (
@@ -47,14 +58,15 @@ export class MCPProtocolAdapter {
       ) {
         throw new Error("Invalid JSON-RPC message");
       }
-      return parsedMessage as MCPRequest;
+      return parsedMessage as MCPJsonRpcRequest;
     } catch (error) {
       this.logger.error(
         "Error parsing WebSocket message",
         error instanceof Error ? error : new Error(String(error))
       );
-      const errorResponse: MCPResponse = {
+      const errorResponse: MCPJsonRpcResponse = {
         jsonrpc: "2.0",
+        id: undefined,
         error: { code: -32700, message: "Parse error" },
       };
       this.sendWebSocketResponse(ws, errorResponse);
@@ -62,7 +74,7 @@ export class MCPProtocolAdapter {
     }
   }
 
-  sendWebSocketResponse(ws: IWebSocket, response: MCPResponse): void {
+  sendWebSocketResponse(ws: IWebSocket, response: MCPJsonRpcResponse): void {
     try {
       ws.send(JSON.stringify(response));
     } catch (error) {
@@ -74,7 +86,7 @@ export class MCPProtocolAdapter {
   }
 
   resolveCapability(
-    request: MCPRequest,
+    request: MCPJsonRpcRequest,
     capabilityMap: Map<string, string[]>
   ): string | null {
     const { method, params } = request;
