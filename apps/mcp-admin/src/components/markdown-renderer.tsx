@@ -27,7 +27,6 @@ export function MarkdownRenderer({
   useEffect(() => {
     const loadLanguages = async () => {
       // First import Prism itself - needed to initialize the global object
-      // @ts-expect-error - PrismJS doesn't have proper TypeScript declarations
       await import("prismjs");
 
       // Then import language components
