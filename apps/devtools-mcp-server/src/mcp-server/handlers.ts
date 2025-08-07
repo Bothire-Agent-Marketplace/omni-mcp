@@ -1,516 +1,857 @@
-// ============================================================================
-// CHROME DEVTOOLS MCP SERVER - Request Handlers
-// ============================================================================
+/**
+ * Modern Playwright-based MCP Server Handlers
+ * Simpler, more reliable, and more powerful than CDP approach
+ */
 
-import {
-  StartChromeSchema,
-  ConnectToBrowserSchema,
-  NavigateToUrlSchema,
-  GetBrowserStatusSchema,
-  CloseBrowserSchema,
-  GetConsoleLogsSchema,
-  ExecuteJavaScriptSchema,
-  ClearConsoleSchema,
-  GetNetworkRequestsSchema,
-  GetNetworkResponseSchema,
-} from "../schemas/domain-schemas.js";
-import type {
-  ConsoleLogEntry,
-  NetworkRequest,
-  NetworkResponse,
-} from "../types/domain-types.js";
-import type { ChromeDevToolsClient } from "./chrome-client.js";
+import { PlaywrightClient } from "./client.js";
+import { z } from "zod";
 
-// ============================================================================
-// CHROME MANAGEMENT HANDLERS
-// ============================================================================
+// Input schemas (reusing your existing patterns)
+const NavigateSchema = z.object({
+  url: z.string().url(),
+  waitUntil: z.enum(["domcontentloaded", "load", "networkidle"]).optional(),
+  timeout: z.number().optional(),
+});
 
-export async function handleStartChrome(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { port, headless, chromePath, userDataDir, url, autoConnect, args } =
-    StartChromeSchema.parse(params);
+const ScreenshotSchema = z.object({
+  fullPage: z.boolean().optional(),
+  clip: z
+    .object({
+      x: z.number(),
+      y: z.number(),
+      width: z.number(),
+      height: z.number(),
+    })
+    .optional(),
+  type: z.enum(["png", "jpeg"]).optional(),
+  quality: z.number().min(0).max(100).optional(),
+});
 
-  // Update client options
-  const options = {
-    port,
-    headless,
-    chromePath,
-    userDataDir,
-    url,
-    autoConnect,
-    args,
-  };
-  Object.assign(chromeClient, { options });
+const ExecuteJSSchema = z.object({
+  code: z.string(),
+});
 
-  const status = await chromeClient.startChrome();
+const NetworkFilterSchema = z.object({
+  domain: z.string().optional(),
+  method: z.string().optional(),
+  resourceType: z.string().optional(),
+  status: z.number().optional(),
+  limit: z.number().min(1).max(1000).optional().default(50),
+});
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Chrome started successfully",
-            status,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
+const ConsoleFilterSchema = z.object({
+  level: z.enum(["log", "error", "warn", "info", "debug", "trace"]).optional(),
+  limit: z.number().min(1).max(1000).optional().default(50),
+});
 
-export async function handleConnectToExistingBrowser(
-  chromeClient: ChromeDevToolsClient,
-  _params: unknown
-) {
-  const status = await chromeClient.connectToExistingBrowser();
+const BlockResourcesSchema = z.object({
+  types: z.array(z.string()).optional().default(["image", "font", "media"]),
+});
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Connected to existing browser successfully",
-            status,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
+// Global client instance (you might want to make this more sophisticated)
+let globalClient: PlaywrightClient | null = null;
 
-export async function handleConnectToBrowser(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { port: _port } = ConnectToBrowserSchema.parse(params);
+/**
+ * Initialize browser (replaces chrome connection)
+ */
+export async function handleStartBrowser(params: unknown = {}) {
+  const options = z
+    .object({
+      browserType: z
+        .enum(["chromium", "firefox", "webkit"])
+        .optional()
+        .default("chromium"),
+      headless: z.boolean().optional().default(false),
+      devtools: z.boolean().optional().default(true),
+    })
+    .parse(params);
 
-  // Update port if provided - we'll need to create a new client with the new port
-  // For now, just use the provided port in the connect call
-  const status = await chromeClient.connect();
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Connected to Chrome successfully",
-            status,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleNavigateToUrl(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { url, waitForLoad } = NavigateToUrlSchema.parse(params);
-
-  await chromeClient.navigateToUrl(url);
-
-  if (waitForLoad) {
-    await chromeClient.waitForPageLoad();
-  }
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: `Navigated to ${url}`,
-            url,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleGetBrowserStatus(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  GetBrowserStatusSchema.parse(params);
-  const status = chromeClient.getConnectionStatus();
-  const browserInfo = chromeClient.getBrowserInfo();
-  const availableBrowsers = chromeClient.getAvailableBrowsers();
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            status,
-            browser: {
-              name: browserInfo.name,
-              type: browserInfo.type,
-              executablePath: browserInfo.executablePath,
-              description: browserInfo.description,
-            },
-            availableBrowsers: availableBrowsers.map((b) => ({
-              name: b.name,
-              type: b.type,
-              description: b.description,
-            })),
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleCloseBrowser(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  CloseBrowserSchema.parse(params);
-  await chromeClient.closeBrowserEnhanced();
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Browser closed successfully",
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-// ============================================================================
-// CONSOLE HANDLERS
-// ============================================================================
-
-const consoleLogs: ConsoleLogEntry[] = [];
-
-export async function handleGetConsoleLogs(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { level, limit } = GetConsoleLogsSchema.parse(params);
-
-  // Set up console listener if not already done
-  chromeClient.addConsoleListener((log) => {
-    consoleLogs.push(log);
-    // Keep only last 1000 logs to prevent memory issues
-    if (consoleLogs.length > 1000) {
-      consoleLogs.splice(0, consoleLogs.length - 1000);
-    }
-  });
-
-  let filteredLogs = consoleLogs;
-  if (level) {
-    filteredLogs = consoleLogs.filter((log) => log.type === level);
-  }
-
-  const recentLogs = filteredLogs.slice(-limit);
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            logs: recentLogs,
-            count: recentLogs.length,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleExecuteJavaScript(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { code, awaitPromise } = ExecuteJavaScriptSchema.parse(params);
-
-  const client = chromeClient.getClient();
-  if (!client) {
-    throw new Error("Not connected to Chrome");
-  }
-
-  const result = await client.Runtime.evaluate({
-    expression: code,
-    awaitPromise,
-    returnByValue: true,
-  });
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            result: result.result,
-            exceptionDetails: result.exceptionDetails,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleClearConsole(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  ClearConsoleSchema.parse(params);
-  const client = chromeClient.getClient();
-  if (!client) {
-    throw new Error("Not connected to Chrome");
-  }
-
-  await client.Console.clearMessages();
-  consoleLogs.length = 0; // Clear our local cache
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Console cleared",
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-// ============================================================================
-// NETWORK HANDLERS
-// ============================================================================
-
-const networkRequests: NetworkRequest[] = [];
-const networkResponses: NetworkResponse[] = [];
-
-// Blocklist of tracking/marketing domains to filter out
-const TRACKING_DOMAINS_BLOCKLIST = [
-  "bat.bing.com",
-  "api.hubspot.com",
-  "track.hubspot.com",
-  "cta-service-cms2.hubspot.com",
-  "forms.hubspot.com",
-  "js.hsleadflows.net",
-  "js.usemessages.com",
-  "connect.facebook.net",
-  "www.facebook.com",
-  "analytics.google.com",
-  "googleads.g.doubleclick.net",
-  "td.doubleclick.net",
-  "www.google.com",
-  "www.google.ca",
-  "www.googletagmanager.com",
-  "px4.ads.linkedin.com",
-  "static.cloudflareinsights.com",
-  "cdn.intake-lr.com", // LogRocket tracking
-  "r.intake-lr.com", // LogRocket tracking endpoint
-];
-
-export async function handleSetNetworkDomainFilter(
-  chromeClient: ChromeDevToolsClient,
-  _params: unknown
-) {
-  const { domain } = _params as { domain: string };
-  chromeClient.setDomainFilter(domain);
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: `Network domain filter set to: ${domain}`,
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleClearNetworkDomainFilter(
-  chromeClient: ChromeDevToolsClient,
-  _params: unknown
-) {
-  // No need to parse params for this function
-  chromeClient.setDomainFilter(null);
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            message: "Network domain filter cleared",
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleGetNetworkRequests(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { filter, limit } = GetNetworkRequestsSchema.parse(params);
-  const forcedDomain = chromeClient.getDomainFilter();
-
-  // Set up network listeners if not already done
-  chromeClient.setNetworkListeners({
-    onRequest: (request) => {
-      networkRequests.push(request);
-      // Keep only last 1000 requests
-      if (networkRequests.length > 1000) {
-        networkRequests.splice(0, networkRequests.length - 1000);
-      }
-    },
-    onResponse: (response) => {
-      networkResponses.push(response);
-      // Keep only last 1000 responses
-      if (networkResponses.length > 1000) {
-        networkResponses.splice(0, networkResponses.length - 1000);
-      }
-    },
-  });
-
-  let filteredRequests = networkRequests;
-  const domainToFilter = forcedDomain || filter?.domain;
-
-  // Apply filters
-  filteredRequests = networkRequests.filter((req) => {
-    // First check blocklist - exclude tracking/marketing domains
-    const requestUrl = new URL(req.url);
-    if (TRACKING_DOMAINS_BLOCKLIST.includes(requestUrl.hostname)) {
-      return false;
-    }
-
-    // Then apply other filters
-    if (domainToFilter && !req.url.includes(domainToFilter)) return false;
-    if (filter?.method && req.method !== filter.method) return false;
-    if (filter?.resourceType && req.resourceType !== filter.resourceType)
-      return false;
-    return true;
-  });
-
-  const recentRequests = filteredRequests.slice(-limit);
-
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            requests: recentRequests,
-            count: recentRequests.length,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
-}
-
-export async function handleGetNetworkResponse(
-  chromeClient: ChromeDevToolsClient,
-  params: unknown
-) {
-  const { requestId } = GetNetworkResponseSchema.parse(params);
-
-  const response = networkResponses.find((res) => res.requestId === requestId);
-
-  if (!response) {
-    throw new Error(`No response found for request ID: ${requestId}`);
-  }
-
-  const client = chromeClient.getClient();
-  if (!client) {
-    throw new Error("Not connected to Chrome");
-  }
-
-  // Get response body if available
-  let responseBody;
   try {
-    const bodyResult = await client.Network.getResponseBody({ requestId });
-    responseBody = bodyResult.body;
-  } catch {
-    // Response body might not be available
-    responseBody = null;
+    if (globalClient && globalClient.isConnected()) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                success: true,
+                status: "already_connected",
+                message: "Browser already running",
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    globalClient = new PlaywrightClient(options);
+    await globalClient.start();
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              status: "connected",
+              browserType: options.browserType,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Navigate to URL (much simpler than CDP version)
+ */
+export async function handleNavigateToUrl(params: unknown) {
+  const { url, waitUntil, timeout } = NavigateSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
   }
 
-  return {
-    content: [
-      {
-        type: "text" as const,
-        text: JSON.stringify(
-          {
-            success: true,
-            response,
-            body: responseBody,
-            timestamp: Date.now(),
-          },
-          null,
-          2
-        ),
-      },
-    ],
-  };
+  try {
+    await globalClient.navigateToUrl(url, { waitUntil, timeout });
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              url,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              url,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Take screenshot (with automatic retry built-in)
+ */
+export async function handleTakeScreenshot(params: unknown = {}) {
+  const options = ScreenshotSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const screenshot = await globalClient.takeScreenshot(options);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              screenshot: screenshot.toString("base64"),
+              format: options.type || "png",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Execute JavaScript (with better error handling)
+ */
+export async function handleExecuteJavaScript(params: unknown) {
+  const { code } = ExecuteJSSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const result = await globalClient.executeJavaScript(code);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              result,
+              code,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              code,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get network requests (much cleaner than CDP version)
+ */
+export async function handleGetNetworkRequests(params: unknown = {}) {
+  const filter = NetworkFilterSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const requests = globalClient.getNetworkRequests({
+      domain: filter.domain,
+      method: filter.method,
+      resourceType: filter.resourceType,
+    });
+
+    // Apply limit
+    const limitedRequests = requests.slice(0, filter.limit);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              requests: limitedRequests,
+              count: limitedRequests.length,
+              totalCount: requests.length,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get network responses (with optional body content)
+ */
+export async function handleGetNetworkResponses(params: unknown = {}) {
+  const filter = NetworkFilterSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const responses = globalClient.getNetworkResponses({
+      domain: filter.domain,
+      status: filter.status,
+    });
+
+    // Apply limit
+    const limitedResponses = responses.slice(0, filter.limit);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              responses: limitedResponses,
+              count: limitedResponses.length,
+              totalCount: responses.length,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get console logs (superior to CDP approach)
+ */
+export async function handleGetConsoleLogs(params: unknown = {}) {
+  const filter = ConsoleFilterSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const logs = globalClient.getConsoleLogs({
+      level: filter.level,
+      limit: filter.limit,
+    });
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              logs,
+              count: logs.length,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get performance metrics (comprehensive and reliable)
+ */
+export async function handleGetPerformanceMetrics(params: unknown = {}) {
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const metrics = await globalClient.getPerformanceMetrics();
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              metrics,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Block resources for faster page loads
+ */
+export async function handleBlockResources(params: unknown = {}) {
+  const { types } = BlockResourcesSchema.parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    await globalClient.blockResources(types);
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              blockedTypes: types,
+              message: `Blocking ${types.length} resource types for faster page loads`,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Clear all monitoring data
+ */
+export async function handleClearData(params: unknown = {}) {
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    globalClient.clearData();
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              message: "All monitoring data cleared",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Get browser status
+ */
+export async function handleGetBrowserStatus(params: unknown = {}) {
+  try {
+    const connected = globalClient?.isConnected() ?? false;
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              connected,
+              status: connected ? "ready" : "disconnected",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Close browser
+ */
+export async function handleCloseBrowser(params: unknown = {}) {
+  try {
+    if (globalClient) {
+      await globalClient.close();
+      globalClient = null;
+    }
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              message: "Browser closed successfully",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Advanced: Click element (using Playwright's reliable clicking)
+ */
+export async function handleClickElement(params: unknown) {
+  const { selector, timeout } = z
+    .object({
+      selector: z.string(),
+      timeout: z.number().optional().default(30000),
+    })
+    .parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const page = globalClient.getCurrentPage();
+    if (!page) {
+      throw new Error("No active page");
+    }
+
+    await page.click(selector, { timeout });
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              selector,
+              message: "Element clicked successfully",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              selector,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Advanced: Fill text input (using Playwright's reliable text input)
+ */
+export async function handleFillText(params: unknown) {
+  const { selector, text, timeout } = z
+    .object({
+      selector: z.string(),
+      text: z.string(),
+      timeout: z.number().optional().default(30000),
+    })
+    .parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const page = globalClient.getCurrentPage();
+    if (!page) {
+      throw new Error("No active page");
+    }
+
+    await page.fill(selector, text, { timeout });
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              selector,
+              text,
+              message: "Text filled successfully",
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              selector,
+              text,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
+}
+
+/**
+ * Advanced: Wait for element (using Playwright's superior waiting)
+ */
+export async function handleWaitForElement(params: unknown) {
+  const { selector, timeout, state } = z
+    .object({
+      selector: z.string(),
+      timeout: z.number().optional().default(30000),
+      state: z
+        .enum(["visible", "hidden", "attached", "detached"])
+        .optional()
+        .default("visible"),
+    })
+    .parse(params);
+
+  if (!globalClient || !globalClient.isConnected()) {
+    throw new Error("Browser not connected. Call start_browser first.");
+  }
+
+  try {
+    const page = globalClient.getCurrentPage();
+    if (!page) {
+      throw new Error("No active page");
+    }
+
+    await page.waitForSelector(selector, { state, timeout });
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: true,
+              selector,
+              state,
+              message: `Element is now ${state}`,
+              timestamp: Date.now(),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  } catch (error) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              success: false,
+              selector,
+              state,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            null,
+            2
+          ),
+        },
+      ],
+    };
+  }
 }

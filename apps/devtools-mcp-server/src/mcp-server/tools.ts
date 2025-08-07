@@ -1,72 +1,61 @@
 // ============================================================================
-// CHROME DEVTOOLS MCP SERVER - Tools
+// DEVTOOLS MCP SERVER - Tools
 // ============================================================================
 
 import { DevToolsInputSchemas } from "@mcp/schemas";
-import {
-  createGenericToolHandlers,
-  getGenericAvailableTools,
-  ToolDefinition,
-} from "@mcp/utils";
-import type { ChromeDevToolsClient } from "./chrome-client.js";
+import { ToolHandler } from "@mcp/server-core";
+import { getGenericAvailableTools, ToolDefinition } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
 // ============================================================================
-// CHROME DEVTOOLS MCP SERVER - Tool Definitions
+// DEVTOOLS MCP SERVER - Tool Definitions
 // ============================================================================
 
-const chromeToolDefinitions: Record<
-  string,
-  ToolDefinition<ChromeDevToolsClient>
-> = {
-  // Chrome Management Tools
-  chrome_start: {
-    handler: handlers.handleStartChrome,
+const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
+  // Browser Management
+  browser_start: {
+    handler: handlers.handleStartBrowser,
     metadata: {
-      name: "chrome_start",
-      description: "Start Chrome browser with debugging enabled",
-      inputSchema: DevToolsInputSchemas.startChrome,
-    },
-  },
-  chrome_connect: {
-    handler: handlers.handleConnectToBrowser,
-    metadata: {
-      name: "chrome_connect",
-      description: "Connect to existing Chrome instance",
-      inputSchema: DevToolsInputSchemas.connectToBrowser,
-    },
-  },
-  chrome_connect_existing: {
-    handler: handlers.handleConnectToExistingBrowser,
-    metadata: {
-      name: "chrome_connect_existing",
+      name: "browser_start",
       description:
-        "Connect to existing browser instance (Chrome/Chromium) and find active tab",
-      inputSchema: DevToolsInputSchemas.connectToBrowser,
+        "Start browser (Chromium/Firefox/WebKit) with debugging enabled",
+      inputSchema: DevToolsInputSchemas.startChrome, // Reuse existing schema
     },
   },
-  chrome_navigate: {
+
+  browser_navigate: {
     handler: handlers.handleNavigateToUrl,
     metadata: {
-      name: "chrome_navigate",
-      description: "Navigate to a URL",
+      name: "browser_navigate",
+      description: "Navigate browser to a specific URL",
       inputSchema: DevToolsInputSchemas.navigateToUrl,
     },
   },
-  chrome_status: {
+
+  browser_status: {
     handler: handlers.handleGetBrowserStatus,
     metadata: {
-      name: "chrome_status",
-      description: "Get browser connection status",
+      name: "browser_status",
+      description: "Get current browser connection status and information",
       inputSchema: DevToolsInputSchemas.getBrowserStatus,
     },
   },
-  chrome_close: {
+
+  browser_close: {
     handler: handlers.handleCloseBrowser,
     metadata: {
-      name: "chrome_close",
-      description: "Close Chrome browser",
+      name: "browser_close",
+      description: "Close browser and cleanup resources",
       inputSchema: DevToolsInputSchemas.closeBrowser,
+    },
+  },
+
+  browser_screenshot: {
+    handler: handlers.handleTakeScreenshot,
+    metadata: {
+      name: "browser_screenshot",
+      description: "Take screenshot of current page",
+      inputSchema: DevToolsInputSchemas.getPageScreenshot,
     },
   },
 
@@ -75,24 +64,17 @@ const chromeToolDefinitions: Record<
     handler: handlers.handleGetConsoleLogs,
     metadata: {
       name: "console_logs",
-      description: "Get JavaScript console logs",
+      description: "Get browser console logs with filtering options",
       inputSchema: DevToolsInputSchemas.getConsoleLogs,
     },
   },
+
   console_execute: {
     handler: handlers.handleExecuteJavaScript,
     metadata: {
       name: "console_execute",
-      description: "Execute JavaScript code in browser",
+      description: "Execute JavaScript code in the browser context",
       inputSchema: DevToolsInputSchemas.executeJavaScript,
-    },
-  },
-  console_clear: {
-    handler: handlers.handleClearConsole,
-    metadata: {
-      name: "console_clear",
-      description: "Clear browser console",
-      inputSchema: DevToolsInputSchemas.clearConsole,
     },
   },
 
@@ -101,33 +83,27 @@ const chromeToolDefinitions: Record<
     handler: handlers.handleGetNetworkRequests,
     metadata: {
       name: "network_requests",
-      description: "Get network requests",
+      description: "Get network requests with filtering and pagination",
       inputSchema: DevToolsInputSchemas.getNetworkRequests,
     },
   },
-  network_set_domain_filter: {
-    handler: handlers.handleSetNetworkDomainFilter,
-    metadata: {
-      name: "network_set_domain_filter",
-      description:
-        "Set a domain to filter network requests by. Clears filter if no domain is provided.",
-      inputSchema: DevToolsInputSchemas.setNetworkDomainFilter,
-    },
-  },
-  network_clear_domain_filter: {
-    handler: handlers.handleClearNetworkDomainFilter,
-    metadata: {
-      name: "network_clear_domain_filter",
-      description: "Clear the network domain filter.",
-      inputSchema: DevToolsInputSchemas.clearNetworkDomainFilter,
-    },
-  },
+
   network_response: {
-    handler: handlers.handleGetNetworkResponse,
+    handler: handlers.handleGetNetworkResponses,
     metadata: {
       name: "network_response",
       description: "Get network response details",
       inputSchema: DevToolsInputSchemas.getNetworkResponse,
+    },
+  },
+
+  // DOM Interaction Tools
+  dom_click: {
+    handler: handlers.handleClickElement,
+    metadata: {
+      name: "dom_click",
+      description: "Click on page element using node ID",
+      inputSchema: DevToolsInputSchemas.clickElement,
     },
   },
 };
@@ -136,12 +112,20 @@ const chromeToolDefinitions: Record<
 // EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
 // ============================================================================
 
-export const createToolHandlers = (chromeClient?: ChromeDevToolsClient) => {
-  if (!chromeClient) {
-    throw new Error("ChromeDevToolsClient is required for devtools server");
-  }
-  return createGenericToolHandlers(chromeToolDefinitions, chromeClient);
-};
+export function createToolHandlers(): Record<string, ToolHandler> {
+  return {
+    browser_start: handlers.handleStartBrowser,
+    browser_navigate: handlers.handleNavigateToUrl,
+    browser_status: handlers.handleGetBrowserStatus,
+    browser_close: handlers.handleCloseBrowser,
+    browser_screenshot: handlers.handleTakeScreenshot,
+    console_logs: handlers.handleGetConsoleLogs,
+    console_execute: handlers.handleExecuteJavaScript,
+    network_requests: handlers.handleGetNetworkRequests,
+    network_response: handlers.handleGetNetworkResponses,
+    dom_click: handlers.handleClickElement,
+  };
+}
 
 export const getAvailableTools = () =>
-  getGenericAvailableTools(chromeToolDefinitions);
+  getGenericAvailableTools(devtoolsToolDefinitions);
