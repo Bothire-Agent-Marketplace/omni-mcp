@@ -3,12 +3,12 @@
  * Simpler, more reliable, and more powerful than CDP approach
  */
 
-import { PlaywrightClient } from "./client.js";
 import { z } from "zod";
+import { PlaywrightClient } from "./client.js";
 
 // Input schemas (reusing your existing patterns)
 const NavigateSchema = z.object({
-  url: z.string().url(),
+  url: z.url(),
   waitUntil: z.enum(["domcontentloaded", "load", "networkidle"]).optional(),
   timeout: z.number().optional(),
 });
@@ -42,10 +42,6 @@ const NetworkFilterSchema = z.object({
 const ConsoleFilterSchema = z.object({
   level: z.enum(["log", "error", "warn", "info", "debug", "trace"]).optional(),
   limit: z.number().min(1).max(1000).optional().default(50),
-});
-
-const BlockResourcesSchema = z.object({
-  types: z.array(z.string()).optional().default(["image", "font", "media"]),
 });
 
 // Global client instance (you might want to make this more sophisticated)
@@ -439,150 +435,9 @@ export async function handleGetConsoleLogs(params: unknown = {}) {
 }
 
 /**
- * Get performance metrics (comprehensive and reliable)
- */
-export async function handleGetPerformanceMetrics(params: unknown = {}) {
-  if (!globalClient || !globalClient.isConnected()) {
-    throw new Error("Browser not connected. Call start_browser first.");
-  }
-
-  try {
-    const metrics = await globalClient.getPerformanceMetrics();
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              metrics,
-              timestamp: Date.now(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Block resources for faster page loads
- */
-export async function handleBlockResources(params: unknown = {}) {
-  const { types } = BlockResourcesSchema.parse(params);
-
-  if (!globalClient || !globalClient.isConnected()) {
-    throw new Error("Browser not connected. Call start_browser first.");
-  }
-
-  try {
-    await globalClient.blockResources(types);
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              blockedTypes: types,
-              message: `Blocking ${types.length} resource types for faster page loads`,
-              timestamp: Date.now(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Clear all monitoring data
- */
-export async function handleClearData(params: unknown = {}) {
-  if (!globalClient || !globalClient.isConnected()) {
-    throw new Error("Browser not connected. Call start_browser first.");
-  }
-
-  try {
-    globalClient.clearData();
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              message: "All monitoring data cleared",
-              timestamp: Date.now(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: false,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-}
-
-/**
  * Get browser status
  */
-export async function handleGetBrowserStatus(params: unknown = {}) {
+export async function handleGetBrowserStatus(_params: unknown = {}) {
   try {
     const connected = globalClient?.isConnected() ?? false;
 
@@ -625,7 +480,7 @@ export async function handleGetBrowserStatus(params: unknown = {}) {
 /**
  * Close browser
  */
-export async function handleCloseBrowser(params: unknown = {}) {
+export async function handleCloseBrowser(_params: unknown = {}) {
   try {
     if (globalClient) {
       await globalClient.close();
@@ -716,135 +571,6 @@ export async function handleClickElement(params: unknown) {
             {
               success: false,
               selector,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Advanced: Fill text input (using Playwright's reliable text input)
- */
-export async function handleFillText(params: unknown) {
-  const { selector, text, timeout } = z
-    .object({
-      selector: z.string(),
-      text: z.string(),
-      timeout: z.number().optional().default(30000),
-    })
-    .parse(params);
-
-  if (!globalClient || !globalClient.isConnected()) {
-    throw new Error("Browser not connected. Call start_browser first.");
-  }
-
-  try {
-    const page = globalClient.getCurrentPage();
-    if (!page) {
-      throw new Error("No active page");
-    }
-
-    await page.fill(selector, text, { timeout });
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              selector,
-              text,
-              message: "Text filled successfully",
-              timestamp: Date.now(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: false,
-              selector,
-              text,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  }
-}
-
-/**
- * Advanced: Wait for element (using Playwright's superior waiting)
- */
-export async function handleWaitForElement(params: unknown) {
-  const { selector, timeout, state } = z
-    .object({
-      selector: z.string(),
-      timeout: z.number().optional().default(30000),
-      state: z
-        .enum(["visible", "hidden", "attached", "detached"])
-        .optional()
-        .default("visible"),
-    })
-    .parse(params);
-
-  if (!globalClient || !globalClient.isConnected()) {
-    throw new Error("Browser not connected. Call start_browser first.");
-  }
-
-  try {
-    const page = globalClient.getCurrentPage();
-    if (!page) {
-      throw new Error("No active page");
-    }
-
-    await page.waitForSelector(selector, { state, timeout });
-
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: true,
-              selector,
-              state,
-              message: `Element is now ${state}`,
-              timestamp: Date.now(),
-            },
-            null,
-            2
-          ),
-        },
-      ],
-    };
-  } catch (error) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify(
-            {
-              success: false,
-              selector,
-              state,
               error: error instanceof Error ? error.message : String(error),
             },
             null,
