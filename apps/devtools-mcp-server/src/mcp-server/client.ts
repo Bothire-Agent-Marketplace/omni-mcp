@@ -3,6 +3,7 @@
  * Replaces ChromeDevToolsClient with a simpler, more reliable approach
  */
 
+import { EventEmitter } from "events";
 import {
   chromium,
   firefox,
@@ -11,7 +12,6 @@ import {
   BrowserContext,
   Page,
 } from "playwright";
-import { EventEmitter } from "events";
 
 interface BrowserOptions {
   browserType?: "chromium" | "firefox" | "webkit";
@@ -107,7 +107,7 @@ export class PlaywrightClient extends EventEmitter {
       });
 
       // Create context with enhanced capabilities
-      const contextOptions: any = {
+      const contextOptions = {
         viewport: this.options.viewport,
         userAgent: this.options.userAgent,
         ignoreHTTPSErrors: true,
@@ -316,7 +316,7 @@ export class PlaywrightClient extends EventEmitter {
   /**
    * Execute JavaScript with enhanced error handling
    */
-  async executeJavaScript(code: string): Promise<any> {
+  async executeJavaScript(code: string): Promise<unknown> {
     if (!this.page) {
       throw new Error("Browser not started. Call start() first.");
     }
@@ -356,7 +356,7 @@ export class PlaywrightClient extends EventEmitter {
   /**
    * Get current page's performance metrics
    */
-  async getPerformanceMetrics(): Promise<Record<string, any>> {
+  async getPerformanceMetrics(): Promise<Record<string, unknown>> {
     if (!this.page) {
       throw new Error("Browser not started. Call start() first.");
     }
@@ -384,11 +384,29 @@ export class PlaywrightClient extends EventEmitter {
         totalResources: performance.getEntriesByType("resource").length,
 
         // Memory (if available)
-        memoryUsage: (performance as any).memory
+        memoryUsage: (
+          performance as unknown as {
+            memory?: {
+              usedJSHeapSize: number;
+              totalJSHeapSize: number;
+              jsHeapSizeLimit: number;
+            };
+          }
+        ).memory
           ? {
-              used: (performance as any).memory.usedJSHeapSize,
-              total: (performance as any).memory.totalJSHeapSize,
-              limit: (performance as any).memory.jsHeapSizeLimit,
+              used: (
+                performance as unknown as { memory: { usedJSHeapSize: number } }
+              ).memory.usedJSHeapSize,
+              total: (
+                performance as unknown as {
+                  memory: { totalJSHeapSize: number };
+                }
+              ).memory.totalJSHeapSize,
+              limit: (
+                performance as unknown as {
+                  memory: { jsHeapSizeLimit: number };
+                }
+              ).memory.jsHeapSizeLimit,
             }
           : null,
       };
