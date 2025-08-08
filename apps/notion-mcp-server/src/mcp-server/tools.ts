@@ -45,6 +45,46 @@ const notionToolDefinitions: Record<
       inputSchema: NotionInputSchemas.createItem,
     },
   },
+  notion_create_database: {
+    handler: handlers.handleNotionCreateDatabase,
+    metadata: {
+      name: "notion_create_database",
+      description: "Create a Notion database under a page",
+      inputSchema: NotionInputSchemas.createDatabase,
+    },
+  },
+  notion_query_database: {
+    handler: handlers.handleNotionQueryDatabase,
+    metadata: {
+      name: "notion_query_database",
+      description: "Query a Notion database with sort/filter",
+      inputSchema: NotionInputSchemas.queryDatabase,
+    },
+  },
+  notion_create_page: {
+    handler: handlers.handleNotionCreatePage,
+    metadata: {
+      name: "notion_create_page",
+      description: "Create a page (row) in a Notion database",
+      inputSchema: NotionInputSchemas.createPage,
+    },
+  },
+  notion_update_page_relations: {
+    handler: handlers.handleNotionUpdatePageRelations,
+    metadata: {
+      name: "notion_update_page_relations",
+      description: "Update a page's relation property with linked page IDs",
+      inputSchema: NotionInputSchemas.updatePageRelations,
+    },
+  },
+  notion_search: {
+    handler: handlers.handleNotionSearch,
+    metadata: {
+      name: "notion_search",
+      description: "Search for pages or databases in Notion",
+      inputSchema: NotionInputSchemas.search,
+    },
+  },
 };
 
 // ============================================================================
