@@ -251,6 +251,7 @@ dev-servers.config.js
 # Service-specific environment files
 .env.gateway.local
 .env.linear.local
+.env.notion.local
 .env.devtools.local
 .env.perplexity.local
 .env.database.local
