@@ -2,6 +2,7 @@
 // NOTION MCP SERVER - Request Handlers
 // ============================================================================
 
+// NOTE: In apps, avoid runtime Zod; for now these are placeholders from scaffold.
 import {
   SearchNotionItemsRequestSchema,
   GetNotionItemRequestSchema,
@@ -130,7 +131,8 @@ export async function handleNotionCreateItem(
 // RESOURCE HANDLERS
 // ============================================================================
 
-export async function handleNotionItemsResource(
+// Placeholder exports to keep scaffolded shapes referenced; not wired into factory yet
+async function _handleNotionItemsResource(
   /* notionClient: NotionClient, */
   uri: string
 ) {
@@ -171,7 +173,7 @@ export async function handleNotionItemsResource(
   }
 }
 
-export async function handleNotionProjectsResource(
+async function _handleNotionProjectsResource(
   /* notionClient: NotionClient, */
   uri: string
 ) {
