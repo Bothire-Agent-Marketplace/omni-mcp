@@ -6,6 +6,11 @@ export class MCPClient {
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl.replace(/\/$/, ""); // Remove trailing slash
+    if (!process.env.MCP_DEV_API_KEY) {
+      console.warn(
+        "MCP_DEV_API_KEY not set; defaulting to dev-api-key-12345 for local dev"
+      );
+    }
   }
 
   private generateId(): number {
@@ -35,6 +40,7 @@ export class MCPClient {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-api-key": process.env.MCP_DEV_API_KEY || "dev-api-key-12345",
       },
       body: JSON.stringify(request),
     });
