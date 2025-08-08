@@ -1,4 +1,5 @@
 import { LinearClient } from "@linear/sdk";
+import { formatIssueWithRelations, parseLinearSearchParams } from "./utils.js";
 
 // Linear SDK Filter Types based on GraphQL API patterns
 type FilterOperand<T> = { eq?: T; in?: T[] };
@@ -30,53 +31,28 @@ export async function handleLinearSearchIssues(
   linearClient: LinearClient,
   params: unknown
 ) {
-  const p = (params as Record<string, unknown>) || {};
-  const query = typeof p.query === "string" ? p.query : undefined;
-  const teamId = typeof p.teamId === "string" ? p.teamId : undefined;
-  const teamIds = Array.isArray(p.teamIds)
-    ? (p.teamIds as string[])
-    : undefined;
-  const stateId = typeof p.stateId === "string" ? p.stateId : undefined;
-  const stateIds = Array.isArray(p.stateIds)
-    ? (p.stateIds as string[])
-    : undefined;
-  const status = typeof p.status === "string" ? p.status : undefined;
-  const assigneeId =
-    typeof p.assigneeId === "string" ? p.assigneeId : undefined;
-  const assigneeIds = Array.isArray(p.assigneeIds)
-    ? (p.assigneeIds as string[])
-    : undefined;
-  const labelIds = Array.isArray(p.labelIds)
-    ? (p.labelIds as string[])
-    : undefined;
-  const projectId = typeof p.projectId === "string" ? p.projectId : undefined;
-  const cycleId = typeof p.cycleId === "string" ? p.cycleId : undefined;
-  const includeArchived = p.includeArchived === true;
-  const priority =
-    typeof p.priority === "number" ? (p.priority as number) : undefined;
-  const createdAtFrom =
-    typeof p.createdAtFrom === "string"
-      ? (p.createdAtFrom as string)
-      : undefined;
-  const createdAtTo =
-    typeof p.createdAtTo === "string" ? (p.createdAtTo as string) : undefined;
-  const updatedAtFrom =
-    typeof p.updatedAtFrom === "string"
-      ? (p.updatedAtFrom as string)
-      : undefined;
-  const updatedAtTo =
-    typeof p.updatedAtTo === "string" ? (p.updatedAtTo as string) : undefined;
-  const limit = Math.min(Math.max(Number(p.limit ?? 25), 1), 50);
-  const cursor =
-    typeof p.cursor === "string" ? (p.cursor as string) : undefined;
-  const _sortBy =
-    p.sortBy === "created" || p.sortBy === "updated" || p.sortBy === "priority"
-      ? (p.sortBy as "created" | "updated" | "priority")
-      : "updated";
-  const _sortOrder =
-    p.sortOrder === "asc" || p.sortOrder === "desc"
-      ? (p.sortOrder as "asc" | "desc")
-      : "desc";
+  const parsed = parseLinearSearchParams(params);
+  const {
+    query,
+    teamId,
+    teamIds,
+    stateId,
+    stateIds,
+    status,
+    assigneeId,
+    assigneeIds,
+    labelIds,
+    projectId,
+    cycleId,
+    includeArchived,
+    priority,
+    createdAtFrom,
+    createdAtTo,
+    updatedAtFrom,
+    updatedAtTo,
+    limit,
+    cursor,
+  } = parsed;
 
   const filter: LinearIssueFilter = {};
   if (teamId) filter.team = { id: { eq: teamId } };
@@ -130,20 +106,7 @@ export async function handleLinearSearchIssues(
   });
 
   const formattedIssues = await Promise.all(
-    issues.nodes.map(async (issue) => ({
-      id: issue.id,
-      identifier: issue.identifier,
-      title: issue.title,
-      priority: issue.priority,
-      state: (await issue.state)?.name,
-      team: (await issue.team)?.name,
-      project: (await issue.project)?.name,
-      cycle: (await issue.cycle)?.name,
-      assignee: (await issue.assignee)?.name,
-      updatedAt: issue.updatedAt,
-      createdAt: issue.createdAt,
-      url: issue.url,
-    }))
+    issues.nodes.map((issue) => formatIssueWithRelations(issue))
   );
 
   return {
@@ -333,25 +296,7 @@ export async function handleLinearGetIssue(
     throw new Error(`Issue not found: ${issueId || identifier}`);
   }
 
-  const [state, assignee, team, project] = await Promise.all([
-    issue.state,
-    issue.assignee,
-    issue.team,
-    issue.project,
-  ]);
-
-  const formattedIssue = {
-    id: issue.id,
-    identifier: issue.identifier,
-    title: issue.title,
-    description: issue.description,
-    priority: issue.priority,
-    state: state?.name,
-    assignee: assignee?.name,
-    team: team?.name,
-    project: project?.name,
-    url: issue.url,
-  };
+  const formattedIssue = await formatIssueWithRelations(issue);
 
   return {
     content: [
