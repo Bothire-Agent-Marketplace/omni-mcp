@@ -24,7 +24,9 @@
     "PERPLEXITY_API_KEY",
     "PERPLEXITY_SERVER_URL",
     "DEVTOOLS_API_KEY",
-    "DEVTOOLS_SERVER_URL"
+    "DEVTOOLS_SERVER_URL",
+    "NOTION_API_KEY",
+    "NOTION_SERVER_URL"
   ],
   "tasks": {
     "build": {
