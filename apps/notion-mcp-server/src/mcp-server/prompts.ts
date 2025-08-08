@@ -71,7 +71,7 @@ What notion process would you like to automate?`,
 // NOTION MCP SERVER - Prompt Definitions
 // ============================================================================
 
-const notionPromptDefinitions: Record<string, PromptDefinition> = {
+const _notionPromptDefinitions: Record<string, PromptDefinition> = {
   notion_workflow: {
     handler: async (args) => notionWorkflowPrompt(args),
     metadata: {
@@ -92,8 +92,8 @@ const notionPromptDefinitions: Record<string, PromptDefinition> = {
 // EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
 // ============================================================================
 
-export const createPromptHandlers = () =>
-  createGenericPromptHandlers(notionPromptDefinitions);
+const _createPromptHandlers = () =>
+  createGenericPromptHandlers(_notionPromptDefinitions);
 
-export const getAvailablePrompts = () =>
-  getGenericAvailablePrompts(notionPromptDefinitions);
+const _getAvailablePrompts = () =>
+  getGenericAvailablePrompts(_notionPromptDefinitions);
