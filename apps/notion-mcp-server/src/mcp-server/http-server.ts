@@ -7,7 +7,13 @@ import { createToolHandlers, getAvailableTools } from "./tools.js";
 
 export async function createNotionHttpServer(
   config: NotionServerConfig
-): Promise<unknown> {
+): Promise<
+  ReturnType<
+    typeof import("@mcp/server-core").createMcpServerWithoutClient
+  > extends Promise<infer T>
+    ? T
+    : never
+> {
   return await createMcpServerWithoutClient({
     serverName: "notion",
     serverKey: "notion",
