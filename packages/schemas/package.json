@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@mcp/database": "workspace:*",
-    "zod": "^4.0.5"
+    "zod": "^4.0.5",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "typescript": "^5.8.3"

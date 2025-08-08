@@ -3,12 +3,7 @@
 // ============================================================================
 
 import { perplexityServerConfig } from "../config/config.js";
-import {
-  PerplexitySearchSchema,
-  ResearchInputSchema,
-  CompareInputSchema,
-  SummarizeInputSchema,
-} from "../schemas/domain-schemas.js";
+// Using protocol input schemas only; remove runtime Zod
 import {
   PerplexityRequest,
   PerplexityResponse,
@@ -50,18 +45,27 @@ export async function handlePerplexitySearch(
   client: unknown,
   params: unknown
 ): Promise<{ content: Array<{ type: "text"; text: string }> }> {
-  // Validate and parse input with Zod
-  const validatedParams = PerplexitySearchSchema.parse(params);
-  const {
-    query,
-    model,
-    max_tokens,
-    temperature,
-    search_recency_filter,
-    return_images,
-    return_related_questions,
-    search_domain_filter,
-  } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const query = String(p.query || "");
+  const model = typeof p.model === "string" ? (p.model as string) : undefined;
+  const max_tokens = Number.isFinite(p.max_tokens as number)
+    ? (p.max_tokens as number)
+    : undefined;
+  const temperature = Number.isFinite(p.temperature as number)
+    ? (p.temperature as number)
+    : undefined;
+  const search_recency_filter =
+    p.search_recency_filter === "month" ||
+    p.search_recency_filter === "week" ||
+    p.search_recency_filter === "day" ||
+    p.search_recency_filter === "hour"
+      ? (p.search_recency_filter as "month" | "week" | "day" | "hour")
+      : undefined;
+  const return_images = p.return_images === true;
+  const return_related_questions = p.return_related_questions === true;
+  const search_domain_filter = Array.isArray(p.search_domain_filter)
+    ? (p.search_domain_filter as string[])
+    : undefined;
 
   const messages: PerplexityMessage[] = [
     {
@@ -111,10 +115,25 @@ export async function handlePerplexityResearch(
   client: unknown,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = ResearchInputSchema.parse(params);
-  const { topic, depth, focus_areas, exclude_domains, recency } =
-    validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const topic = String(p.topic || "");
+  const depth =
+    p.depth === "basic" || p.depth === "detailed" || p.depth === "comprehensive"
+      ? (p.depth as string)
+      : "basic";
+  const focus_areas = Array.isArray(p.focus_areas)
+    ? (p.focus_areas as string[])
+    : undefined;
+  const exclude_domains = Array.isArray(p.exclude_domains)
+    ? (p.exclude_domains as string[])
+    : undefined;
+  const recency =
+    p.recency === "month" ||
+    p.recency === "week" ||
+    p.recency === "day" ||
+    p.recency === "hour"
+      ? (p.recency as string)
+      : "month";
 
   const queries = generateResearchQueries(topic, depth, focus_areas);
   const results: SearchResult[] = [];
@@ -145,9 +164,15 @@ export async function handlePerplexityCompare(
   client: unknown,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = CompareInputSchema.parse(params);
-  const { items, criteria, format } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const items = Array.isArray(p.items) ? (p.items as string[]) : [];
+  const criteria = Array.isArray(p.criteria)
+    ? (p.criteria as string[])
+    : undefined;
+  const format =
+    p.format === "table" || p.format === "prose" || p.format === "list"
+      ? (p.format as string)
+      : "prose";
 
   const comparisonQuery = buildComparisonQuery(items, criteria, format);
   const result = await handlePerplexitySearch(client, {
@@ -169,9 +194,18 @@ export async function handlePerplexitySummarize(
   client: unknown,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = SummarizeInputSchema.parse(params);
-  const { content, length, format } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const content = String(p.content || "");
+  const length =
+    p.length === "brief" || p.length === "medium" || p.length === "detailed"
+      ? (p.length as "brief" | "medium" | "detailed")
+      : ("medium" as const);
+  const format =
+    p.format === "bullets" ||
+    p.format === "paragraphs" ||
+    p.format === "outline"
+      ? (p.format as "bullets" | "paragraphs" | "outline")
+      : ("paragraphs" as const);
 
   const summaryPrompt = buildSummaryPrompt(content, length, format);
   const result = await handlePerplexitySearch(client, {

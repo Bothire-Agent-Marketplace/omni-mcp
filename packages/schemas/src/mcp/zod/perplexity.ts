@@ -5,14 +5,8 @@ export const PerplexitySearchSchema = z.object({
   model: z.enum(["sonar", "sonar-pro", "sonar-reasoning-pro"]).optional(),
   max_tokens: z.number().min(1).max(8000).optional(),
   temperature: z.number().min(0).max(2).optional(),
-  max_results: z.number().min(1).max(10).optional().default(5),
-  search_focus: z
-    .enum(["internet", "scholar", "writing", "wolfram", "youtube", "reddit"])
-    .optional()
-    .default("internet"),
   search_recency_filter: z.enum(["month", "week", "day", "hour"]).optional(),
   return_images: z.boolean().optional(),
-  return_related_questions: z.boolean().optional(),
   search_domain_filter: z.array(z.string()).optional(),
 });
 

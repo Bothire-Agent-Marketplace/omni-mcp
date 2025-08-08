@@ -1,18 +1,19 @@
 import { LinearClient } from "@linear/sdk";
-import {
-  SearchIssuesInputSchema,
-  GetTeamsInputSchema,
-  GetUsersInputSchema,
-  GetProjectsInputSchema,
-  GetIssueInputSchema,
-} from "../schemas/domain-schemas.js";
 
 // Linear SDK Filter Types based on GraphQL API patterns
+type FilterOperand<T> = { eq?: T; in?: T[] };
 interface LinearIssueFilter {
-  team?: { id: { eq: string } };
-  state?: { name: { eq: string } };
-  assignee?: { id: { eq: string } };
-  priority?: { eq: number };
+  team?: { id?: FilterOperand<string> };
+  teams?: { id?: { in: string[] } };
+  state?: { id?: FilterOperand<string>; name?: FilterOperand<string> };
+  assignee?: { id?: FilterOperand<string> };
+  labels?: { some?: { id?: { in: string[] } } };
+  project?: { id?: FilterOperand<string> };
+  cycle?: { id?: FilterOperand<string> };
+  archivedAt?: { null?: boolean };
+  priority?: { eq?: number };
+  createdAt?: { gte?: string; lte?: string };
+  updatedAt?: { gte?: string; lte?: string };
 }
 
 interface LinearUserFilter {
@@ -29,19 +30,103 @@ export async function handleLinearSearchIssues(
   linearClient: LinearClient,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = SearchIssuesInputSchema.parse(params);
-  const { teamId, status, assigneeId, priority, limit } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const query = typeof p.query === "string" ? p.query : undefined;
+  const teamId = typeof p.teamId === "string" ? p.teamId : undefined;
+  const teamIds = Array.isArray(p.teamIds)
+    ? (p.teamIds as string[])
+    : undefined;
+  const stateId = typeof p.stateId === "string" ? p.stateId : undefined;
+  const stateIds = Array.isArray(p.stateIds)
+    ? (p.stateIds as string[])
+    : undefined;
+  const status = typeof p.status === "string" ? p.status : undefined;
+  const assigneeId =
+    typeof p.assigneeId === "string" ? p.assigneeId : undefined;
+  const assigneeIds = Array.isArray(p.assigneeIds)
+    ? (p.assigneeIds as string[])
+    : undefined;
+  const labelIds = Array.isArray(p.labelIds)
+    ? (p.labelIds as string[])
+    : undefined;
+  const projectId = typeof p.projectId === "string" ? p.projectId : undefined;
+  const cycleId = typeof p.cycleId === "string" ? p.cycleId : undefined;
+  const includeArchived = p.includeArchived === true;
+  const priority =
+    typeof p.priority === "number" ? (p.priority as number) : undefined;
+  const createdAtFrom =
+    typeof p.createdAtFrom === "string"
+      ? (p.createdAtFrom as string)
+      : undefined;
+  const createdAtTo =
+    typeof p.createdAtTo === "string" ? (p.createdAtTo as string) : undefined;
+  const updatedAtFrom =
+    typeof p.updatedAtFrom === "string"
+      ? (p.updatedAtFrom as string)
+      : undefined;
+  const updatedAtTo =
+    typeof p.updatedAtTo === "string" ? (p.updatedAtTo as string) : undefined;
+  const limit = Math.min(Math.max(Number(p.limit ?? 25), 1), 50);
+  const cursor =
+    typeof p.cursor === "string" ? (p.cursor as string) : undefined;
+  const _sortBy =
+    p.sortBy === "created" || p.sortBy === "updated" || p.sortBy === "priority"
+      ? (p.sortBy as "created" | "updated" | "priority")
+      : "updated";
+  const _sortOrder =
+    p.sortOrder === "asc" || p.sortOrder === "desc"
+      ? (p.sortOrder as "asc" | "desc")
+      : "desc";
 
   const filter: LinearIssueFilter = {};
   if (teamId) filter.team = { id: { eq: teamId } };
-  if (status) filter.state = { name: { eq: status } };
-  if (assigneeId) filter.assignee = { id: { eq: assigneeId } };
+  if (teamIds && teamIds.length > 0) filter.teams = { id: { in: teamIds } };
+
+  if (stateId) filter.state = { ...(filter.state || {}), id: { eq: stateId } };
+  if (stateIds && stateIds.length > 0)
+    filter.state = { ...(filter.state || {}), id: { in: stateIds } };
+  if (status) filter.state = { ...(filter.state || {}), name: { eq: status } };
+
+  if (assigneeId)
+    filter.assignee = { ...(filter.assignee || {}), id: { eq: assigneeId } };
+  if (assigneeIds && assigneeIds.length > 0)
+    filter.assignee = { ...(filter.assignee || {}), id: { in: assigneeIds } };
+
+  if (labelIds && labelIds.length > 0)
+    filter.labels = { some: { id: { in: labelIds } } };
+  if (projectId) filter.project = { id: { eq: projectId } };
+  if (cycleId) filter.cycle = { id: { eq: cycleId } };
+
+  if (!includeArchived) filter.archivedAt = { null: true };
   if (priority !== undefined) filter.priority = { eq: priority };
 
+  if (createdAtFrom || createdAtTo) {
+    filter.createdAt = {
+      ...(createdAtFrom ? { gte: createdAtFrom } : {}),
+      ...(createdAtTo ? { lte: createdAtTo } : {}),
+    };
+  }
+  if (updatedAtFrom || updatedAtTo) {
+    filter.updatedAt = {
+      ...(updatedAtFrom ? { gte: updatedAtFrom } : {}),
+      ...(updatedAtTo ? { lte: updatedAtTo } : {}),
+    };
+  }
+
+  // Identifier detection: ENG-123 style, or numeric number
+  const identifierMatch = query?.match(/^[A-Za-z]+-\d+$/);
+  const numberMatch = query?.match(/^\d+$/);
+
+  // Execute query with optional cursor and full-text fallback
   const issues = await linearClient.issues({
     filter,
     first: Math.min(limit, 50),
+    ...(cursor ? { after: cursor } : {}),
+    ...(identifierMatch || numberMatch
+      ? { query } // Linear supports identifier/number in query for exact match
+      : query
+        ? { query } // free-text
+        : {}),
   });
 
   const formattedIssues = await Promise.all(
@@ -52,6 +137,11 @@ export async function handleLinearSearchIssues(
       priority: issue.priority,
       state: (await issue.state)?.name,
       team: (await issue.team)?.name,
+      project: (await issue.project)?.name,
+      cycle: (await issue.cycle)?.name,
+      assignee: (await issue.assignee)?.name,
+      updatedAt: issue.updatedAt,
+      createdAt: issue.createdAt,
       url: issue.url,
     }))
   );
@@ -61,7 +151,14 @@ export async function handleLinearSearchIssues(
       {
         type: "text" as const,
         text: JSON.stringify(
-          { issues: formattedIssues, count: formattedIssues.length },
+          {
+            issues: formattedIssues,
+            count: formattedIssues.length,
+            pageInfo: {
+              hasNextPage: issues.pageInfo.hasNextPage,
+              endCursor: issues.pageInfo.endCursor,
+            },
+          },
           null,
           2
         ),
@@ -78,9 +175,9 @@ export async function handleLinearGetTeams(
   linearClient: LinearClient,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = GetTeamsInputSchema.parse(params);
-  const { includeArchived, limit } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const includeArchived = p.includeArchived === true;
+  const limit = Math.min(Math.max(Number(p.limit ?? 20), 1), 100);
 
   const teams = await linearClient.teams({
     includeArchived,
@@ -116,9 +213,9 @@ export async function handleLinearGetUsers(
   linearClient: LinearClient,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = GetUsersInputSchema.parse(params);
-  const { includeDisabled, limit } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const includeDisabled = p.includeDisabled === true;
+  const limit = Math.min(Math.max(Number(p.limit ?? 20), 1), 100);
 
   const filter: LinearUserFilter = {};
   if (!includeDisabled) {
@@ -160,9 +257,10 @@ export async function handleLinearGetProjects(
   linearClient: LinearClient,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = GetProjectsInputSchema.parse(params);
-  const { teamId, includeArchived, limit } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const teamId = typeof p.teamId === "string" ? p.teamId : undefined;
+  const includeArchived = p.includeArchived === true;
+  const limit = Math.min(Math.max(Number(p.limit ?? 20), 1), 50);
 
   const filter: Record<string, unknown> = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
@@ -205,9 +303,11 @@ export async function handleLinearGetIssue(
   linearClient: LinearClient,
   params: unknown
 ) {
-  // Validate and parse input with Zod
-  const validatedParams = GetIssueInputSchema.parse(params);
-  const { issueId, identifier } = validatedParams;
+  const p = (params as Record<string, unknown>) || {};
+  const issueId =
+    typeof p.issueId === "string" ? (p.issueId as string) : undefined;
+  const identifier =
+    typeof p.identifier === "string" ? (p.identifier as string) : undefined;
 
   let issue;
 
