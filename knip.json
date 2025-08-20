@@ -21,6 +21,7 @@
     "apps/mcp-admin": {
       "ignore": ["src/components/ui/**", "src/hooks/**", "src/lib/utils.ts"],
       "ignoreDependencies": [
+        "@types/prismjs",
         "@hookform/resolvers",
         "@radix-ui/react-accordion",
         "@radix-ui/react-alert-dialog",

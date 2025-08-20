@@ -11,6 +11,7 @@ import {
   Browser,
   BrowserContext,
   Page,
+  type BrowserContextOptions,
 } from "playwright";
 
 interface BrowserOptions {
@@ -107,7 +108,7 @@ export class PlaywrightClient extends EventEmitter {
       });
 
       // Create context with enhanced capabilities
-      const contextOptions = {
+      const contextOptions: BrowserContextOptions = {
         viewport: this.options.viewport,
         userAgent: this.options.userAgent,
         ignoreHTTPSErrors: true,
