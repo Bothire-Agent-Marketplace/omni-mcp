@@ -12,6 +12,7 @@ export * from "./common.js";
 export * from "./linear.js";
 export * from "./perplexity.js";
 export * from "./devtools.js";
+export * from "./notion.js";
 
 // Zod-first: export helper to convert Zod to JSON schema for tools
 export { zodToJsonSchema } from "zod-to-json-schema";

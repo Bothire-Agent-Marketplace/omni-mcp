@@ -69,7 +69,8 @@ saying things in a structured way.
 
 ## File Structure Template
 
-When creating a new MCP server, follow this **consolidated factory pattern** structure:
+When creating a new MCP server, follow this **consolidated factory pattern** structure (no
+per-server schemas):
 
 ```
 apps/[domain]-mcp-server/
@@ -78,8 +79,6 @@ apps/[domain]-mcp-server/
 │   │   └── config.ts              # Server configuration
 │   ├── types/
 │   │   └── domain-types.ts        # Domain-specific TypeScript types (optional)
-│   ├── schemas/
-│   │   └── domain-schemas.ts      # Domain-specific Zod validation schemas (optional)
 │   ├── mcp-server/
 │   │   ├── handlers.ts            # Business logic handlers (optional)
 │   │   ├── http-server.ts         # HTTP server setup (using createMcpServer factory)
@@ -92,7 +91,11 @@ apps/[domain]-mcp-server/
 
 **Key Changes:**
 
-- **Simplified structure** - Many files are now optional due to factory pattern
+- **Centralized Schemas** - Input schemas live in `@mcp/schemas` only (Zod-first with JSON Schema
+  generation)
+- **No Per-Server Schemas** - Do not create `src/schemas/domain-schemas.ts` in apps; remove any
+  legacy copies
+- **Simplified structure** - Many files are optional due to factory pattern
 - **68% less boilerplate** - Factory handles database lookup, dynamic handlers, etc.
 - **Consistent patterns** - All servers use identical factory-based setup
 
@@ -283,17 +286,11 @@ export async function createGitHubHttpServer(config: GitHubServerConfig): Promis
 }
 ```
 
-#### 4. Update Validation Schemas (`src/schemas/domain-schemas.ts`)
+#### 4. Define/Update Schemas in `@mcp/schemas`
 
-Customize Zod schemas for your domain's validation needs:
-
-```typescript
-export const SearchReposRequestSchema = z.object({
-  query: z.string().describe("Search query for repositories"),
-  language: z.string().optional().describe("Filter by programming language"),
-  sort: z.enum(["stars", "forks", "updated"]).optional(),
-});
-```
+- Add or edit Zod schemas in `packages/schemas/src/mcp/zod/[domain].ts` (canonical source)
+- Export matching JSON input schemas in `packages/schemas/src/mcp/input-schemas/[domain].ts`
+- Never add runtime Zod schemas inside app servers
 
 ### Additional Commands
 
@@ -358,12 +355,21 @@ const githubPrompts = [
 packages/schemas/src/mcp/input-schemas/
 ├── types.ts           # ToolInputSchema interface
 ├── common.ts          # Reusable schema patterns
-├── linear.ts          # Linear-specific schemas
-├── github.ts          # GitHub-specific schemas (auto-generated)
-├── slack.ts           # Slack-specific schemas (future)
-├── notion.ts          # Notion-specific schemas (future)
+├── linear.ts          # Linear tool input schemas (JSON) ← generated from Zod
+├── perplexity.ts      # Perplexity tool input schemas (JSON)
+├── devtools.ts        # DevTools tool input schemas (JSON)
+├── notion.ts          # Notion tool input schemas (JSON)
 └── index.ts           # Exports everything (auto-updated)
 ```
+
+## Zod-first, JSON-schema at the edge
+
+- Canonical Zod schemas live in `packages/schemas/src/mcp/zod/*.ts`
+- Protocol-facing JSON schemas live in `packages/schemas/src/mcp/input-schemas/*.ts`
+- JSON schemas are produced from Zod (or authored explicitly) and exported to clients via the
+  gateway
+- App servers consume only the JSON input schemas from `@mcp/schemas` and should not import Zod
+  directly
 
 ### Benefits of Automated Scaffolding
 
@@ -397,7 +403,8 @@ packages/schemas/src/mcp/input-schemas/
 5. **Version Control**: Use database versioning for prompts/resources
 6. **Admin UI First**: Manage prompts/resources through the web interface
 7. **Minimal Code**: Keep server setup minimal - factory handles complexity
-8. **Centralized Schemas**: Use `@mcp/schemas` for input validation
+8. **Centralized Schemas**: Use `@mcp/schemas` exclusively for tool input schemas (Zod in `zod/`,
+   JSON in `input-schemas/`)
 9. **Tool Handlers Only**: Focus only on business logic - factory handles infrastructure
 
 ## Examples

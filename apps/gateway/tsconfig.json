@@ -3,9 +3,7 @@
   "compilerOptions": {
     "outDir": "./dist"
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*"],
   "references": [
     {
       "path": "../linear-mcp-server"
@@ -24,11 +22,10 @@
     },
     {
       "path": "../devtools-mcp-server"
+    },
+    {
+      "path": "../notion-mcp-server"
     }
   ],
-  "exclude": [
-    "dist",
-    "node_modules",
-    "**/*.test.ts"
-  ]
+  "exclude": ["dist", "node_modules", "**/*.test.ts"]
 }
