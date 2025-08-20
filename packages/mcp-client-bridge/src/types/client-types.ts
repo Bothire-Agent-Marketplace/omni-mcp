@@ -3,7 +3,7 @@ import { z } from "zod";
 /**
  * Supported MCP client types
  */
-export type MCPClientType = "cursor" | "claude-desktop";
+export type MCPClientType = "cursor" | "claude-desktop" | "lm-studio";
 
 /**
  * Environment configurations
@@ -125,7 +125,7 @@ export type ServerEndpoint = z.infer<typeof ServerEndpointSchema>;
  */
 export const ClientBridgeConfigSchema = z.object({
   servers: z.record(z.string(), ServerEndpointSchema),
-  clients: z.array(z.enum(["cursor", "claude-desktop"])),
+  clients: z.array(z.enum(["cursor", "claude-desktop", "lm-studio"])),
   environment: z
     .enum(["development", "staging", "production"])
     .default("development"),
