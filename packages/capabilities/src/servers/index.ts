@@ -8,4 +8,6 @@ export * from "./perplexity.js";
 
 export * from "./devtools.js";
 
+export * from "./notion.js";
+
 // TODO: Add exports for future servers
