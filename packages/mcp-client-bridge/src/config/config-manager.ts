@@ -1,5 +1,6 @@
 import { ClaudeDesktopClient } from "../clients/claude-desktop.js";
 import { CursorClient } from "../clients/cursor.js";
+import { LMStudioClient } from "../clients/lm-studio.js";
 import {
   ClientBridgeConfig,
   ServerEndpoint,
@@ -8,6 +9,7 @@ import {
   Environment,
   CursorMCPConfig,
   ClaudeDesktopMCPConfig,
+  BaseMCPClientConfig,
 } from "../types/client-types.js";
 
 // Default dev API key for local development
@@ -22,6 +24,7 @@ export class ConfigManager {
   private environment: Environment;
   private cursorClient: CursorClient;
   private claudeDesktopClient: ClaudeDesktopClient;
+  private lmStudioClient: LMStudioClient;
 
   constructor(config?: Partial<ClientBridgeConfig>) {
     this.environment = config?.environment || "development";
@@ -36,6 +39,7 @@ export class ConfigManager {
 
     this.cursorClient = new CursorClient(this.bridgeOptions);
     this.claudeDesktopClient = new ClaudeDesktopClient(this.bridgeOptions);
+    this.lmStudioClient = new LMStudioClient(this.bridgeOptions);
 
     // Load servers if provided
     if (config?.servers) {
@@ -77,9 +81,10 @@ export class ConfigManager {
   addServer(name: string, endpoint: ServerEndpoint): void {
     this.servers.set(name, endpoint);
 
-    // Add to both clients
+    // Add to clients
     this.cursorClient.addServer(name, endpoint);
     this.claudeDesktopClient.addServer(name, endpoint);
+    this.lmStudioClient.addServer(name, endpoint);
   }
 
   /**
@@ -88,20 +93,25 @@ export class ConfigManager {
   removeServer(name: string): void {
     this.servers.delete(name);
 
-    // Remove from both clients
+    // Remove from clients
     this.cursorClient.removeServer(name);
     this.claudeDesktopClient.removeServer(name);
+    this.lmStudioClient.removeServer(name);
   }
 
   /**
    * Get a specific client instance
    */
-  getClient(clientType: MCPClientType): CursorClient | ClaudeDesktopClient {
+  getClient(
+    clientType: MCPClientType
+  ): CursorClient | ClaudeDesktopClient | LMStudioClient {
     switch (clientType) {
       case "cursor":
         return this.cursorClient;
       case "claude-desktop":
         return this.claudeDesktopClient;
+      case "lm-studio":
+        return this.lmStudioClient;
       default:
         throw new Error(`Unsupported client type: ${clientType}`);
     }
@@ -111,19 +121,25 @@ export class ConfigManager {
    * Generate configurations for specified clients
    */
   async generateConfigs(
-    clientTypes: MCPClientType[] = ["cursor", "claude-desktop"]
+    clientTypes: MCPClientType[] = ["cursor", "claude-desktop", "lm-studio"]
   ): Promise<{
     cursor?: CursorMCPConfig;
     "claude-desktop"?: ClaudeDesktopMCPConfig;
+    "lm-studio"?: { mcpServers: Record<string, BaseMCPClientConfig> };
   }> {
     const configs: {
       cursor?: CursorMCPConfig;
       "claude-desktop"?: ClaudeDesktopMCPConfig;
+      "lm-studio"?: { mcpServers: Record<string, BaseMCPClientConfig> };
     } = {};
 
     for (const clientType of clientTypes) {
-      const client = this.getClient(clientType);
-      configs[clientType] = client.generateConfig();
+      const client = this.getClient(clientType) as unknown as {
+        generateConfig: () => unknown;
+      };
+      // index assignment is fine due to union return types above
+      (configs as Record<string, unknown>)[clientType] =
+        client.generateConfig();
     }
 
     return configs;
@@ -133,7 +149,7 @@ export class ConfigManager {
    * Save configurations for specified clients
    */
   async saveConfigs(
-    clientTypes: MCPClientType[] = ["cursor", "claude-desktop"],
+    clientTypes: MCPClientType[] = ["cursor", "claude-desktop", "lm-studio"],
     customPaths?: Partial<Record<MCPClientType, string>>
   ): Promise<void> {
     const results = await Promise.allSettled(
@@ -161,12 +177,14 @@ export class ConfigManager {
     const results = await Promise.allSettled([
       this.cursorClient.validate(),
       this.claudeDesktopClient.validate(),
+      this.lmStudioClient.validate(),
     ]);
 
     return {
       cursor: results[0].status === "fulfilled" ? results[0].value : false,
       "claude-desktop":
         results[1].status === "fulfilled" ? results[1].value : false,
+      "lm-studio": results[2].status === "fulfilled" ? results[2].value : false,
     };
   }
 
@@ -216,11 +234,13 @@ export class ConfigManager {
     // Update both clients with new options
     this.cursorClient = new CursorClient(this.bridgeOptions);
     this.claudeDesktopClient = new ClaudeDesktopClient(this.bridgeOptions);
+    this.lmStudioClient = new LMStudioClient(this.bridgeOptions);
 
     // Re-add all servers
     this.servers.forEach((endpoint, name) => {
       this.cursorClient.addServer(name, endpoint);
       this.claudeDesktopClient.addServer(name, endpoint);
+      this.lmStudioClient.addServer(name, endpoint);
     });
   }
 
@@ -283,7 +303,7 @@ export class ConfigManager {
 
     return new ConfigManager({
       servers: serverEndpoints,
-      clients: ["cursor", "claude-desktop"],
+      clients: ["cursor", "claude-desktop", "lm-studio"],
       environment,
       bridgeOptions: options?.bridgeOptions || {},
     });
@@ -300,7 +320,7 @@ export class ConfigManager {
 
     return {
       servers,
-      clients: ["cursor", "claude-desktop"],
+      clients: ["cursor", "claude-desktop", "lm-studio"],
       environment: this.environment,
       bridgeOptions: this.bridgeOptions,
     };

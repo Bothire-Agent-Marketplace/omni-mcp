@@ -30,7 +30,7 @@ COMMANDS:
 
 OPTIONS:
   --servers <json>       Server configuration JSON string or @file.json
-  --clients <list>       Comma-separated list of clients (cursor,claude-desktop)
+  --clients <list>       Comma-separated list of clients (cursor,claude-desktop,lm-studio)
   --environment <env>    Environment (development|staging|production)
   --debug               Enable debug mode
   --output <dir>        Output directory for generated configs
@@ -77,6 +77,7 @@ async function generateCommand(options: CLIOptions): Promise<void> {
   const clientTypes = (options.clients?.split(",") as MCPClientType[]) || [
     "cursor",
     "claude-desktop",
+    "lm-studio",
   ];
 
   console.log("🔧 Generating MCP client configurations...");
@@ -199,6 +200,7 @@ async function deployCommand(options: CLIOptions): Promise<void> {
   const clientTypes = (options.clients?.split(",") as MCPClientType[]) || [
     "cursor",
     "claude-desktop",
+    "lm-studio",
   ];
 
   console.log("🚀 Deploying MCP client configurations...");
