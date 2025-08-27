@@ -13,13 +13,12 @@ export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   envVar: "DEVTOOLS_SERVER_URL",
   isEnabled: true,
   tools: [
-    // Chrome Management (6 tools)
-    "chrome_start",
-    "chrome_connect",
-    "chrome_connect_existing", // New tool for existing browser connection
-    "chrome_navigate",
-    "chrome_status",
-    "chrome_close",
+    // Browser Management (match server implementation)
+    "browser_start",
+    "browser_navigate",
+    "browser_status",
+    "browser_close",
+    "browser_screenshot",
 
     // Console Tools (3 tools)
     "console_logs",

@@ -2,7 +2,7 @@
 // NOTION MCP SERVER - Request Handlers
 // ============================================================================
 
-// NOTE: In apps, avoid runtime Zod; for now these are placeholders from scaffold.
+// NOTE: In apps, avoid runtime Zod; these placeholders predate the manual pattern.
 import {
   SearchNotionItemsRequestSchema,
   GetNotionItemRequestSchema,

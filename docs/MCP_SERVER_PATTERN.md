@@ -193,116 +193,44 @@ export async function createPerplexityHttpServer(
 - **Scaffolding**: Easy to copy structure for new servers
 - **Clarity**: Files have clear, predictable purposes
 
-## Creating a New MCP Server
+## Creating a New MCP Server (Manual)
 
-### Quick Start with Scaffolding Tool
+Follow these concise manual steps to add a new server using the consolidated factory pattern:
 
-Use the automated scaffolding tool to create a new MCP server:
+1. Create app skeleton under `apps/[domain]-mcp-server/` using the structure above.
 
-```bash
-# Create a new MCP server (e.g., GitHub)
-node scripts/scaffold-mcp-server.js add github
-
-# The tool will automatically:
-# 1. Create the server directory structure
-# 2. Generate all template files with DATABASE-DRIVEN pattern
-# 3. Create input schemas in @mcp/schemas
-# 4. Register with @mcp/capabilities
-# 5. Update configuration files
-# 6. Install dependencies
-# 7. Build and validate the server
-```
-
-### What Gets Generated (Updated)
-
-The scaffolding tool creates a complete, working MCP server with:
-
-- **Server Structure**: All directories and files following the **CONSOLIDATED FACTORY PATTERN**
-- **Factory-Based Server**: Uses `createMcpServer` factory eliminating 68% of boilerplate
-- **Template Handlers**: Placeholder API handlers with proper error handling
-- **Input Schemas**: Centralized schemas in `@mcp/schemas/input-schemas/[domain].ts`
-- **Capabilities Registration**: Auto-registration in `@mcp/capabilities`
-- **Configuration**: Environment variables, TypeScript config, and dependency setup
-- **Validation**: Builds successfully and passes startup tests
-- **Database Integration**: Automatic prompts/resources loading via factory
-- **Minimal Code**: Just 22 lines for full server setup instead of 70+
-
-### Customization After Scaffolding
-
-After running the scaffolding tool, customize these files for your domain:
-
-#### 1. Update API Handlers (`src/mcp-server/handlers.ts`)
-
-Replace placeholder logic with real API calls:
-
-```typescript
-// Replace placeholder with real API client
-import { GitHubClient } from "@github/sdk";
-
-export async function handleGitHubSearchRepos(githubClient: GitHubClient, params: unknown) {
-  const { query, language, limit } = SearchReposRequestSchema.parse(params);
-  const results = await githubClient.search.repos({ query, language, limit });
-  // ... return formatted results
-}
-```
-
-#### 2. Update Domain Types (`src/types/domain-types.ts`)
-
-Add your domain-specific TypeScript interfaces:
-
-```typescript
-export interface GitHubRepoResource {
-  id: number;
-  name: string;
-  fullName: string;
-  private: boolean;
-  language: string | null;
-  stars: number;
-}
-```
-
-#### 3. Update HTTP Server (`src/mcp-server/http-server.ts`)
-
-Use the consolidated factory pattern:
+2. Implement `src/mcp-server/http-server.ts` with `@mcp/server-core`:
 
 ```typescript
 import { createMcpServerWithClient } from "@mcp/server-core";
-import type { GitHubServerConfig } from "../config/config.js";
-import { GitHubClient } from "./github-client.js";
+import { DomainClient } from "./domain-client.js";
 import { createToolHandlers, getAvailableTools } from "./tools.js";
 
-export async function createGitHubHttpServer(config: GitHubServerConfig): Promise<FastifyInstance> {
-  const githubClient = new GitHubClient({ token: config.githubToken });
-
-  // Consolidated factory eliminates 50+ lines of boilerplate
+export async function createDomainHttpServer(config: DomainServerConfig) {
+  const client = new DomainClient({ apiKey: config.domainApiKey });
   return createMcpServerWithClient({
-    serverName: "github",
-    serverKey: "github",
+    serverName: "domain",
+    serverKey: "domain",
     config,
-    client: githubClient,
+    client,
     createToolHandlers,
     getAvailableTools,
   });
 }
 ```
 
-#### 4. Define/Update Schemas in `@mcp/schemas`
+3. Define tool handlers in `src/mcp-server/tools.ts` (business logic only). Do not add static
+   prompts/resources; manage them in the Admin UI and database.
 
-- Add or edit Zod schemas in `packages/schemas/src/mcp/zod/[domain].ts` (canonical source)
-- Export matching JSON input schemas in `packages/schemas/src/mcp/input-schemas/[domain].ts`
-- Never add runtime Zod schemas inside app servers
+4. Register the server in `packages/capabilities` under `src/servers/[domain].ts` and export it from
+   the registry.
 
-### Additional Commands
+5. Wire up configuration (env vars, port) and add the app to `turbo.json`/workspace if needed.
+
+6. Build and run via the standard dev flow:
 
 ```bash
-# List all registered servers
-node scripts/scaffold-mcp-server.js list
-
-# Remove a server completely
-node scripts/scaffold-mcp-server.js remove github
-
-# Test the server through the gateway
-node packages/dev-tools/src/cli/index.js test-server github
+pnpm dev
 ```
 
 ## Managing Prompts and Resources
@@ -371,13 +299,13 @@ packages/schemas/src/mcp/input-schemas/
 - App servers consume only the JSON input schemas from `@mcp/schemas` and should not import Zod
   directly
 
-### Benefits of Automated Scaffolding
+### Manual Flow Benefits
 
-1. **Speed**: Create a working server in seconds, not hours
+1. **Clarity**: Only the files you need, no generated boilerplate
 2. **Consistency**: All servers follow identical DATABASE-DRIVEN patterns
-3. **Validation**: Generated servers build and start successfully
-4. **Integration**: Automatic registration with gateway and capabilities
-5. **Best Practices**: Templates include database integration and dynamic loading
+3. **Validation**: Factory ensures startup parity across servers
+4. **Integration**: Central registration in `@mcp/capabilities`
+5. **Best Practices**: Admin UI first for prompts/resources
 
 ## Benefits of Consolidated Factory Pattern
 
