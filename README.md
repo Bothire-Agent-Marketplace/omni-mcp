@@ -10,13 +10,13 @@ Highlights
 - Admin app with testing utilities
 - Client bridge to generate configs for Cursor, Claude Desktop, and LM Studio
 
-Prerequisites (fresh macOS dev machine)
+Prerequisites
 
 - Node.js 20+ with Corepack (to use pnpm)
 - pnpm 10+
 - PostgreSQL 15+ (local) with a dev database
 - Google Chrome (for DevTools server)
-- Optional: ngrok or localtunnel for webhooks
+- Optional: ngrok or localtunnel for admin auth webhook
 
 Install prerequisites (macOS):
 
@@ -54,6 +54,15 @@ cp secrets/.env.development.local.example secrets/.env.development.local
 # Fill in Clerk keys and any API keys (Linear/Perplexity/Notion) as needed
 ```
 
+Environment variables and secrets
+
+- Root `.env.local`: general config (DB URL, ports, logging, etc.). See `.env.dev.example` for all
+  keys.
+- `secrets/.env.development.local`: secrets (JWT, MCP_API_KEY, CLERK_WEBHOOK_SECRET, external API
+  keys).
+- Loading: services load env via layered `.env*` files using `@mcp/utils/env-loader`.
+- Notion: set `NOTION_API_KEY` or the Notion server will refuse to start.
+
 3. Initialize database
 
 ```bash
@@ -74,6 +83,28 @@ Access services
 # Gateway:        http://localhost:37373
 # Prisma Studio:  http://localhost:5555
 ```
+
+Clerk webhooks (org/user sync)
+
+```bash
+# Start tunnel for webhooks (dev script starts ngrok automatically)
+pnpm ngrok:start
+
+# Copy the https URL shown (e.g. https://abcd1234.ngrok.app)
+# In Clerk Dashboard → Webhooks → Add endpoint:
+#   URL: https://<ngrok-subdomain>/api/webhooks/clerk
+#   Secret: use CLERK_WEBHOOK_SECRET from secrets/.env.development.local
+
+# Verify webhook handler is reachable
+curl -s -o /dev/null -w "%{http_code}\n" https://<ngrok-subdomain>/api/health
+```
+
+Inviting users locally
+
+1. Sign up at `http://localhost:3000/sign-up` (Clerk dev instance).
+2. Create an organization in the UI or via Clerk Dashboard.
+3. Invite users from Clerk (Organizations → Members → Invite). With webhooks configured, users and
+   memberships are synced to the local DB automatically.
 
 MCP client configurations (optional)
 
@@ -123,6 +154,7 @@ Ports
 - Linear Server: 3001
 - Perplexity Server: 3002
 - DevTools Server: 3003
+- Notion Server: 3004
 - Prisma Studio: 5555
 
 Docs
