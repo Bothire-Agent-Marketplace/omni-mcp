@@ -2,7 +2,7 @@
 // NOTION MCP SERVER - Request Handlers
 // ============================================================================
 
-// NOTE: In apps, avoid runtime Zod; these placeholders predate the manual pattern.
+// NOTE: Apps should avoid runtime Zod in favor of input schemas from @mcp/schemas.
 import {
   SearchNotionItemsRequestSchema,
   GetNotionItemRequestSchema,
@@ -38,12 +38,12 @@ export async function handleNotionSearchItems(
   // TODO: Implement your notion search logic
   // const results = await notionClient.searchItems({ query, limit });
 
-  // Placeholder implementation
+  // Minimal development stub; replace with real Notion client calls
   const items = [
     {
       id: "1",
       title: `Sample ${query || "item"}`,
-      description: "This is a placeholder item",
+      description: "Development stub item",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     },
@@ -74,11 +74,11 @@ export async function handleNotionGetItem(
   // TODO: Implement your notion get item logic
   // const item = await notionClient.getItem(id);
 
-  // Placeholder implementation
+  // Minimal development stub; replace with real Notion client calls
   const item = {
     id,
     title: `Sample item ${id}`,
-    description: "This is a placeholder item",
+    description: "Development stub item",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -108,7 +108,7 @@ export async function handleNotionCreateItem(
   // TODO: Implement your notion create item logic
   // const item = await notionClient.createItem({ title, description });
 
-  // Placeholder implementation
+  // Minimal development stub; replace with real Notion client calls
   const item = {
     id: Math.random().toString(36).substring(7),
     title,
@@ -325,7 +325,7 @@ export async function handleNotionSearch(params: unknown) {
 // RESOURCE HANDLERS
 // ============================================================================
 
-// Placeholder exports to keep scaffolded shapes referenced; not wired into factory yet
+// Development resource stubs for early wiring; replace with real Notion data sources
 async function _handleNotionItemsResource(
   /* notionClient: NotionClient, */
   uri: string
@@ -334,12 +334,12 @@ async function _handleNotionItemsResource(
     // TODO: Implement your notion get items logic
     // const items = await notionClient.getItems();
 
-    // Placeholder implementation
+    // Minimal development stub; replace with real Notion client calls
     const items: NotionItemResource[] = [
       {
         id: "1",
         title: "Sample Item",
-        description: "This is a placeholder item",
+        description: "Development stub item",
         uri: uri,
         mimeType: "application/json",
       },
@@ -375,12 +375,12 @@ async function _handleNotionProjectsResource(
     // TODO: Implement your notion get projects logic
     // const projects = await notionClient.getProjects();
 
-    // Placeholder implementation
+    // Minimal development stub; replace with real Notion client calls
     const projects: NotionProjectResource[] = [
       {
         id: "1",
         name: "Sample Project",
-        description: "This is a placeholder project",
+        description: "Development stub project",
         uri: uri,
         mimeType: "application/json",
       },
