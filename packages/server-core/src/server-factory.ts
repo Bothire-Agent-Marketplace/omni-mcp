@@ -63,10 +63,9 @@ export async function createMcpServer<TClient = unknown>(
     configLoader
   );
 
-  const server = createEnhancedMcpHttpServer<TClient>({
+  const baseOptions = {
     serverName,
     config,
-    client,
     dynamicHandlers,
     fallbackHandlers: {
       toolHandlers: createToolHandlers(client),
@@ -74,13 +73,17 @@ export async function createMcpServer<TClient = unknown>(
       promptHandlers,
     },
     getAvailableTools,
-
-    getAvailableResources: async (context) => {
+    getAvailableResources: async (context: RequestContext | undefined) => {
       return dynamicHandlers.getAvailableResources(context);
     },
-    getAvailablePrompts: async (context) => {
+    getAvailablePrompts: async (context: RequestContext | undefined) => {
       return dynamicHandlers.getAvailablePrompts(context);
     },
+  } as const;
+
+  const server = createEnhancedMcpHttpServer<TClient>({
+    ...(client !== undefined ? { client } : {}),
+    ...baseOptions,
   });
 
   return server;
