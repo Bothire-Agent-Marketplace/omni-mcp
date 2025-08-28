@@ -2,6 +2,14 @@
 
 import { spawn, execSync } from "child_process";
 import { platform } from "os";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+import { loadEnvironment } from "@mcp/utils";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+loadEnvironment(__dirname);
 
 const services = [
   {
