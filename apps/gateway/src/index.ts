@@ -208,9 +208,7 @@ async function createServer(): Promise<FastifyInstance> {
       "/messages",
       async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-          logger.info("Received message via /messages endpoint", {
-            body: request.body,
-          });
+          logger.info("Received message via /messages endpoint");
 
           const response = await mcpGateway.handleHttpRequest(
             request.body,
