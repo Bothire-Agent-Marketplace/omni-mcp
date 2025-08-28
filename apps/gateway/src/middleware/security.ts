@@ -201,9 +201,8 @@ export async function registerSecurityMiddleware(
         url: request.url,
         statusCode: reply.statusCode,
         responseTime: Math.round(responseTime),
-        ip: request.ip,
-        userAgent: request.headers["user-agent"],
         authenticated: request.isAuthenticated || false,
+        // Redacted by logger formatter if present
         apiKey: request.apiKeyUsed,
       });
     }

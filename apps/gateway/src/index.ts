@@ -246,12 +246,7 @@ async function createServer(): Promise<FastifyInstance> {
             required: ["jsonrpc", "method"],
             additionalProperties: false,
           },
-          response: {
-            400: {},
-            401: {},
-            404: {},
-            500: {},
-          },
+          // Note: Response schema enforced via runtime validation
         },
       },
       async (request: FastifyRequest<MCPRouteGeneric>, reply: FastifyReply) => {
