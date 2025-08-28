@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "fixtures";
     const category = searchParams.get("category") || "all";
-    const _organizationId = searchParams.get("organizationId");
+
     const count = parseInt(searchParams.get("count") || "10");
 
     let data: unknown;

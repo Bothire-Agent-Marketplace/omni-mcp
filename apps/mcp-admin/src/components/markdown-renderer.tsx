@@ -122,7 +122,7 @@ export function MarkdownRenderer({
                             key: tokenIndex
                           });
 
-                          const { key: _key, ...restTokenProps } =
+                          const { ...restTokenProps } =
                           tokenProps;
                           return (
                             <span key={tokenIndex} {...restTokenProps} />);

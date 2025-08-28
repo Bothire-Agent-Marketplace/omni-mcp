@@ -1,8 +1,4 @@
-import {
-  createGenericPromptHandlers,
-  getGenericAvailablePrompts,
-  PromptDefinition,
-} from "@mcp/utils";
+import { PromptDefinition } from "@mcp/utils";
 import {
   NotionWorkflowArgsSchema,
   NotionAutomationArgsSchema,
@@ -72,9 +68,3 @@ const _notionPromptDefinitions: Record<string, PromptDefinition> = {
     },
   },
 };
-
-const _createPromptHandlers = () =>
-  createGenericPromptHandlers(_notionPromptDefinitions);
-
-const _getAvailablePrompts = () =>
-  getGenericAvailablePrompts(_notionPromptDefinitions);

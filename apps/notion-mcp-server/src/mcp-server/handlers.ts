@@ -15,7 +15,7 @@ interface _NotionItemFilter {
 
 export async function handleNotionSearchItems(params: unknown) {
   const validatedParams = SearchNotionItemsRequestSchema.parse(params);
-  const { query, limit: _limit } = validatedParams;
+  const { query } = validatedParams;
 
   const items = [
     {

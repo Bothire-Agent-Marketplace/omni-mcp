@@ -278,7 +278,7 @@ async function createServer(): Promise<FastifyInstance> {
 
     const close = async () => {
       logger.info("Initiating graceful shutdown...");
-      for (const [_sessionId, reply] of sseConnections.entries()) {
+      for (const reply of sseConnections.values()) {
         if (!reply.raw.destroyed) {
           reply.raw.end();
         }

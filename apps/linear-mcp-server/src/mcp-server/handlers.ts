@@ -202,11 +202,11 @@ export async function handleLinearGetProjects(
 
   const filter: Record<string, unknown> = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
-  if (!includeArchived) filter.archivedAt = { null: true };
 
   const projects = await linearClient.projects({
     filter,
     first: Math.min(limit, 50),
+    includeArchived,
   });
 
   const formattedProjects = await Promise.all(
