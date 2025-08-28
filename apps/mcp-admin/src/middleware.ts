@@ -1,13 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 
-// Define protected routes - all routes except sign-in, sign-up, webhooks, and not-found pages
 const isProtectedRoute = createRouteMatcher([
-  "/((?!sign-in|sign-up|api/webhooks|_not-found|not-found).*)",
+  "/((?!sign-in|sign-up|api/webhooks|api/health|health|_not-found|not-found).*)",
 ]);
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
-  // Skip processing for static files, Next.js internals, and not-found pages
   if (
     req.nextUrl.pathname.startsWith("/_next") ||
     req.nextUrl.pathname.includes(".") ||
@@ -19,15 +17,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   }
 
   if (isProtectedRoute(req)) {
-    await auth.protect(); // Redirects unauthenticated users to sign-in
+    await auth.protect();
   }
 });
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files
     "/((?!_next/static|_next/image|favicon.ico|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
+
     "/(api|trpc)(.*)",
   ],
 };

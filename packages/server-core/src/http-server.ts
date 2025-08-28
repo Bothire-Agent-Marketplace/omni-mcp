@@ -58,7 +58,7 @@ function extractOrganizationContext(
   if (authHeader && authHeader.startsWith("Bearer ")) {
     try {
       const token = authHeader.substring(7);
-      // This is a simplified version - in production, you'd use a proper JWT library
+
       const payload = JSON.parse(
         Buffer.from(token.split(".")[1], "base64").toString()
       );
@@ -77,17 +77,12 @@ function extractOrganizationContext(
           requestId: payload.jti,
         };
       }
-    } catch {
-      // JWT parsing failed, continue without organization context
-    }
+    } catch {}
   }
 
   return undefined;
 }
 
-/**
- * Creates a generic MCP HTTP server with standard protocol handling
- */
 export function createMcpHttpServer<TClient = unknown>(
   options: ServerCreationOptions<TClient> & HandlerRegistries
 ): FastifyInstance {
@@ -108,12 +103,10 @@ export function createMcpHttpServer<TClient = unknown>(
     environment: config.env,
   });
 
-  const server = fastify({ logger: false }); // Disable default logger to use our own
+  const server = fastify({ logger: false });
 
-  // Register CORS
   server.register(cors);
 
-  // Global error handler
   server.setErrorHandler(
     (error: Error, request: FastifyRequest, reply: FastifyReply) => {
       logger.error("Unhandled error:", error);
@@ -128,16 +121,13 @@ export function createMcpHttpServer<TClient = unknown>(
     }
   );
 
-  // Health check endpoint
   server.get("/health", async () => {
     return { status: "ok" };
   });
 
-  // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
     const { jsonrpc, method, params, id } = request.body as MCPJsonRpcRequest;
 
-    // Validate JSON-RPC format
     if (jsonrpc !== "2.0") {
       reply.status(400).send(createInvalidRequestErrorResponse(id));
       return;
@@ -164,7 +154,6 @@ export function createMcpHttpServer<TClient = unknown>(
 
       return response;
     } catch (error: unknown) {
-      // Handle Zod validation errors specifically
       if (error instanceof ZodError) {
         const validationErrors = error.format()._errors.join(", ");
 
@@ -183,9 +172,6 @@ export function createMcpHttpServer<TClient = unknown>(
   return server;
 }
 
-/**
- * Creates an enhanced MCP HTTP server with dynamic handler support
- */
 export function createEnhancedMcpHttpServer<TClient = unknown>(
   options: EnhancedServerCreationOptions<TClient> & HandlerRegistries
 ): FastifyInstance {
@@ -206,7 +192,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     environment: config.env,
   });
 
-  // Auto-create dynamic handlers if serverKey is provided
   let finalDynamicHandlers = dynamicHandlers;
   if (serverKey && !dynamicHandlers) {
     const { getServerRegistry } = require("./server-registry.js");
@@ -221,7 +206,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
       return new DatabaseDynamicHandlerRegistry(serverId, configLoader);
     };
 
-    // For now, we'll create a lazy-loading dynamic handler
     finalDynamicHandlers = {
       async getToolHandler(toolName: string, context?: RequestContext) {
         const registry = await setupDynamicHandlers();
@@ -250,7 +234,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     };
   }
 
-  const server = fastify({ logger: false }); // Disable default logger to use our own
+  const server = fastify({ logger: false });
 
   server.register(cors);
 
@@ -272,7 +256,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
     return { status: "ok" };
   });
 
-  // Main MCP endpoint - handles tools, resources, and prompts
   server.post("/mcp", async (request: FastifyRequest, reply: FastifyReply) => {
     const { method, params, id, jsonrpc } = request.body as MCPJsonRpcRequest;
 
@@ -306,7 +289,6 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
 
       return response;
     } catch (error: unknown) {
-      // Handle Zod validation errors specifically
       if (error instanceof ZodError) {
         const validationErrors = error.format()._errors.join(", ");
 
@@ -325,11 +307,7 @@ export function createEnhancedMcpHttpServer<TClient = unknown>(
   return server;
 }
 
-/**
- * Consolidated handler interface - all async for consistency
- */
 interface McpHandlerRegistry {
-  // Handler resolution
   resolveToolHandler: (
     toolName: string,
     context?: RequestContext
@@ -343,7 +321,6 @@ interface McpHandlerRegistry {
     context?: RequestContext
   ) => Promise<PromptHandler | undefined>;
 
-  // Listing functions
   getAvailableTools: (context?: RequestContext) => Promise<
     Array<{
       name: string;
@@ -351,6 +328,7 @@ interface McpHandlerRegistry {
       inputSchema: unknown;
     }>
   >;
+
   getAvailableResources: (context?: RequestContext) => Promise<
     Array<{
       uri: string;
@@ -359,6 +337,7 @@ interface McpHandlerRegistry {
       mimeType?: string;
     }>
   >;
+
   getAvailablePrompts: (context?: RequestContext) => Promise<
     Array<{
       name: string;
@@ -394,6 +373,7 @@ function createStaticHandlerRegistry(handlers: {
           inputSchema: unknown;
         }>
       >;
+
   getAvailableResources: (context?: RequestContext) =>
     | Array<{
         uri: string;
@@ -409,6 +389,7 @@ function createStaticHandlerRegistry(handlers: {
           mimeType?: string;
         }>
       >;
+
   getAvailablePrompts: (context?: RequestContext) =>
     | Array<{
         name: string;
@@ -461,6 +442,7 @@ function assembleMcpHandlerRegistry(
         inputSchema: unknown;
       }>
     >;
+
     getAvailableResources: (context?: RequestContext) => Promise<
       Array<{
         uri: string;
@@ -469,6 +451,7 @@ function assembleMcpHandlerRegistry(
         mimeType?: string;
       }>
     >;
+
     getAvailablePrompts: (context?: RequestContext) => Promise<
       Array<{
         name: string;
@@ -479,7 +462,6 @@ function assembleMcpHandlerRegistry(
 ): McpHandlerRegistry {
   return {
     async resolveToolHandler(toolName: string, context?: RequestContext) {
-      // Try dynamic handler first
       const dynamicHandler = await dynamicHandlers?.getToolHandler?.(
         toolName,
         context
@@ -487,12 +469,11 @@ function assembleMcpHandlerRegistry(
       if (dynamicHandler) {
         return dynamicHandler;
       }
-      // Fallback to static handler
+
       return fallbackHandlers?.toolHandlers?.[toolName];
     },
 
     async resolveResourceHandler(uri: string, context?: RequestContext) {
-      // Try dynamic handler first
       const dynamicHandler = await dynamicHandlers?.getResourceHandler?.(
         uri,
         context
@@ -500,12 +481,11 @@ function assembleMcpHandlerRegistry(
       if (dynamicHandler) {
         return dynamicHandler;
       }
-      // Fallback to static handler
+
       return fallbackHandlers?.resourceHandlers?.[uri];
     },
 
     async resolvePromptHandler(promptName: string, context?: RequestContext) {
-      // Try dynamic handler first
       const dynamicHandler = await dynamicHandlers?.getPromptHandler?.(
         promptName,
         context
@@ -513,23 +493,21 @@ function assembleMcpHandlerRegistry(
       if (dynamicHandler) {
         return dynamicHandler;
       }
-      // Fallback to static handler
+
       return fallbackHandlers?.promptHandlers?.[promptName];
     },
 
     async getAvailableTools(context?: RequestContext) {
-      // Use custom getters if provided (enhanced server case)
       if (customGetters?.getAvailableTools) {
         return customGetters.getAvailableTools(context);
       }
 
-      // Otherwise combine dynamic and static
       const dynamicTools =
         (await dynamicHandlers?.getAvailableTools?.(context)) || [];
       const staticTools = Object.keys(fallbackHandlers?.toolHandlers || {}).map(
         (name) => ({
           name,
-          description: "", // Static handlers don't have descriptions here
+          description: "",
           inputSchema: {},
         })
       );
@@ -537,12 +515,10 @@ function assembleMcpHandlerRegistry(
     },
 
     async getAvailableResources(context?: RequestContext) {
-      // Use custom getters if provided (enhanced server case)
       if (customGetters?.getAvailableResources) {
         return customGetters.getAvailableResources(context);
       }
 
-      // Otherwise combine dynamic and static
       const dynamicResources =
         (await dynamicHandlers?.getAvailableResources?.(context)) || [];
       const staticResources = Object.keys(
@@ -556,11 +532,10 @@ function assembleMcpHandlerRegistry(
     },
 
     async getAvailablePrompts(context?: RequestContext) {
-      // Use custom getters if provided (enhanced server case)
       if (customGetters?.getAvailablePrompts) {
         return customGetters.getAvailablePrompts(context);
       }
-      // Otherwise combine dynamic and static
+
       const dynamicPrompts =
         (await dynamicHandlers?.getAvailablePrompts?.(context)) || [];
       const staticPrompts = Object.keys(

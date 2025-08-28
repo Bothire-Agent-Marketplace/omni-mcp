@@ -1,8 +1,3 @@
-/**
- * Modern Playwright-based Browser Client
- * Replaces ChromeDevToolsClient with a simpler, more reliable approach
- */
-
 import { EventEmitter } from "events";
 import {
   chromium,
@@ -81,9 +76,6 @@ export class PlaywrightClient extends EventEmitter {
     };
   }
 
-  /**
-   * Start browser and create context
-   */
   async start(): Promise<void> {
     if (this.browser) {
       console.log("✅ Browser already started");
@@ -91,7 +83,6 @@ export class PlaywrightClient extends EventEmitter {
     }
 
     try {
-      // Launch browser
       const browserType = this.getBrowserType();
 
       this.browser = await browserType.launch({
@@ -107,7 +98,6 @@ export class PlaywrightClient extends EventEmitter {
         ],
       });
 
-      // Create context with enhanced capabilities
       const contextOptions: BrowserContextOptions = {
         viewport: this.options.viewport,
         userAgent: this.options.userAgent,
@@ -125,10 +115,8 @@ export class PlaywrightClient extends EventEmitter {
 
       this.context = await this.browser.newContext(contextOptions);
 
-      // Create initial page
       this.page = await this.context.newPage();
 
-      // Setup monitoring
       this.setupNetworkMonitoring();
       this.setupConsoleMonitoring();
       this.setupErrorHandling();
@@ -143,9 +131,6 @@ export class PlaywrightClient extends EventEmitter {
     }
   }
 
-  /**
-   * Get the browser type instance
-   */
   private getBrowserType() {
     switch (this.options.browserType) {
       case "firefox":
@@ -158,9 +143,6 @@ export class PlaywrightClient extends EventEmitter {
     }
   }
 
-  /**
-   * Setup comprehensive network monitoring
-   */
   private setupNetworkMonitoring(): void {
     if (!this.page) return;
 
@@ -178,7 +160,6 @@ export class PlaywrightClient extends EventEmitter {
       this.networkRequests.set(networkRequest.id, networkRequest);
       this.emit("networkRequest", networkRequest);
 
-      // Keep only last 1000 requests
       if (this.networkRequests.size > 1000) {
         const firstKey = this.networkRequests.keys().next().value;
         if (firstKey) {
@@ -201,23 +182,19 @@ export class PlaywrightClient extends EventEmitter {
         timestamp: Date.now(),
       };
 
-      // Optionally capture response body for smaller responses
       if (
-        networkResponse.size < 1024 * 1024 && // < 1MB
+        networkResponse.size < 1024 * 1024 &&
         (response.headers()["content-type"]?.includes("json") ||
           response.headers()["content-type"]?.includes("text"))
       ) {
         try {
           networkResponse.body = await response.text();
-        } catch {
-          // Ignore body capture errors
-        }
+        } catch {}
       }
 
       this.networkResponses.set(networkResponse.id, networkResponse);
       this.emit("networkResponse", networkResponse);
 
-      // Keep only last 1000 responses
       if (this.networkResponses.size > 1000) {
         const firstKey = this.networkResponses.keys().next().value;
         if (firstKey) {
@@ -236,9 +213,6 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Setup comprehensive console monitoring
-   */
   private setupConsoleMonitoring(): void {
     if (!this.page) return;
 
@@ -254,7 +228,6 @@ export class PlaywrightClient extends EventEmitter {
       this.consoleLogs.push(consoleMessage);
       this.emit("consoleMessage", consoleMessage);
 
-      // Keep only last 1000 console messages
       if (this.consoleLogs.length > 1000) {
         this.consoleLogs.splice(0, this.consoleLogs.length - 1000);
       }
@@ -275,9 +248,6 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Setup error handling and recovery
-   */
   private setupErrorHandling(): void {
     if (!this.context) return;
 
@@ -289,9 +259,6 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Navigate to URL with built-in waiting and error handling
-   */
   async navigateToUrl(
     url: string,
     options: {
@@ -314,9 +281,6 @@ export class PlaywrightClient extends EventEmitter {
     }
   }
 
-  /**
-   * Execute JavaScript with enhanced error handling
-   */
   async executeJavaScript(code: string): Promise<unknown> {
     if (!this.page) {
       throw new Error("Browser not started. Call start() first.");
@@ -331,9 +295,6 @@ export class PlaywrightClient extends EventEmitter {
     }
   }
 
-  /**
-   * Take screenshot with automatic retry
-   */
   async takeScreenshot(
     options: {
       fullPage?: boolean;
@@ -354,9 +315,6 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Get current page's performance metrics
-   */
   async getPerformanceMetrics(): Promise<Record<string, unknown>> {
     if (!this.page) {
       throw new Error("Browser not started. Call start() first.");
@@ -369,22 +327,18 @@ export class PlaywrightClient extends EventEmitter {
       const paint = performance.getEntriesByType("paint");
 
       return {
-        // Navigation timings
         domContentLoaded:
           navigation?.domContentLoadedEventEnd -
           navigation?.domContentLoadedEventStart,
         loadComplete: navigation?.loadEventEnd - navigation?.loadEventStart,
 
-        // Paint timings
         firstPaint: paint.find((p) => p.name === "first-paint")?.startTime,
         firstContentfulPaint: paint.find(
           (p) => p.name === "first-contentful-paint"
         )?.startTime,
 
-        // Resource summary
         totalResources: performance.getEntriesByType("resource").length,
 
-        // Memory (if available)
         memoryUsage: (
           performance as unknown as {
             memory?: {
@@ -414,9 +368,6 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Get network requests with filtering
-   */
   getNetworkRequests(filter?: {
     domain?: string;
     method?: string;
@@ -438,9 +389,6 @@ export class PlaywrightClient extends EventEmitter {
     return requests.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  /**
-   * Get network responses with filtering
-   */
   getNetworkResponses(filter?: {
     domain?: string;
     status?: number;
@@ -458,9 +406,6 @@ export class PlaywrightClient extends EventEmitter {
     return responses.sort((a, b) => b.timestamp - a.timestamp);
   }
 
-  /**
-   * Get console logs with filtering
-   */
   getConsoleLogs(filter?: {
     level?: ConsoleMessage["type"];
     limit?: number;
@@ -480,9 +425,6 @@ export class PlaywrightClient extends EventEmitter {
     return logs;
   }
 
-  /**
-   * Block resources for faster page loads
-   */
   async blockResources(
     types: string[] = ["image", "font", "media"]
   ): Promise<void> {
@@ -501,39 +443,24 @@ export class PlaywrightClient extends EventEmitter {
     });
   }
 
-  /**
-   * Clear all monitoring data
-   */
   clearData(): void {
     this.networkRequests.clear();
     this.networkResponses.clear();
     this.consoleLogs.length = 0;
   }
 
-  /**
-   * Get current page (for direct Playwright API access)
-   */
   getCurrentPage(): Page | null {
     return this.page;
   }
 
-  /**
-   * Get browser context (for advanced features)
-   */
   getContext(): BrowserContext | null {
     return this.context;
   }
 
-  /**
-   * Check connection status
-   */
   isConnected(): boolean {
     return this.page !== null && !this.page.isClosed();
   }
 
-  /**
-   * Close browser and cleanup
-   */
   async close(): Promise<void> {
     if (this.context) {
       await this.context.close();
@@ -552,7 +479,6 @@ export class PlaywrightClient extends EventEmitter {
     this.emit("disconnected");
   }
 
-  // Helper methods
   private generateRequestId(): string {
     return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

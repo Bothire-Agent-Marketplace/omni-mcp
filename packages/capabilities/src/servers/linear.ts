@@ -1,9 +1,5 @@
 import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
-// ============================================================================
-// LINEAR MCP SERVER - Definition
-// ============================================================================
-
 export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "linear",
   port: 3001,
@@ -18,6 +14,7 @@ export const LINEAR_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "linear_get_projects",
     "linear_get_issue",
   ],
+
   resources: ["linear://teams", "linear://users"],
   prompts: ["create_issue_workflow", "triage_workflow", "sprint_planning"],
 });

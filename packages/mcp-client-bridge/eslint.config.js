@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from "@eslint/js";
 import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
@@ -38,6 +36,7 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
         },
       ],
+
       "import/order": [
         "error",
         {
@@ -49,14 +48,17 @@ export default tseslint.config(
             "sibling",
             "index",
           ],
+
           pathGroups: [
             { pattern: "@mcp/**", group: "internal", position: "before" },
           ],
+
           pathGroupsExcludedImportTypes: ["builtin"],
           "newlines-between": "never",
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
+
       "import/first": "error",
       "import/no-duplicates": "error",
       "@typescript-eslint/no-explicit-any": "error",

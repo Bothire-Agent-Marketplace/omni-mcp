@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// MCP SERVER SCHEMA & TYPES
-// ============================================================================
-
 export const MCPServerSchema = z.object({
   name: z.string(),
   port: z.number(),

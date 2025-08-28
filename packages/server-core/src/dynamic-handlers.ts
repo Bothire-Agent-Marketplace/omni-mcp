@@ -11,30 +11,22 @@ import type {
   RequestContext,
 } from "./config.js";
 
-// ============================================================================
-// DYNAMIC HANDLER REGISTRY - INTERFACE & IMPLEMENTATION
-// ============================================================================
-
-/**
- * Interface for dynamic handler registries that can load handlers based on organization context
- */
 export interface DynamicHandlerRegistry {
-  /** Get tool handler for a specific tool name and organization context */
   getToolHandler: (
     toolName: string,
     context?: RequestContext
   ) => Promise<ToolHandler | undefined>;
-  /** Get resource handler for a specific URI and organization context */
+
   getResourceHandler: (
     uri: string,
     context?: RequestContext
   ) => Promise<ResourceHandler | undefined>;
-  /** Get prompt handler for a specific prompt name and organization context */
+
   getPromptHandler: (
     promptName: string,
     context?: RequestContext
   ) => Promise<PromptHandler | undefined>;
-  /** Get all available tools for a given context */
+
   getAvailableTools: (context?: RequestContext) => Promise<
     Array<{
       name: string;
@@ -42,7 +34,7 @@ export interface DynamicHandlerRegistry {
       inputSchema: unknown;
     }>
   >;
-  /** Get all available resources for a given context */
+
   getAvailableResources: (context?: RequestContext) => Promise<
     Array<{
       uri: string;
@@ -51,7 +43,7 @@ export interface DynamicHandlerRegistry {
       mimeType?: string;
     }>
   >;
-  /** Get all available prompts for a given context */
+
   getAvailablePrompts: (context?: RequestContext) => Promise<
     Array<{
       name: string;
@@ -60,10 +52,6 @@ export interface DynamicHandlerRegistry {
   >;
 }
 
-/**
- * Database-backed implementation of DynamicHandlerRegistry
- * Uses ConfigLoader to load organization-specific prompts and resources from database
- */
 export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
   private configLoader: ConfigLoader;
   private mcpServerId: string;
@@ -73,36 +61,22 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     this.configLoader = configLoader || new ConfigLoader();
   }
 
-  /**
-   * Convert RequestContext to ConfigContext
-   */
   private getConfigContext(
     context?: RequestContext
   ): ConfigContext | undefined {
-    // Always return a valid ConfigContext - use null organization for defaults
-    // when no organization context is available
     return {
       organizationId: context?.organization?.organizationId || null,
       mcpServerId: this.mcpServerId,
     };
   }
 
-  /**
-   * Get tool handler - tools are still handled statically for now
-   * This can be extended later to support dynamic tool loading
-   */
   async getToolHandler(
     _toolName: string,
     _context?: RequestContext
   ): Promise<ToolHandler | undefined> {
-    // For now, tools are not loaded dynamically
-    // This can be extended in the future
     return undefined;
   }
 
-  /**
-   * Get resource handler for a specific URI and organization context
-   */
   async getResourceHandler(
     uri: string,
     context?: RequestContext
@@ -125,9 +99,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     }
   }
 
-  /**
-   * Get prompt handler for a specific prompt name and organization context
-   */
   async getPromptHandler(
     promptName: string,
     context?: RequestContext
@@ -153,13 +124,8 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     }
   }
 
-  /**
-   * Create a resource handler from a resource definition
-   */
   private createResourceHandler(resource: ResourceDefinition): ResourceHandler {
     return async (uri: string, _context?: RequestContext) => {
-      // For now, we return static resource information
-      // This can be extended to support dynamic resource generation
       return {
         contents: [
           {
@@ -171,16 +137,11 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     };
   }
 
-  /**
-   * Create a prompt handler from a prompt template
-   */
   private createPromptHandler(prompt: PromptTemplate): PromptHandler {
     return async (args: Record<string, unknown>, _context?: RequestContext) => {
       try {
-        // Validate arguments against the prompt schema
         const validatedArgs = prompt.arguments.parse(args);
 
-        // Process the template with the validated arguments
         const populatedTemplate = prompt.template.map(
           (templateMessage: {
             role: "user" | "system" | "assistant";
@@ -188,8 +149,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
           }) => {
             let processedContent = templateMessage.content;
 
-            // Simple template variable replacement
-            // Replace {{variable}} with actual values
             if (
               validatedArgs &&
               typeof validatedArgs === "object" &&
@@ -205,7 +164,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
               });
             }
 
-            // Map system role to user role for compatibility
             const mappedRole =
               templateMessage.role === "system" ? "user" : templateMessage.role;
 
@@ -221,7 +179,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
         return { messages: populatedTemplate };
       } catch (error) {
-        // If validation fails, return an error message
         return {
           messages: [
             {
@@ -237,9 +194,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     };
   }
 
-  /**
-   * Get all available tools for a given context
-   */
   async getAvailableTools(_context?: RequestContext): Promise<
     Array<{
       name: string;
@@ -247,14 +201,9 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
       inputSchema: unknown;
     }>
   > {
-    // For now, tools are not loaded dynamically
-    // This can be extended in the future
     return [];
   }
 
-  /**
-   * Get all available resources for a given context
-   */
   async getAvailableResources(context?: RequestContext): Promise<
     Array<{
       uri: string;
@@ -270,9 +219,10 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
     try {
       const resources = await this.configLoader.loadResources(configContext);
-      return Object.values(resources)
-        .filter((resource: ResourceDefinition) => resource.isActive)
-        .map((resource: ResourceDefinition) => ({
+      const resourceArray = Object.values(resources) as ResourceDefinition[];
+      return resourceArray
+        .filter((resource) => resource.isActive)
+        .map((resource) => ({
           uri: resource.uri,
           name: resource.name,
           description: resource.description,
@@ -284,9 +234,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     }
   }
 
-  /**
-   * Get all available prompts for a given context
-   */
   async getAvailablePrompts(context?: RequestContext): Promise<
     Array<{
       name: string;
@@ -300,9 +247,10 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
     try {
       const prompts = await this.configLoader.loadPrompts(configContext);
-      return Object.values(prompts)
-        .filter((prompt: PromptTemplate) => prompt.isActive)
-        .map((prompt: PromptTemplate) => ({
+      const promptArray = Object.values(prompts) as PromptTemplate[];
+      return promptArray
+        .filter((prompt) => prompt.isActive)
+        .map((prompt) => ({
           name: prompt.name,
           description: prompt.description,
         }));
@@ -312,9 +260,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
     }
   }
 
-  /**
-   * Invalidate cache for a specific context
-   */
   invalidateCache(context?: RequestContext): void {
     const configContext = this.getConfigContext(context);
     if (configContext) {
@@ -323,13 +268,6 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
   }
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Create a dynamic handler registry with the ConfigLoader
- */
 export function createDynamicHandlerRegistry(
   mcpServerId: string,
   configLoader?: ConfigLoader
@@ -337,9 +275,6 @@ export function createDynamicHandlerRegistry(
   return new DatabaseDynamicHandlerRegistry(mcpServerId, configLoader);
 }
 
-/**
- * Create enhanced handler registries that combine dynamic and static handlers
- */
 export function createEnhancedHandlerRegistries(
   mcpServerId: string,
   staticHandlers: {
@@ -358,6 +293,7 @@ export function createEnhancedHandlerRegistries(
       inputSchema: unknown;
     }>
   >;
+
   getAvailableResources: (context?: RequestContext) => Promise<
     Array<{
       uri: string;
@@ -366,6 +302,7 @@ export function createEnhancedHandlerRegistries(
       mimeType?: string;
     }>
   >;
+
   getAvailablePrompts: (context?: RequestContext) => Promise<
     Array<{
       name: string;
@@ -382,7 +319,6 @@ export function createEnhancedHandlerRegistries(
     dynamicHandlers,
     fallbackHandlers: staticHandlers,
     getAvailableTools: async (context?: RequestContext) => {
-      // Combine dynamic and static tools
       const dynamicTools = await dynamicHandlers.getAvailableTools(context);
       const staticTools = Object.keys(staticHandlers.toolHandlers).map(
         (name) => ({
@@ -395,7 +331,6 @@ export function createEnhancedHandlerRegistries(
       return [...dynamicTools, ...staticTools];
     },
     getAvailableResources: async (context?: RequestContext) => {
-      // Combine dynamic and static resources
       const dynamicResources =
         await dynamicHandlers.getAvailableResources(context);
       const staticResources = Object.keys(staticHandlers.resourceHandlers).map(
@@ -409,7 +344,6 @@ export function createEnhancedHandlerRegistries(
       return [...dynamicResources, ...staticResources];
     },
     getAvailablePrompts: async (context?: RequestContext) => {
-      // Combine dynamic and static prompts
       const dynamicPrompts = await dynamicHandlers.getAvailablePrompts(context);
       const staticPrompts = Object.keys(staticHandlers.promptHandlers).map(
         (name) => ({

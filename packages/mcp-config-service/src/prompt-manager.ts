@@ -16,36 +16,25 @@ export class PromptManager implements IPromptManager {
     this.cache = new ConfigCache<PromptRegistry>(cacheOptions);
   }
 
-  /**
-   * Get all prompts for an organization and server, with defaults as fallback
-   */
   async getPrompts(context: ConfigContext): Promise<PromptRegistry> {
     const cacheKey = context.organizationId || "default";
 
-    // Check cache first
     const cached = this.cache.get(cacheKey, context.mcpServerId);
     if (cached) {
       return cached;
     }
 
-    // Load defaults from database
     const defaultPrompts = await this.loadDefaultPrompts(context.mcpServerId);
 
-    // Load custom prompts from database
     const customPrompts = await this.loadCustomPrompts(context);
 
-    // Merge with defaults (custom overrides default)
     const registry = { ...defaultPrompts, ...customPrompts };
 
-    // Cache the result
     this.cache.set(cacheKey, context.mcpServerId, registry);
 
     return registry;
   }
 
-  /**
-   * Get a specific prompt by name
-   */
   async getPrompt(
     context: ConfigContext,
     name: string
@@ -54,17 +43,11 @@ export class PromptManager implements IPromptManager {
     return prompts[name] || null;
   }
 
-  /**
-   * Invalidate cache for a specific organization and server
-   */
   invalidateCache(context: ConfigContext): void {
     const cacheKey = context.organizationId || "default";
     this.cache.delete(cacheKey, context.mcpServerId);
   }
 
-  /**
-   * Load default prompts from database
-   */
   private async loadDefaultPrompts(
     mcpServerId: string
   ): Promise<PromptRegistry> {
@@ -87,7 +70,7 @@ export class PromptManager implements IPromptManager {
           description: prompt.description,
           template,
           arguments: argumentsSchema,
-          version: 0, // Default prompts are version 0
+          version: 0,
           isActive: true,
         };
       } catch (error) {
@@ -98,13 +81,9 @@ export class PromptManager implements IPromptManager {
     return registry;
   }
 
-  /**
-   * Load custom prompts from database
-   */
   private async loadCustomPrompts(
     context: ConfigContext
   ): Promise<PromptRegistry> {
-    // Skip custom prompts if no organization context
     if (!context.organizationId) {
       return {};
     }
@@ -123,13 +102,11 @@ export class PromptManager implements IPromptManager {
     const registry: PromptRegistry = {};
     const seenNames = new Set<string>();
 
-    // Only keep the latest version of each prompt
     for (const prompt of prompts) {
       if (!seenNames.has(prompt.name)) {
         seenNames.add(prompt.name);
 
         try {
-          // Parse the template and arguments from JSON
           const template = this.parseTemplate(prompt.template);
           const argumentsSchema = this.parseArgumentsSchema(prompt.arguments);
 
@@ -151,9 +128,6 @@ export class PromptManager implements IPromptManager {
     return registry;
   }
 
-  /**
-   * Parse template from JSON
-   */
   private parseTemplate(templateJson: unknown): PromptTemplate["template"] {
     const TemplateSchema = z.array(
       z.object({
@@ -165,13 +139,7 @@ export class PromptManager implements IPromptManager {
     return TemplateSchema.parse(templateJson);
   }
 
-  /**
-   * Parse arguments schema from JSON
-   */
   private parseArgumentsSchema(_argumentsJson: unknown): z.ZodSchema {
-    // For now, we'll store the schema definition as JSON and reconstruct it
-    // In a real implementation, you might want a more sophisticated approach
-    // This is a placeholder - in production, you'd need a proper schema reconstruction
     const schema = z.record(z.string(), z.unknown());
     return schema;
   }

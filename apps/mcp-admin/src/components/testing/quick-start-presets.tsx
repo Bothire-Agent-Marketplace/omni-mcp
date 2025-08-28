@@ -1,14 +1,14 @@
 "use client";
 
+import { Zap, MessageSquare, Database, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Zap, MessageSquare, Database, Activity } from "lucide-react";
+  CardTitle } from
+"@/components/ui/card";
 
 interface QuickStartPresetsProps {
   onLoadPreset: (preset: "search" | "linear" | "devtools") => void;
@@ -16,25 +16,25 @@ interface QuickStartPresetsProps {
 
 export function QuickStartPresets({ onLoadPreset }: QuickStartPresetsProps) {
   const presets = [
-    {
-      id: "search" as const,
-      label: "AI Search Test",
-      icon: MessageSquare,
-      description: "Test Perplexity search functionality",
-    },
-    {
-      id: "linear" as const,
-      label: "Linear Issues",
-      icon: Database,
-      description: "Test Linear issue search",
-    },
-    {
-      id: "devtools" as const,
-      label: "DevTools Test",
-      icon: Activity,
-      description: "Test Chrome DevTools integration",
-    },
-  ];
+  {
+    id: "search" as const,
+    label: "AI Search Test",
+    icon: MessageSquare,
+    description: "Test Perplexity search functionality"
+  },
+  {
+    id: "linear" as const,
+    label: "Linear Issues",
+    icon: Database,
+    description: "Test Linear issue search"
+  },
+  {
+    id: "devtools" as const,
+    label: "DevTools Test",
+    icon: Activity,
+    description: "Test Chrome DevTools integration"
+  }];
+
 
   return (
     <Card>
@@ -58,15 +58,15 @@ export function QuickStartPresets({ onLoadPreset }: QuickStartPresetsProps) {
                 size="sm"
                 onClick={() => onLoadPreset(preset.id)}
                 className="flex items-center gap-2"
-                title={preset.description}
-              >
+                title={preset.description}>
+
                 <Icon className="w-4 h-4" />
                 {preset.label}
-              </Button>
-            );
+              </Button>);
+
           })}
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

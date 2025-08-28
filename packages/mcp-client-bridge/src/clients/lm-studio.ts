@@ -8,11 +8,6 @@ import {
   BaseMCPClientConfig,
 } from "../types/client-types.js";
 
-/**
- * LM Studio client implementation
- * Writes ~/.lmstudio/mcp.json with Cursor-compatible structure
- * Docs: LM Studio 0.3.17 MCP support (mcp.json under ~/.lmstudio)
- */
 export class LMStudioClient {
   private bridges: Map<string, MCPRemoteBridge> = new Map();
   private bridgeOptions: BridgeOptions;
@@ -55,7 +50,7 @@ export class LMStudioClient {
     if (os === "win32") {
       return resolve(homedir(), ".lmstudio", "mcp.json");
     }
-    // macOS/Linux
+
     return resolve(homedir(), ".lmstudio", "mcp.json");
   }
 

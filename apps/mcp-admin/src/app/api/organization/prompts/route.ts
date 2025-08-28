@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceFactory } from "@/lib/services/service.factory";
 
-// Schema for creating/updating prompts
 const PromptSchema = z.object({
   mcpServerId: z.string().uuid("Invalid MCP server ID"),
   name: z
@@ -15,18 +14,17 @@ const PromptSchema = z.object({
     .min(1, "Description is required")
     .max(500, "Description must be less than 500 characters"),
   template: z.union([
-    z.record(z.string(), z.unknown()), // Legacy object format
+    z.record(z.string(), z.unknown()),
     z.array(
       z.object({
         role: z.enum(["user", "system", "assistant"]),
         content: z.string(),
       })
-    ), // New array format for consistency with defaults
+    ),
   ]),
   arguments: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
-// GET /api/organization/prompts - Get organization prompts
 export async function GET() {
   try {
     const { userId, orgId } = await auth();
@@ -65,7 +63,6 @@ export async function GET() {
   }
 }
 
-// POST /api/organization/prompts - Create new organization prompt
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();
@@ -87,7 +84,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
@@ -104,7 +100,7 @@ export async function POST(request: NextRequest) {
       description: validatedData.description,
       template: validatedData.template,
       arguments: validatedData.arguments,
-      createdBy: user.id, // Use the internal user UUID instead of Clerk ID
+      createdBy: user.id,
     });
 
     return NextResponse.json({

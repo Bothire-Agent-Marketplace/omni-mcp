@@ -1,33 +1,33 @@
 "use client";
 
+import { Eye, Copy } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { CreatePromptButton } from "../forms/create-prompt-button";
+import { PromptActions } from "../forms/prompt-actions";
+import { PromptViewer } from "../prompt-viewer";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Eye, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle } from
+"@/components/ui/dialog";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { CreatePromptButton } from "../forms/create-prompt-button";
-import { PromptActions } from "../forms/prompt-actions";
-import { PromptViewer } from "../prompt-viewer";
-import { toast } from "sonner";
+  TableRow } from
+"@/components/ui/table";
 import type {
   OrganizationPrompt,
   DefaultPrompt,
-  McpServer,
-} from "@/types/prompts";
+  McpServer } from
+"@/types/prompts";
 
 interface PromptsViewProps {
   prompts: OrganizationPrompt[];
@@ -42,10 +42,10 @@ export function PromptsView({
   defaultPrompts,
   mcpServers,
   organizationId,
-  userId,
+  userId
 }: PromptsViewProps) {
   const [selectedDefaultPrompt, setSelectedDefaultPrompt] =
-    useState<DefaultPrompt | null>(null);
+  useState<DefaultPrompt | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
 
   const handleViewDefaultPrompt = (prompt: DefaultPrompt) => {
@@ -55,19 +55,19 @@ export function PromptsView({
 
   const handleCopyDefaultPrompt = async (prompt: DefaultPrompt) => {
     try {
-      // Extract template content for copying
+
       let templateContent = "";
       if (typeof prompt.template === "string") {
         templateContent = prompt.template;
       } else if (Array.isArray(prompt.template)) {
-        templateContent = prompt.template
-          .map((item) => {
-            if (item && typeof item === "object" && "content" in item) {
-              return (item as { content: string }).content;
-            }
-            return JSON.stringify(item);
-          })
-          .join("\n\n");
+        templateContent = prompt.template.
+        map((item) => {
+          if (item && typeof item === "object" && "content" in item) {
+            return (item as {content: string;}).content;
+          }
+          return JSON.stringify(item);
+        }).
+        join("\n\n");
       } else {
         templateContent = JSON.stringify(prompt.template, null, 2);
       }
@@ -82,7 +82,7 @@ export function PromptsView({
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Prompts</h2>
@@ -93,11 +93,11 @@ export function PromptsView({
         <CreatePromptButton
           mcpServers={mcpServers}
           organizationId={organizationId}
-          userId={userId}
-        />
+          userId={userId} />
+
       </div>
 
-      {/* Organization Prompts */}
+      {}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -113,19 +113,19 @@ export function PromptsView({
           </div>
         </CardHeader>
         <CardContent>
-          {prompts.length === 0 ? (
-            <div className="text-center py-8">
+          {prompts.length === 0 ?
+          <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 No custom prompts yet. Create your first prompt to get started.
               </p>
               <CreatePromptButton
-                mcpServers={mcpServers}
-                organizationId={organizationId}
-                userId={userId}
-              />
-            </div>
-          ) : (
-            <Table>
+              mcpServers={mcpServers}
+              organizationId={organizationId}
+              userId={userId} />
+
+            </div> :
+
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -137,8 +137,8 @@ export function PromptsView({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {prompts.map((prompt) => (
-                  <TableRow key={prompt.id}>
+                {prompts.map((prompt) =>
+              <TableRow key={prompt.id}>
                     <TableCell className="font-medium">{prompt.name}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">{prompt.mcpServer.name}</Badge>
@@ -150,33 +150,33 @@ export function PromptsView({
                       <Badge variant="outline">v{prompt.version}</Badge>
                     </TableCell>
                     <TableCell>
-                      {prompt.createdByUser ? (
-                        <span className="text-sm">
+                      {prompt.createdByUser ?
+                  <span className="text-sm">
                           {prompt.createdByUser.firstName}{" "}
                           {prompt.createdByUser.lastName}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
+                        </span> :
+
+                  <span className="text-sm text-muted-foreground">
                           System
                         </span>
-                      )}
+                  }
                     </TableCell>
                     <TableCell>
                       <PromptActions
-                        prompt={prompt}
-                        organizationId={organizationId}
-                        mcpServers={mcpServers}
-                      />
+                    prompt={prompt}
+                    organizationId={organizationId}
+                    mcpServers={mcpServers} />
+
                     </TableCell>
                   </TableRow>
-                ))}
+              )}
               </TableBody>
             </Table>
-          )}
+          }
         </CardContent>
       </Card>
 
-      {/* Default Prompts Reference */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle>Default Prompts Reference</CardTitle>
@@ -185,14 +185,14 @@ export function PromptsView({
           </p>
         </CardHeader>
         <CardContent>
-          {defaultPrompts.length === 0 ? (
-            <p className="text-center py-4 text-muted-foreground">
+          {defaultPrompts.length === 0 ?
+          <p className="text-center py-4 text-muted-foreground">
               No default prompts available
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {defaultPrompts.map((prompt) => (
-                <Card key={prompt.id}>
+            </p> :
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {defaultPrompts.map((prompt) =>
+            <Card key={prompt.id}>
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -206,20 +206,20 @@ export function PromptsView({
                       </p>
                       <div className="flex gap-1">
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2"
-                          onClick={() => handleViewDefaultPrompt(prompt)}
-                        >
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-2"
+                      onClick={() => handleViewDefaultPrompt(prompt)}>
+
                           <Eye className="h-3 w-3 mr-1" />
                           View
                         </Button>
                         <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2"
-                          onClick={() => handleCopyDefaultPrompt(prompt)}
-                        >
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 px-2"
+                      onClick={() => handleCopyDefaultPrompt(prompt)}>
+
                           <Copy className="h-3 w-3 mr-1" />
                           Copy
                         </Button>
@@ -227,13 +227,13 @@ export function PromptsView({
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+            )}
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
-      {/* View Default Prompt Dialog */}
+      {}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-4 flex-shrink-0">
@@ -242,15 +242,15 @@ export function PromptsView({
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-6 min-h-0">
-            {selectedDefaultPrompt && (
-              <PromptViewer
-                prompt={selectedDefaultPrompt}
-                showActions={false}
-              />
-            )}
+            {selectedDefaultPrompt &&
+            <PromptViewer
+              prompt={selectedDefaultPrompt}
+              showActions={false} />
+
+            }
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>);
+
 }

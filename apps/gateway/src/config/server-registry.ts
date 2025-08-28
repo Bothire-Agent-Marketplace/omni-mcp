@@ -1,9 +1,5 @@
 import { serverRegistry, type MCPServerDefinition } from "@mcp/capabilities";
 
-// All server definitions are now centralized in @mcp/capabilities
-// No need to import individual definition files - they auto-register
-
-// Lazy getter for server registry to ensure proper initialization
 let _cachedServers: Record<string, MCPServerDefinition> | null = null;
 
 function getServers(): Record<string, MCPServerDefinition> {
@@ -13,7 +9,6 @@ function getServers(): Record<string, MCPServerDefinition> {
   return _cachedServers;
 }
 
-// Main export for server registry using a getter
 export const ALL_MCP_SERVERS = new Proxy(
   {} as Record<string, MCPServerDefinition>,
   {

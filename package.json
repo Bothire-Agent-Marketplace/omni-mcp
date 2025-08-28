@@ -53,14 +53,13 @@
     "dev:all-servers": "turbo dev --filter=@mcp/*-server",
     "dev:full": "turbo dev --filter=@mcp/gateway --filter=@mcp/linear-server",
     "health-check": "node scripts/health-check.js",
+    "strip:comments": "node scripts/strip-comments.mjs",
+    "strip:underscores": "node scripts/strip-unused-underscores.mjs",
     "mcp": "node scripts/mcp-cli.js",
     "mcp-remote": "mcp-remote",
     "mcp:client-bridge": "pnpm --filter @mcp/client-bridge build && node packages/mcp-client-bridge/dist/cli/index.js",
     "mcp:generate-configs": "pnpm mcp:client-bridge generate --servers '{\"gateway\":\"http://localhost:37373\"}'",
     "mcp:deploy-configs": "pnpm mcp:client-bridge deploy --servers '{\"gateway\":\"http://localhost:37373\"}'",
-    "omni-mcp": "pnpm --filter @mcp/dev-tools build && node packages/dev-tools/dist/src/cli/index.js",
-    "arc": "pnpm omni-mcp call chrome_start --args '{\"autoConnect\": true}'",
-    "arc:connect": "pnpm omni-mcp call chrome_connect_existing",
     "db:generate": "pnpm --filter @mcp/database db:generate",
     "db:push": "pnpm --filter @mcp/database db:push",
     "db:migrate": "pnpm --filter @mcp/database db:migrate",
@@ -74,6 +73,9 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@babel/generator": "^7.28.3",
+    "@babel/parser": "^7.28.3",
+    "@babel/traverse": "^7.28.3",
     "@eslint/js": "^9.31.0",
     "@types/prismjs": "^1.26.5",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
@@ -106,6 +108,7 @@
     "overrides": {}
   },
   "dependencies": {
+    "@mcp/utils": "workspace:*",
     "mcp-remote": "^0.1.18",
     "typescript-eslint": "^8.38.0",
     "zod": "^4.0.5"

@@ -1,7 +1,6 @@
 import { LinearClient } from "@linear/sdk";
 import { formatIssueWithRelations, parseLinearSearchParams } from "./utils.js";
 
-// Linear SDK Filter Types based on GraphQL API patterns
 type FilterOperand<T> = { eq?: T; in?: T[] };
 interface LinearIssueFilter {
   team?: { id?: FilterOperand<string> };
@@ -20,12 +19,6 @@ interface LinearIssueFilter {
 interface LinearUserFilter {
   active?: { eq: boolean };
 }
-
-// LinearProjectFilter removed - using Record<string, unknown> for complex filtering
-
-// ============================================================================
-// HANDLER 1: Search Issues
-// ============================================================================
 
 export async function handleLinearSearchIssues(
   linearClient: LinearClient,
@@ -89,20 +82,14 @@ export async function handleLinearSearchIssues(
     };
   }
 
-  // Identifier detection: ENG-123 style, or numeric number
   const identifierMatch = query?.match(/^[A-Za-z]+-\d+$/);
   const numberMatch = query?.match(/^\d+$/);
 
-  // Execute query with optional cursor and full-text fallback
   const issues = await linearClient.issues({
     filter,
     first: Math.min(limit, 50),
     ...(cursor ? { after: cursor } : {}),
-    ...(identifierMatch || numberMatch
-      ? { query } // Linear supports identifier/number in query for exact match
-      : query
-        ? { query } // free-text
-        : {}),
+    ...(identifierMatch || numberMatch ? { query } : query ? { query } : {}),
   });
 
   const formattedIssues = await Promise.all(
@@ -129,10 +116,6 @@ export async function handleLinearSearchIssues(
     ],
   };
 }
-
-// ============================================================================
-// HANDLER 2: Get Teams
-// ============================================================================
 
 export async function handleLinearGetTeams(
   linearClient: LinearClient,
@@ -167,10 +150,6 @@ export async function handleLinearGetTeams(
     ],
   };
 }
-
-// ============================================================================
-// HANDLER 3: Get Users
-// ============================================================================
 
 export async function handleLinearGetUsers(
   linearClient: LinearClient,
@@ -212,10 +191,6 @@ export async function handleLinearGetUsers(
   };
 }
 
-// ============================================================================
-// HANDLER 4: Get Projects
-// ============================================================================
-
 export async function handleLinearGetProjects(
   linearClient: LinearClient,
   params: unknown
@@ -227,11 +202,11 @@ export async function handleLinearGetProjects(
 
   const filter: Record<string, unknown> = {};
   if (teamId) filter.teams = { some: { id: { eq: teamId } } };
-  if (!includeArchived) filter.archivedAt = { null: true };
 
   const projects = await linearClient.projects({
     filter,
     first: Math.min(limit, 50),
+    includeArchived,
   });
 
   const formattedProjects = await Promise.all(
@@ -257,10 +232,6 @@ export async function handleLinearGetProjects(
     ],
   };
 }
-
-// ============================================================================
-// HANDLER 5: Get Issue Details
-// ============================================================================
 
 export async function handleLinearGetIssue(
   linearClient: LinearClient,

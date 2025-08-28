@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceFactory } from "@/lib/services/service.factory";
 
-// Schema for creating/updating resources
 const ResourceSchema = z.object({
   mcpServerId: z.uuid("Invalid MCP server ID"),
   name: z
@@ -26,7 +25,6 @@ const ResourceSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
-// GET /api/organization/resources - Get organization resources
 export async function GET() {
   try {
     const { userId, orgId } = await auth();
@@ -64,7 +62,6 @@ export async function GET() {
   }
 }
 
-// POST /api/organization/resources - Create new organization resource
 export async function POST(request: NextRequest) {
   try {
     const { userId, orgId } = await auth();
@@ -86,7 +83,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
@@ -104,7 +100,7 @@ export async function POST(request: NextRequest) {
       uri: validatedData.uri,
       mimeType: validatedData.mimeType || undefined,
       metadata: validatedData.metadata,
-      createdBy: user.id, // Use the internal user UUID instead of Clerk ID
+      createdBy: user.id,
     });
 
     return NextResponse.json({

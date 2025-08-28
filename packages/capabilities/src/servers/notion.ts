@@ -1,9 +1,5 @@
 import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
-// ============================================================================
-// NOTION MCP SERVER - Definition
-// ============================================================================
-
 export const NOTION_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "notion",
   port: 3004,
@@ -20,6 +16,7 @@ export const NOTION_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "notion_update_page_relations",
     "notion_search",
   ],
+
   resources: ["notion://items", "notion://projects"],
   prompts: ["notion_workflow", "notion_automation"],
 });

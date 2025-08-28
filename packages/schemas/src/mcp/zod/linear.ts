@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// Zod-first schemas for Linear
-
 export const SearchIssuesInputSchema = z.object({
   query: z.string().min(1).max(500).optional(),
   teamId: z.string().optional(),

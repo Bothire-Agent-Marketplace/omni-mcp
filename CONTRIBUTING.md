@@ -1,7 +1,6 @@
 # Contributing
 
-Thanks for contributing! This repo is a pnpm + Turbo monorepo with strict TypeScript and shared
-patterns.
+Thanks for contributing! This repo is a pnpm + Turbo monorepo
 
 ## Getting Started
 

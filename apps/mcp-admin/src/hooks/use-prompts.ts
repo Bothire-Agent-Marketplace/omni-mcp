@@ -42,10 +42,8 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
 
   const handleSavePrompt = (prompt: OrganizationPrompt) => {
     if (editingPrompt) {
-      // Update existing prompt
       setPrompts((prev) => prev.map((p) => (p.id === prompt.id ? prompt : p)));
     } else {
-      // Add new prompt
       setPrompts((prev) => [prompt, ...prev]);
     }
   };
@@ -72,7 +70,6 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
       const data = await response.json();
 
       if (data.success) {
-        // Add new prompt to state with optimistic update
         setPrompts((prev) => [data.prompt, ...prev]);
         toast.success("Prompt copied successfully!");
         return { success: true };
@@ -101,7 +98,6 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
       const data = await response.json();
 
       if (data.success) {
-        // Remove prompt from state with optimistic update
         setPrompts((prev) => prev.filter((p) => p.id !== promptId));
         toast.success("Prompt deleted successfully!");
         return { success: true };
@@ -142,7 +138,6 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
   };
 
   return {
-    // State
     prompts,
     selectedPrompt,
     selectedDefaultPrompt,
@@ -152,7 +147,6 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
     isFormDialogOpen,
     isLoading,
 
-    // Actions
     handleViewPrompt,
     handleViewDefaultPrompt,
     handleCreatePrompt,
@@ -162,10 +156,8 @@ export function usePrompts({ initialPrompts }: UsePromptsProps) {
     deletePrompt,
     closeDialogs,
 
-    // Utilities
     formatUserName,
 
-    // Setters for dialog control
     setIsViewDialogOpen,
     setIsDefaultDialogOpen,
     setIsFormDialogOpen,

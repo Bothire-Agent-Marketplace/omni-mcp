@@ -3,9 +3,6 @@ import { Prisma } from "@mcp/database";
 import { prisma } from "@/lib/db";
 
 export class UserRepository {
-  /**
-   * Sanitize object for Prisma JSON fields by removing undefined values
-   */
   private sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
     if (obj === null || obj === undefined) {
       return {};
@@ -13,9 +10,6 @@ export class UserRepository {
     return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
   }
 
-  /**
-   * Get user by Clerk ID
-   */
   async findByClerkId(clerkId: string) {
     return await prisma.user.findUnique({
       where: {
@@ -25,9 +19,6 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Get user by database ID
-   */
   async findById(userId: string) {
     return await prisma.user.findUnique({
       where: {
@@ -37,9 +28,6 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Get user's organization memberships
-   */
   async getUserOrganizations(userId: string) {
     return await prisma.organizationMembership.findMany({
       where: {
@@ -55,9 +43,6 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Create or update user from Clerk data
-   */
   async upsertUser(userData: UserJSON): Promise<void> {
     const sanitizedMetadata = this.sanitizeForPrisma(userData.public_metadata);
     const userPayload = {
@@ -79,23 +64,18 @@ export class UserRepository {
         create: userPayload,
       });
     } catch (error: unknown) {
-      // Handle unique constraint violations gracefully
       if (
         error &&
         typeof error === "object" &&
         "code" in error &&
         error.code === "P2002"
       ) {
-        // User already exists, skip silently
         return;
       }
       throw error;
     }
   }
 
-  /**
-   * Create user record directly (used for membership webhooks)
-   */
   async createUser(userData: {
     clerkId: string;
     email: string;
@@ -115,15 +95,12 @@ export class UserRepository {
     });
   }
 
-  /**
-   * Soft delete user
-   */
   async softDeleteUser(clerkId: string): Promise<void> {
     await prisma.user.update({
       where: { clerkId },
       data: {
         deletedAt: new Date(),
-        // Anonymize email to prevent conflicts
+
         email: `deleted-${clerkId}@deleted.local`,
       },
     });

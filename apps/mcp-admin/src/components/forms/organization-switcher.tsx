@@ -8,7 +8,7 @@ interface OrganizationSwitcherProps {
 }
 
 export function OrganizationSwitcher({
-  organizationId,
+  organizationId
 }: OrganizationSwitcherProps) {
   const { setActive } = useOrganizationList();
 
@@ -21,9 +21,9 @@ export function OrganizationSwitcher({
       size="sm"
       variant="outline"
       className="w-full"
-      onClick={handleSwitch}
-    >
+      onClick={handleSwitch}>
+
       Switch To
-    </Button>
-  );
+    </Button>);
+
 }

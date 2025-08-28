@@ -1,7 +1,3 @@
-// ============================================================================
-// NOTION MCP SERVER - Tools
-// ============================================================================
-
 import { NotionInputSchemas } from "@mcp/schemas";
 import {
   createGenericToolHandlers,
@@ -10,17 +6,7 @@ import {
 } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
-// TODO: Replace with your actual notion SDK/API client
-// import { NotionClient } from "@notion/sdk";
-
-// ============================================================================
-// NOTION MCP SERVER - Tool Definitions
-// ============================================================================
-
-const notionToolDefinitions: Record<
-  string,
-  ToolDefinition<unknown /* NotionClient */>
-> = {
+const notionToolDefinitions: Record<string, ToolDefinition<unknown>> = {
   notion_search_items: {
     handler: handlers.handleNotionSearchItems,
     metadata: {
@@ -87,12 +73,8 @@ const notionToolDefinitions: Record<
   },
 };
 
-// ============================================================================
-// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
-// ============================================================================
-
-export const createToolHandlers = (/* notionClient: NotionClient */) =>
-  createGenericToolHandlers(notionToolDefinitions, {} /* notionClient */);
+export const createToolHandlers = () =>
+  createGenericToolHandlers(notionToolDefinitions, {});
 
 export const getAvailableTools = () =>
   getGenericAvailableTools(notionToolDefinitions);

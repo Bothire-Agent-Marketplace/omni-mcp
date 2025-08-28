@@ -18,6 +18,12 @@
       "path": "../../packages/utils"
     },
     {
+      "path": "../../packages/database"
+    },
+    {
+      "path": "../../packages/mcp-config-service"
+    },
+    {
       "path": "../perplexity-mcp-server"
     },
     {

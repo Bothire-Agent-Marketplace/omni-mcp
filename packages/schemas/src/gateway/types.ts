@@ -10,13 +10,6 @@ export interface ServerInstance {
   capabilities: string[];
 }
 
-// ============================================================================
-// SESSION MANAGEMENT TYPES (UNIFIED)
-// ============================================================================
-
-/**
- * Core session data - shared between runtime and database
- */
 export interface BaseSession {
   id: string;
   userId: string;
@@ -26,21 +19,13 @@ export interface BaseSession {
   lastActivity?: Date;
 }
 
-/**
- * Runtime session for active connections (gateway)
- * Extends base session with connection-specific data
- */
 export interface Session extends BaseSession {
-  lastActivity: Date; // Required for runtime sessions
+  lastActivity: Date;
   serverConnections: Map<string, ServerInstance>;
   transport: "http" | "websocket";
   connection?: IWebSocket;
 }
 
-/**
- * Database session structure (matches Prisma model)
- * For session persistence and cross-request continuity
- */
 export interface DatabaseSession extends BaseSession {
   sessionToken: string;
   metadata: Record<string, unknown>;
@@ -48,9 +33,6 @@ export interface DatabaseSession extends BaseSession {
   updatedAt: Date;
 }
 
-/**
- * JWT session payload for token-based authentication
- */
 export interface SessionJwtPayload {
   sessionId: string;
   userId: string;
@@ -80,7 +62,6 @@ export interface HealthStatus {
   };
 }
 
-// HTTP Types - consolidated from various components
 export interface HTTPHeaders {
   authorization?: string;
   Authorization?: string;
@@ -108,9 +89,6 @@ export interface GatewayHTTPResponse extends HTTPResponse {
   sessionToken?: string;
 }
 
-// Deprecated schemas removed - use unified schemas from @mcp/schemas
-
-// Fastify Route Generic Interfaces
 export interface MCPRouteGeneric {
   Body: HTTPRequestBody;
   Headers: HTTPHeaders;

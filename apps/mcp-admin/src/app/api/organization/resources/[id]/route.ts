@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceFactory } from "@/lib/services/service.factory";
 
-// Schema for updating resources
 const UpdateResourceSchema = z.object({
   name: z
     .string()
@@ -29,7 +28,6 @@ const UpdateResourceSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// PUT /api/organization/resources/[id] - Update resource
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -44,7 +42,6 @@ export async function PUT(
     const userService = ServiceFactory.getUserService();
     const resourceService = ServiceFactory.getResourceService();
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
@@ -55,7 +52,6 @@ export async function PUT(
     const body = await request.json();
     const validatedData = UpdateResourceSchema.parse(body);
 
-    // Convert null mimeType to undefined to match service interface
     const serviceData = {
       ...validatedData,
       mimeType:
@@ -96,7 +92,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/organization/resources/[id] - Delete resource
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -111,7 +106,6 @@ export async function DELETE(
     const userService = ServiceFactory.getUserService();
     const resourceService = ServiceFactory.getResourceService();
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {

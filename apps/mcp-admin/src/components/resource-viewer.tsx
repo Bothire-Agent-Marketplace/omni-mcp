@@ -1,10 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Copy,
   User,
@@ -19,10 +14,13 @@ import {
   FileText,
   Database,
   ExternalLink,
-  Download,
 } from "lucide-react";
-import { toast } from "sonner";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OrganizationResource, DefaultResource } from "@/types/resources";
 
 interface ResourceViewerProps {
@@ -34,7 +32,6 @@ interface ResourceViewerProps {
   onDelete?: () => void;
 }
 
-// URI validation patterns
 const URI_PATTERNS = {
   http: /^https?:\/\/.+/i,
   file: /^file:\/\/.+/i,
@@ -48,7 +45,7 @@ export function ResourceViewer({
   showActions = true,
   onEdit,
   onCopy,
-  onDelete,
+  onDelete: _onDelete,
 }: ResourceViewerProps) {
   const [uriTestResult, setUriTestResult] = useState<{
     success: boolean;
@@ -61,7 +58,6 @@ export function ResourceViewer({
 
   const isCustomResource = "createdByUser" in resource;
 
-  // Determine URI scheme and type
   const getUriInfo = (uri: string) => {
     if (URI_PATTERNS.http.test(uri)) {
       return {
@@ -101,7 +97,6 @@ export function ResourceViewer({
 
   const uriInfo = getUriInfo(resource.uri);
 
-  // Test URI accessibility
   const testUri = async () => {
     if (!uriInfo.accessible) return;
 
@@ -117,7 +112,7 @@ export function ResourceViewer({
 
       const result = await response.json();
       setUriTestResult(result);
-    } catch (error) {
+    } catch {
       setUriTestResult({
         success: false,
         error: "Failed to test URI",
@@ -163,7 +158,7 @@ export function ResourceViewer({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header */}
+      {}
       <div className="flex items-start justify-between">
         <div className="space-y-3 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -182,7 +177,7 @@ export function ResourceViewer({
             {resource.description}
           </p>
 
-          {/* Meta information */}
+          {}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Server className="w-4 h-4" />
@@ -213,7 +208,7 @@ export function ResourceViewer({
           </div>
         </div>
 
-        {/* Actions */}
+        {}
         {showActions && (
           <div className="flex items-center gap-2">
             {uriInfo.accessible && (
@@ -238,7 +233,7 @@ export function ResourceViewer({
         )}
       </div>
 
-      {/* URI Information */}
+      {}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -268,7 +263,7 @@ export function ResourceViewer({
             </Button>
           </div>
 
-          {/* URI Test Results */}
+          {}
           {uriInfo.accessible && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -343,7 +338,7 @@ export function ResourceViewer({
         </CardContent>
       </Card>
 
-      {/* Additional Information */}
+      {}
       {isCustomResource && (
         <Card>
           <CardHeader className="pb-3">

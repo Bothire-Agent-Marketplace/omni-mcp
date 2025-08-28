@@ -36,7 +36,6 @@ export function useMcpTesting({
   currentOrganization,
   initialCapabilities,
 }: UseMcpTestingProps) {
-  // State management
   const [activeTab, setActiveTab] = useState("tools");
   const [capabilities, setCapabilities] = useState<McpTestCapabilities | null>(
     initialCapabilities
@@ -46,14 +45,12 @@ export function useMcpTesting({
     useState<Organization>(currentOrganization as Organization);
   const [simulateContext, setSimulateContext] = useState(false);
 
-  // Test state
   const [isTestRunning, setIsTestRunning] = useState(false);
   const [lastTestResult, setLastTestResult] = useState<McpTestResult | null>(
     null
   );
   const [testHistory, setTestHistory] = useState<McpTestResult[]>([]);
 
-  // Test data state
   const [testFixtures, setTestFixtures] = useState<Record<
     string,
     TestFixtureItem[]
@@ -61,7 +58,6 @@ export function useMcpTesting({
   const [testScenarios, setTestScenarios] = useState<TestScenario[]>([]);
   const [isLoadingTestData, setIsLoadingTestData] = useState(false);
 
-  // Form state with defaults
   const [toolForm, setToolForm] = useState({
     name: "perplexity_search",
     arguments: JSON.stringify(
@@ -86,10 +82,8 @@ export function useMcpTesting({
     target: "gateway",
   });
 
-  // Default arguments for different tools
   const getDefaultArgsForTool = (toolName: string) => {
     const defaultArgs: Record<string, unknown> = {
-      // Perplexity AI Tools
       perplexity_search: {
         query: "What is MCP (Model Context Protocol)?",
         model: "sonar-pro",
@@ -109,7 +103,6 @@ export function useMcpTesting({
         format: "bullet_points",
       },
 
-      // Linear Tools
       linear_search_issues: {
         query: "bug report",
         limit: 5,
@@ -129,7 +122,6 @@ export function useMcpTesting({
         issueId: "OMN-123",
       },
 
-      // Chrome Management Tools
       chrome_start: {
         headless: false,
         userDataDir: "",
@@ -154,7 +146,6 @@ export function useMcpTesting({
         force: false,
       },
 
-      // Console Tools
       console_logs: {
         limit: 50,
         levels: ["log", "warn", "error"],
@@ -165,7 +156,6 @@ export function useMcpTesting({
       },
       console_clear: {},
 
-      // Network Tools
       network_requests: {
         limit: 20,
         filter: "all",
@@ -184,7 +174,6 @@ export function useMcpTesting({
     return defaultArgs[toolName] || {};
   };
 
-  // Load capabilities
   const loadCapabilities = async () => {
     setIsLoadingCapabilities(true);
     try {
@@ -206,7 +195,6 @@ export function useMcpTesting({
     }
   };
 
-  // Load default test parameters
   const loadDefaultTestParams = async () => {
     try {
       const defaultParams = await testingService.loadTestData(
@@ -257,7 +245,6 @@ export function useMcpTesting({
     }
   };
 
-  // Update defaults from capabilities
   const loadDefaultsFromCapabilities = () => {
     if (!capabilities) return;
 
@@ -301,7 +288,6 @@ export function useMcpTesting({
     }
   };
 
-  // Quick preset functions
   const loadQuickPreset = (preset: "search" | "linear" | "devtools") => {
     switch (preset) {
       case "search":
@@ -343,7 +329,6 @@ export function useMcpTesting({
     toast.success(`Loaded ${preset} preset`);
   };
 
-  // Load test data
   const loadTestData = async (
     type:
       | "fixtures"
@@ -374,7 +359,6 @@ export function useMcpTesting({
     }
   };
 
-  // Run test
   const runTest = async (
     operation: "tool" | "prompt" | "resource" | "health",
     target: string,
@@ -424,7 +408,6 @@ export function useMcpTesting({
     }
   };
 
-  // Test handlers - now support bypass cache
   const handleToolTest = (bypassCache: boolean = false) => {
     try {
       const args = JSON.parse(toolForm.arguments);
@@ -446,7 +429,6 @@ export function useMcpTesting({
     runTest("health", healthForm.target, {}, bypassCache);
   };
 
-  // Helper functions
   const getStatusIcon = (success: boolean) => {
     return success ? "success" : "error";
   };
@@ -456,7 +438,6 @@ export function useMcpTesting({
     return `${(ms / 1000).toFixed(1)}s`;
   };
 
-  // Effects
   useEffect(() => {
     if (selectedOrganization.id !== currentOrganization.id) {
       loadCapabilities();
@@ -471,7 +452,6 @@ export function useMcpTesting({
   }, [capabilities]);
 
   return {
-    // State
     activeTab,
     setActiveTab,
     capabilities,
@@ -487,7 +467,6 @@ export function useMcpTesting({
     testScenarios,
     isLoadingTestData,
 
-    // Forms
     toolForm,
     setToolForm,
     promptForm,
@@ -497,7 +476,6 @@ export function useMcpTesting({
     healthForm,
     setHealthForm,
 
-    // Actions
     loadCapabilities,
     loadQuickPreset,
     loadTestData,
@@ -507,7 +485,6 @@ export function useMcpTesting({
     handleResourceTest,
     handleHealthTest,
 
-    // Helpers
     getStatusIcon,
     formatResponseTime,
     getDefaultArgsForTool,

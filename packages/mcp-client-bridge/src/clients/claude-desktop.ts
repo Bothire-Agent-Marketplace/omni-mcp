@@ -9,9 +9,6 @@ import {
   BaseMCPClientConfig,
 } from "../types/client-types.js";
 
-/**
- * Claude Desktop client implementation
- */
 export class ClaudeDesktopClient {
   private bridges: Map<string, MCPRemoteBridge> = new Map();
   private bridgeOptions: BridgeOptions;
@@ -22,9 +19,6 @@ export class ClaudeDesktopClient {
     this.globalShortcut = globalShortcut;
   }
 
-  /**
-   * Add a server endpoint with its bridge configuration
-   */
   addServer(
     name: string,
     endpoint: ServerEndpoint,
@@ -35,23 +29,14 @@ export class ClaudeDesktopClient {
     this.bridges.set(name, bridge);
   }
 
-  /**
-   * Remove a server configuration
-   */
   removeServer(name: string): void {
     this.bridges.delete(name);
   }
 
-  /**
-   * Set global shortcut
-   */
   setGlobalShortcut(shortcut: string): void {
     this.globalShortcut = shortcut;
   }
 
-  /**
-   * Generate Claude Desktop MCP configuration
-   */
   generateConfig(): ClaudeDesktopMCPConfig {
     const mcpServers: Record<string, BaseMCPClientConfig> = {};
 
@@ -78,14 +63,11 @@ export class ClaudeDesktopClient {
     return config;
   }
 
-  /**
-   * Get the default Claude Desktop configuration path based on the operating system
-   */
   getDefaultConfigPath(): string {
     const os = platform();
 
     switch (os) {
-      case "darwin": // macOS
+      case "darwin":
         return resolve(
           homedir(),
           "Library",
@@ -93,7 +75,7 @@ export class ClaudeDesktopClient {
           "Claude",
           "claude_desktop_config.json"
         );
-      case "win32": // Windows
+      case "win32":
         return resolve(
           homedir(),
           "AppData",
@@ -101,7 +83,7 @@ export class ClaudeDesktopClient {
           "Claude",
           "claude_desktop_config.json"
         );
-      case "linux": // Linux
+      case "linux":
         return resolve(
           homedir(),
           ".config",
@@ -109,30 +91,21 @@ export class ClaudeDesktopClient {
           "claude_desktop_config.json"
         );
       default:
-        // Fallback to a generic location
         return resolve(homedir(), ".claude_desktop_config.json");
     }
   }
 
-  /**
-   * Save configuration to a file
-   */
   async saveConfig(configPath?: string): Promise<void> {
     const path = configPath || this.getDefaultConfigPath();
     const config = this.generateConfig();
 
-    // Ensure directory exists
     await mkdir(dirname(path), { recursive: true });
 
-    // Write config file
     await writeFile(path, JSON.stringify(config, null, 2), "utf8");
 
     console.log(`✅ Claude Desktop configuration saved to: ${path}`);
   }
 
-  /**
-   * Validate all bridges
-   */
   async validate(): Promise<boolean> {
     let allValid = true;
 
@@ -149,9 +122,6 @@ export class ClaudeDesktopClient {
     return allValid;
   }
 
-  /**
-   * Test connections to all servers
-   */
   async testConnections(): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {};
 
@@ -174,9 +144,6 @@ export class ClaudeDesktopClient {
     return results;
   }
 
-  /**
-   * Get configuration summary
-   */
   getSummary(): {
     serverCount: number;
     globalShortcut?: string;
@@ -202,16 +169,10 @@ export class ClaudeDesktopClient {
     };
   }
 
-  /**
-   * Get bridge by name
-   */
   getBridge(name: string): MCPRemoteBridge | undefined {
     return this.bridges.get(name);
   }
 
-  /**
-   * List all configured bridges
-   */
   listBridges(): string[] {
     return Array.from(this.bridges.keys());
   }

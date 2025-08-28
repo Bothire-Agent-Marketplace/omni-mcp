@@ -1,13 +1,4 @@
-/**
- * API Response Types and Utilities
- * Standardized response patterns for all HTTP endpoints
- */
-
 export * from "./responses.js";
-
-// ============================================================================
-// UNIFIED RESPONSE ALIASES - CLEAN NAMING
-// ============================================================================
 
 export type {
   ApiSuccessResponse as McpSuccessResponse,

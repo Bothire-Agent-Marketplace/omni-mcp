@@ -1,22 +1,20 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreateResourceButton } from "../forms/create-resource-button";
+import { ResourceActions } from "../forms/resource-actions";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { CreateResourceButton } from "../forms/create-resource-button";
-import { ResourceActions } from "../forms/resource-actions";
+  TableRow } from
+"@/components/ui/table";
 import type {
   OrganizationResource,
   DefaultResource,
-  McpServer,
-} from "@/types/resources";
+  McpServer } from
+"@/types/resources";
 
 interface ResourcesViewProps {
   resources: OrganizationResource[];
@@ -31,11 +29,11 @@ export function ResourcesView({
   defaultResources,
   mcpServers,
   organizationId,
-  userId,
+  userId
 }: ResourcesViewProps) {
   return (
     <div className="space-y-6">
-      {/* Header Section */}
+      {}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Resources</h2>
@@ -46,11 +44,11 @@ export function ResourcesView({
         <CreateResourceButton
           mcpServers={mcpServers}
           organizationId={organizationId}
-          userId={userId}
-        />
+          userId={userId} />
+
       </div>
 
-      {/* Organization Resources */}
+      {}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -66,20 +64,20 @@ export function ResourcesView({
           </div>
         </CardHeader>
         <CardContent>
-          {resources.length === 0 ? (
-            <div className="text-center py-8">
+          {resources.length === 0 ?
+          <div className="text-center py-8">
               <p className="text-muted-foreground mb-4">
                 No custom resources yet. Create your first resource to get
                 started.
               </p>
               <CreateResourceButton
-                mcpServers={mcpServers}
-                organizationId={organizationId}
-                userId={userId}
-              />
-            </div>
-          ) : (
-            <Table>
+              mcpServers={mcpServers}
+              organizationId={organizationId}
+              userId={userId} />
+
+            </div> :
+
+          <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
@@ -91,8 +89,8 @@ export function ResourcesView({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resources.map((resource) => (
-                  <TableRow key={resource.id}>
+                {resources.map((resource) =>
+              <TableRow key={resource.id}>
                     <TableCell className="font-medium">
                       {resource.name}
                     </TableCell>
@@ -105,42 +103,42 @@ export function ResourcesView({
                       {resource.uri}
                     </TableCell>
                     <TableCell>
-                      {resource.mimeType ? (
-                        <Badge variant="outline" className="text-xs">
+                      {resource.mimeType ?
+                  <Badge variant="outline" className="text-xs">
                           {resource.mimeType}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
-                      )}
+                        </Badge> :
+
+                  <span className="text-muted-foreground text-sm">—</span>
+                  }
                     </TableCell>
                     <TableCell>
-                      {resource.createdByUser ? (
-                        <span className="text-sm">
+                      {resource.createdByUser ?
+                  <span className="text-sm">
                           {resource.createdByUser.firstName}{" "}
                           {resource.createdByUser.lastName}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">
+                        </span> :
+
+                  <span className="text-sm text-muted-foreground">
                           System
                         </span>
-                      )}
+                  }
                     </TableCell>
                     <TableCell>
                       <ResourceActions
-                        resource={resource}
-                        organizationId={organizationId}
-                        mcpServers={mcpServers}
-                      />
+                    resource={resource}
+                    organizationId={organizationId}
+                    mcpServers={mcpServers} />
+
                     </TableCell>
                   </TableRow>
-                ))}
+              )}
               </TableBody>
             </Table>
-          )}
+          }
         </CardContent>
       </Card>
 
-      {/* Default Resources Reference */}
+      {}
       <Card>
         <CardHeader>
           <CardTitle>Default Resources Reference</CardTitle>
@@ -149,14 +147,14 @@ export function ResourcesView({
           </p>
         </CardHeader>
         <CardContent>
-          {defaultResources.length === 0 ? (
-            <p className="text-center py-4 text-muted-foreground">
+          {defaultResources.length === 0 ?
+          <p className="text-center py-4 text-muted-foreground">
               No default resources available
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {defaultResources.map((resource) => (
-                <Card key={resource.id}>
+            </p> :
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {defaultResources.map((resource) =>
+            <Card key={resource.id}>
                   <CardContent className="p-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
@@ -171,19 +169,19 @@ export function ResourcesView({
                       <p className="text-xs font-mono text-muted-foreground truncate">
                         {resource.uri}
                       </p>
-                      {resource.mimeType && (
-                        <Badge variant="outline" className="text-xs">
+                      {resource.mimeType &&
+                  <Badge variant="outline" className="text-xs">
                           {resource.mimeType}
                         </Badge>
-                      )}
+                  }
                     </div>
                   </CardContent>
                 </Card>
-              ))}
+            )}
             </div>
-          )}
+          }
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>);
+
 }

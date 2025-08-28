@@ -1,44 +1,13 @@
-// ============================================================================
-// NOTION MCP SERVER - Request Handlers
-// ============================================================================
-
-// NOTE: Apps should avoid runtime Zod in favor of input schemas from @mcp/schemas.
 import {
   SearchNotionItemsRequestSchema,
   GetNotionItemRequestSchema,
   CreateNotionItemRequestSchema,
 } from "../schemas/domain-schemas.js";
-import type {
-  NotionItemResource,
-  NotionProjectResource,
-} from "../types/domain-types.js";
 
-// TODO: Replace with your actual notion SDK/API client
-// import { NotionClient } from "@notion/sdk";
-
-// Notion SDK Filter Types based on API patterns
-interface _NotionItemFilter {
-  // TODO: Add your notion-specific filter types
-  query?: string;
-  limit?: number;
-}
-
-// ============================================================================
-// HANDLER 1: Search Items
-// ============================================================================
-
-export async function handleNotionSearchItems(
-  /* notionClient: NotionClient, */
-  params: unknown
-) {
-  // Validate and parse input with Zod
+export async function handleNotionSearchItems(params: unknown) {
   const validatedParams = SearchNotionItemsRequestSchema.parse(params);
-  const { query, limit: _limit } = validatedParams;
+  const { query } = validatedParams;
 
-  // TODO: Implement your notion search logic
-  // const results = await notionClient.searchItems({ query, limit });
-
-  // Minimal development stub; replace with real Notion client calls
   const items = [
     {
       id: "1",
@@ -59,22 +28,10 @@ export async function handleNotionSearchItems(
   };
 }
 
-// ============================================================================
-// HANDLER 2: Get Item
-// ============================================================================
-
-export async function handleNotionGetItem(
-  /* notionClient: NotionClient, */
-  params: unknown
-) {
-  // Validate and parse input with Zod
+export async function handleNotionGetItem(params: unknown) {
   const validatedParams = GetNotionItemRequestSchema.parse(params);
   const { id } = validatedParams;
 
-  // TODO: Implement your notion get item logic
-  // const item = await notionClient.getItem(id);
-
-  // Minimal development stub; replace with real Notion client calls
   const item = {
     id,
     title: `Sample item ${id}`,
@@ -93,22 +50,10 @@ export async function handleNotionGetItem(
   };
 }
 
-// ============================================================================
-// HANDLER 3: Create Item
-// ============================================================================
-
-export async function handleNotionCreateItem(
-  /* notionClient: NotionClient, */
-  params: unknown
-) {
-  // Validate and parse input with Zod
+export async function handleNotionCreateItem(params: unknown) {
   const validatedParams = CreateNotionItemRequestSchema.parse(params);
   const { title, description } = validatedParams;
 
-  // TODO: Implement your notion create item logic
-  // const item = await notionClient.createItem({ title, description });
-
-  // Minimal development stub; replace with real Notion client calls
   const item = {
     id: Math.random().toString(36).substring(7),
     title,
@@ -127,10 +72,6 @@ export async function handleNotionCreateItem(
   };
 }
 
-// ============================================================================
-// NEW: Notion API helpers
-// ============================================================================
-
 function getNotionHeaders(): Record<string, string> {
   const token = process.env.NOTION_API_KEY || "";
   return {
@@ -140,9 +81,6 @@ function getNotionHeaders(): Record<string, string> {
   };
 }
 
-// ============================================================================
-// Tool: Create Database under a Page
-// ============================================================================
 export async function handleNotionCreateDatabase(params: unknown) {
   const p = params as { parentPageId?: string; title?: string };
   if (!p?.parentPageId || !p?.title) {
@@ -159,7 +97,6 @@ export async function handleNotionCreateDatabase(params: unknown) {
       Summary: { rich_text: {} },
       FollowUpDate: { date: {} },
       FollowUpNeeded: { checkbox: {} },
-      // RelatedTickets can be added later as a relation if needed
     },
   };
 
@@ -174,9 +111,6 @@ export async function handleNotionCreateDatabase(params: unknown) {
   };
 }
 
-// ============================================================================
-// Tool: Query Database
-// ============================================================================
 export async function handleNotionQueryDatabase(params: unknown) {
   const p = params as {
     databaseId?: string;
@@ -218,9 +152,6 @@ export async function handleNotionQueryDatabase(params: unknown) {
   };
 }
 
-// ============================================================================
-// Tool: Create Page in Database
-// ============================================================================
 export async function handleNotionCreatePage(params: unknown) {
   const p = params as {
     databaseId?: string;
@@ -268,9 +199,6 @@ export async function handleNotionCreatePage(params: unknown) {
   };
 }
 
-// ============================================================================
-// Tool: Update Page Relations (requires relation property existing)
-// ============================================================================
 export async function handleNotionUpdatePageRelations(params: unknown) {
   const p = params as {
     pageId?: string;
@@ -297,9 +225,6 @@ export async function handleNotionUpdatePageRelations(params: unknown) {
   };
 }
 
-// ============================================================================
-// Tool: Search
-// ============================================================================
 export async function handleNotionSearch(params: unknown) {
   const p = params as {
     query?: string;
@@ -319,91 +244,4 @@ export async function handleNotionSearch(params: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(json, null, 2) }],
   };
-}
-
-// ============================================================================
-// RESOURCE HANDLERS
-// ============================================================================
-
-// Development resource stubs for early wiring; replace with real Notion data sources
-async function _handleNotionItemsResource(
-  /* notionClient: NotionClient, */
-  uri: string
-) {
-  try {
-    // TODO: Implement your notion get items logic
-    // const items = await notionClient.getItems();
-
-    // Minimal development stub; replace with real Notion client calls
-    const items: NotionItemResource[] = [
-      {
-        id: "1",
-        title: "Sample Item",
-        description: "Development stub item",
-        uri: uri,
-        mimeType: "application/json",
-      },
-    ];
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(items, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching items: ${errorMessage}`,
-        },
-      ],
-    };
-  }
-}
-
-async function _handleNotionProjectsResource(
-  /* notionClient: NotionClient, */
-  uri: string
-) {
-  try {
-    // TODO: Implement your notion get projects logic
-    // const projects = await notionClient.getProjects();
-
-    // Minimal development stub; replace with real Notion client calls
-    const projects: NotionProjectResource[] = [
-      {
-        id: "1",
-        name: "Sample Project",
-        description: "Development stub project",
-        uri: uri,
-        mimeType: "application/json",
-      },
-    ];
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(projects, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching projects: ${errorMessage}`,
-        },
-      ],
-    };
-  }
 }

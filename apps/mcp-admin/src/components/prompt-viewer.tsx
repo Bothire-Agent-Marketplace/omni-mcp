@@ -1,28 +1,23 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Copy,
   User,
   Settings,
   Code,
   Info,
-  CheckCircle2,
-  AlertCircle,
   Clock,
   Server,
   MessageSquare,
   Hash,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { OrganizationPrompt, DefaultPrompt } from "@/types/prompts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractVariablesFromTemplate } from "@/lib/prompt-utils";
+import type { OrganizationPrompt, DefaultPrompt } from "@/types/prompts";
 
-// Type for argument configuration in prompt schema
 interface ArgumentConfig {
   type?: string;
   description?: string;
@@ -47,7 +42,7 @@ export function PromptViewer({
   showActions = true,
   onEdit,
   onCopy,
-  onDelete,
+  onDelete: _onDelete,
 }: PromptViewerProps) {
   const isCustomPrompt = "version" in prompt && "createdByUser" in prompt;
 
@@ -55,7 +50,6 @@ export function PromptViewer({
     if (typeof prompt.template === "string") {
       return prompt.template;
     } else if (Array.isArray(prompt.template)) {
-      // Handle new message format (default prompts and normalized custom prompts)
       return prompt.template
         .map((item) => {
           if (item && typeof item === "object" && "content" in item) {
@@ -68,7 +62,6 @@ export function PromptViewer({
       typeof prompt.template === "object" &&
       prompt.template !== null
     ) {
-      // Handle legacy custom prompt formats
       const templateObj = prompt.template as Record<string, unknown>;
 
       if ("message" in templateObj && typeof templateObj.message === "string") {
@@ -107,7 +100,7 @@ export function PromptViewer({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Header */}
+      {}
       <div className="flex items-start justify-between">
         <div className="space-y-3 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -126,7 +119,7 @@ export function PromptViewer({
           </div>
           <p className="text-muted-foreground text-lg">{prompt.description}</p>
 
-          {/* Meta information */}
+          {}
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1">
               <Server className="w-4 h-4" />
@@ -157,7 +150,7 @@ export function PromptViewer({
           </div>
         </div>
 
-        {/* Actions */}
+        {}
         {showActions && (
           <div className="flex items-center gap-2">
             {onEdit && (
@@ -176,7 +169,7 @@ export function PromptViewer({
         )}
       </div>
 
-      {/* Template Content */}
+      {}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
@@ -202,7 +195,7 @@ export function PromptViewer({
         </CardContent>
       </Card>
 
-      {/* Variables */}
+      {}
       {variables.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -229,7 +222,7 @@ export function PromptViewer({
         </Card>
       )}
 
-      {/* Arguments Schema */}
+      {}
       {argumentEntries.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
@@ -315,7 +308,7 @@ export function PromptViewer({
         </Card>
       )}
 
-      {/* Additional Information */}
+      {}
       {isCustomPrompt && (
         <Card>
           <CardHeader className="pb-3">

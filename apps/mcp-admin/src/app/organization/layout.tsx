@@ -1,16 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
-// Force dynamic rendering for all organization routes
+
 export const dynamic = "force-dynamic";
 
 export default async function OrganizationLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+  children
+
+
+}: {children: React.ReactNode;}) {
   const { userId, orgId } = await auth();
 
   if (!userId) {
@@ -21,10 +21,10 @@ export default async function OrganizationLayout({
     redirect("/");
   }
 
-  // Get organization details for context
+
   const organizationService = ServiceFactory.getOrganizationService();
   const organization =
-    await organizationService.getOrganizationByClerkId(orgId);
+  await organizationService.getOrganizationByClerkId(orgId);
 
   if (!organization) {
     redirect("/");
@@ -42,6 +42,6 @@ export default async function OrganizationLayout({
         <Separator />
         {children}
       </div>
-    </div>
-  );
+    </div>);
+
 }

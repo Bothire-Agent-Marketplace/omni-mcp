@@ -5,12 +5,10 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { HTTPRequestBody } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
-// Query parameters interface for type safety
 interface MCPQueryParams {
   api_key?: string;
 }
 
-// Security configuration interface
 interface SecurityConfig {
   logger: McpLogger;
   enableRateLimit: boolean;
@@ -28,9 +26,6 @@ interface AuthenticatedRequest extends FastifyRequest {
   apiKeyUsed?: string;
 }
 
-/**
- * Registers comprehensive security middleware for the Fastify gateway
- */
 export async function registerSecurityMiddleware(
   fastify: FastifyInstance,
   config: SecurityConfig
@@ -44,7 +39,6 @@ export async function registerSecurityMiddleware(
     maxRequestSizeMb: config.maxRequestSizeMb,
   });
 
-  // 1. Security Headers (Helmet)
   if (config.securityHeaders) {
     await fastify.register(helmet, {
       contentSecurityPolicy: {
@@ -60,22 +54,19 @@ export async function registerSecurityMiddleware(
           frameSrc: ["'none'"],
         },
       },
-      crossOriginEmbedderPolicy: false, // For WebSocket support
+      crossOriginEmbedderPolicy: false,
     });
     logger.info("Security headers enabled");
   }
 
-  // 2. Sensible defaults
   await fastify.register(sensible);
 
-  // 3. Rate Limiting with proper TypeScript types
   if (config.enableRateLimit) {
     await fastify.register(rateLimit, {
       max: config.rateLimitPerMinute,
       timeWindow: "1 minute",
       hook: "preHandler",
       keyGenerator: (request: FastifyRequest) => {
-        // Use API key if available, otherwise IP
         const apiKey = extractApiKey(request);
         return apiKey || request.ip;
       },
@@ -108,7 +99,6 @@ export async function registerSecurityMiddleware(
     logger.info(`Rate limiting enabled: ${config.rateLimitPerMinute} req/min`);
   }
 
-  // 4. Request Size Limiting
   fastify.addContentTypeParser(
     "application/json",
     { parseAs: "string", bodyLimit: config.maxRequestSizeMb * 1024 * 1024 },
@@ -126,12 +116,10 @@ export async function registerSecurityMiddleware(
     }
   );
 
-  // 5. API Key Authentication Middleware
   if (config.requireApiKey) {
     fastify.addHook(
       "preHandler",
       async (request: AuthenticatedRequest, reply: FastifyReply) => {
-        // Skip authentication for health check
         if (request.url === "/health") {
           return;
         }
@@ -166,7 +154,6 @@ export async function registerSecurityMiddleware(
           });
         }
 
-        // Mark request as authenticated
         request.isAuthenticated = true;
         request.apiKeyUsed = maskApiKey(apiKey);
 
@@ -180,11 +167,9 @@ export async function registerSecurityMiddleware(
     logger.info("API key authentication enabled");
   }
 
-  // 6. Input Validation Middleware with proper typing
   fastify.addHook(
     "preHandler",
     async (request: FastifyRequest, reply: FastifyReply) => {
-      // Validate MCP requests
       if (request.url === "/mcp" && request.method === "POST") {
         const validation = validateMCPRequest(request.body);
         if (!validation.valid) {
@@ -206,7 +191,6 @@ export async function registerSecurityMiddleware(
     }
   );
 
-  // 7. Security Logging Middleware
   fastify.addHook(
     "onResponse",
     async (request: AuthenticatedRequest, reply: FastifyReply) => {
@@ -228,23 +212,17 @@ export async function registerSecurityMiddleware(
   logger.info("Security middleware registration complete");
 }
 
-/**
- * Extract API key from request headers
- */
 function extractApiKey(request: FastifyRequest): string | null {
-  // Check Authorization header (Bearer token)
   const authHeader = request.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
     return authHeader.slice(7);
   }
 
-  // Check x-api-key header
   const apiKeyHeader = request.headers["x-api-key"];
   if (apiKeyHeader && typeof apiKeyHeader === "string") {
     return apiKeyHeader;
   }
 
-  // Check query parameter (less secure, for dev only)
   if (process.env.NODE_ENV === "development") {
     const apiKeyQuery = (request.query as MCPQueryParams)?.api_key;
     if (apiKeyQuery && typeof apiKeyQuery === "string") {
@@ -255,11 +233,7 @@ function extractApiKey(request: FastifyRequest): string | null {
   return null;
 }
 
-/**
- * Validate API key against configured value
- */
 function isValidApiKey(providedKey: string, configuredKey: string): boolean {
-  // Use timing-safe comparison to prevent timing attacks
   if (providedKey.length !== configuredKey.length) {
     return false;
   }
@@ -272,24 +246,17 @@ function isValidApiKey(providedKey: string, configuredKey: string): boolean {
   return result === 0;
 }
 
-/**
- * Mask API key for logging (show first 8 chars, rest as *)
- */
 function maskApiKey(apiKey: string): string {
   if (apiKey.length <= 8) return "*".repeat(apiKey.length);
   return apiKey.slice(0, 8) + "*".repeat(apiKey.length - 8);
 }
 
-/**
- * Validate MCP request structure with proper typing
- */
 function validateMCPRequest(body: unknown): {
   valid: boolean;
   errors: string[];
 } {
   const errors: string[] = [];
 
-  // Type guard to ensure body is an object
   if (!body || typeof body !== "object") {
     return {
       valid: false,
@@ -315,7 +282,6 @@ function validateMCPRequest(body: unknown): {
     errors.push("id field must be a string or number if provided");
   }
 
-  // Additional validation for specific methods
   if (mcpBody.method === "tools/call") {
     if (!mcpBody.params || typeof mcpBody.params !== "object") {
       errors.push("params field is required for tools/call");

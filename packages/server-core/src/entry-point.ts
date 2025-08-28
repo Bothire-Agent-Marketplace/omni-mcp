@@ -3,41 +3,27 @@
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import type { McpServerConfig } from "./config.js";
 
-// ============================================================================
-// GENERIC MCP SERVER ENTRY POINT
-// ============================================================================
-
-/**
- * Options for creating a server entry point
- */
 export interface EntryPointOptions<TConfig extends McpServerConfig> {
-  /** Server name for logging */
   serverName: string;
-  /** Server configuration */
+
   config: TConfig;
-  /** Function to start the server */
+
   startServer: (config: TConfig) => Promise<void>;
 }
 
-/**
- * Creates a standardized entry point for MCP servers
- */
 export function createServerEntryPoint<TConfig extends McpServerConfig>(
   options: EntryPointOptions<TConfig>
 ): { logger: ReturnType<typeof createMcpLogger>; main: () => Promise<void> } {
   const { serverName, config, startServer } = options;
 
-  // Initialize MCP-compliant logger
   const logger = createMcpLogger({
     serverName,
     logLevel: config.logLevel,
     environment: config.env,
   });
 
-  // Setup global error handlers
   setupGlobalErrorHandlers(logger);
 
-  // Graceful shutdown handlers
   process.on("SIGTERM", () => {
     logger.info("SIGTERM signal received: closing HTTP server");
     process.exit(0);
@@ -48,7 +34,6 @@ export function createServerEntryPoint<TConfig extends McpServerConfig>(
     process.exit(0);
   });
 
-  // Main server startup function
   async function main(): Promise<void> {
     try {
       logger.info(`Starting ${serverName} MCP server on port ${config.port}`);
@@ -62,9 +47,6 @@ export function createServerEntryPoint<TConfig extends McpServerConfig>(
   return { logger, main };
 }
 
-/**
- * Simplified entry point that automatically starts the server
- */
 export async function runMcpServer<TConfig extends McpServerConfig>(
   options: EntryPointOptions<TConfig>
 ): Promise<void> {

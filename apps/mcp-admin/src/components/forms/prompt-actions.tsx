@@ -1,22 +1,22 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { PromptViewer } from "@/components/prompt-viewer";
-import { PromptFormDialog } from "@/components/prompt-form-dialog";
 import { useState } from "react";
+import { PromptFormDialog } from "@/components/prompt-form-dialog";
+import { PromptViewer } from "@/components/prompt-viewer";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { OrganizationPrompt, McpServer } from "@/types/prompts";
 
 interface PromptActionsProps {
@@ -27,7 +27,7 @@ interface PromptActionsProps {
 
 export function PromptActions({
   prompt,
-  organizationId,
+  organizationId: _organizationId,
   mcpServers,
 }: PromptActionsProps) {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
@@ -41,7 +41,6 @@ export function PromptActions({
         });
 
         if (response.ok) {
-          // Refresh the page to show updated data
           window.location.reload();
         } else {
           alert("Failed to delete prompt");
@@ -78,7 +77,7 @@ export function PromptActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* View Dialog */}
+      {}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-4 flex-shrink-0">
@@ -90,14 +89,13 @@ export function PromptActions({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {}
       <PromptFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         prompt={prompt}
         mcpServers={mcpServers}
-        onSave={(updatedPrompt) => {
-          // Refresh the page to show updated data
+        onSave={() => {
           window.location.reload();
         }}
       />

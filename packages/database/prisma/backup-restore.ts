@@ -1,8 +1,3 @@
-/**
- * Backup and restore system for Clerk-synced data
- * Preserves users, organizations, and memberships during database resets
- */
-
 import { existsSync } from "fs";
 import { writeFile, readFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -10,22 +5,16 @@ import { PrismaClient } from "../generated/index.js";
 
 const prisma = new PrismaClient();
 
-// Backup directory
 const BACKUP_DIR = join(process.cwd(), "backups");
 
-/**
- * Backup essential data before database reset
- */
 export async function backupEssentialData(): Promise<void> {
   console.log("💾 Backing up essential data...");
 
-  // Ensure backup directory exists
   if (!existsSync(BACKUP_DIR)) {
     await mkdir(BACKUP_DIR, { recursive: true });
   }
 
   try {
-    // Backup users
     const users = await prisma.user.findMany({
       where: { deletedAt: null },
       include: {
@@ -38,7 +27,6 @@ export async function backupEssentialData(): Promise<void> {
       },
     });
 
-    // Backup organizations
     const organizations = await prisma.organization.findMany({
       where: { deletedAt: null },
       include: {
@@ -49,10 +37,8 @@ export async function backupEssentialData(): Promise<void> {
       },
     });
 
-    // Backup organization services (important for continuity)
     const organizationServices = await prisma.organizationService.findMany();
 
-    // Backup custom prompts and resources (if any)
     const customPrompts = await prisma.organizationPrompt.findMany({
       where: { isActive: true },
     });
@@ -61,13 +47,12 @@ export async function backupEssentialData(): Promise<void> {
       where: { isActive: true },
     });
 
-    // Create backup object
     const backup = {
       timestamp: new Date().toISOString(),
       data: {
         users: users.map((user) => ({
           ...user,
-          // Remove generated IDs to allow fresh creation
+
           id: undefined,
           memberships: user.memberships.map((m) => ({
             ...m,
@@ -97,11 +82,9 @@ export async function backupEssentialData(): Promise<void> {
       },
     };
 
-    // Write backup file
     const backupPath = join(BACKUP_DIR, `backup-${Date.now()}.json`);
     await writeFile(backupPath, JSON.stringify(backup, null, 2));
 
-    // Also create a "latest" backup for easy access
     const latestBackupPath = join(BACKUP_DIR, "latest-backup.json");
     await writeFile(latestBackupPath, JSON.stringify(backup, null, 2));
 
@@ -117,14 +100,10 @@ export async function backupEssentialData(): Promise<void> {
   }
 }
 
-/**
- * Restore essential data after database reset
- */
 export async function restoreEssentialData(backupFile?: string): Promise<void> {
   console.log("🔄 Restoring essential data...");
 
   try {
-    // Use specified backup file or latest
     const backupPath = backupFile || join(BACKUP_DIR, "latest-backup.json");
 
     if (!existsSync(backupPath)) {
@@ -139,10 +118,7 @@ export async function restoreEssentialData(backupFile?: string): Promise<void> {
       `📥 Restoring from backup: ${new Date(backup.timestamp).toLocaleString()}`
     );
 
-    // Restore in correct order to maintain relationships
-
-    // 1. Restore organizations first
-    const orgMap = new Map<string, string>(); // old clerkId -> new id
+    const orgMap = new Map<string, string>();
     for (const org of backup.data.organizations) {
       const restored = await prisma.organization.create({
         data: {
@@ -158,8 +134,7 @@ export async function restoreEssentialData(backupFile?: string): Promise<void> {
       console.log(`  ✅ Organization: ${org.name}`);
     }
 
-    // 2. Restore users
-    const userMap = new Map<string, string>(); // old clerkId -> new id
+    const userMap = new Map<string, string>();
     for (const user of backup.data.users) {
       const restored = await prisma.user.create({
         data: {
@@ -177,7 +152,6 @@ export async function restoreEssentialData(backupFile?: string): Promise<void> {
       console.log(`  ✅ User: ${user.email}`);
     }
 
-    // 3. Restore memberships
     for (const org of backup.data.organizations) {
       const orgId = orgMap.get(org.clerkId);
       if (!orgId) continue;
@@ -206,13 +180,11 @@ export async function restoreEssentialData(backupFile?: string): Promise<void> {
       }
     }
 
-    // 4. Restore organization services
     for (const org of backup.data.organizations) {
       const orgId = orgMap.get(org.clerkId);
       if (!orgId) continue;
 
       for (const service of org.services) {
-        // Find the MCP server by key
         const mcpServer = await prisma.mcpServer.findFirst({
           where: { serverKey: service.mcpServer?.serverKey },
         });
@@ -233,7 +205,6 @@ export async function restoreEssentialData(backupFile?: string): Promise<void> {
       }
     }
 
-    // 5. Restore custom prompts and resources
     for (const prompt of backup.data.customPrompts) {
       const orgId = orgMap.get(prompt.organization?.clerkId);
       if (!orgId) continue;
@@ -313,7 +284,6 @@ async function main() {
   }
 }
 
-// Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }

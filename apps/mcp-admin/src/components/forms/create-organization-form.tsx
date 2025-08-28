@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { useOrganizationList } from "@clerk/nextjs";
+import { Plus, Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Loader2 } from "lucide-react";
 
 export function CreateOrganizationForm() {
   const { createOrganization, setActive } = useOrganizationList();
@@ -16,18 +16,18 @@ export function CreateOrganizationForm() {
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName.trim() || isCreating || !createOrganization || !setActive)
-      return;
+    return;
 
     try {
       setIsCreating(true);
 
-      // Create the organization
+
       const organization = await createOrganization({ name: orgName.trim() });
 
-      // Immediately set it as active
+
       await setActive({ organization: organization.id });
 
-      // Reset form
+
       setOrgName("");
       setShowForm(false);
     } catch (error) {
@@ -43,12 +43,12 @@ export function CreateOrganizationForm() {
         onClick={() => setShowForm(true)}
         size="lg"
         className="w-full"
-        disabled={!createOrganization}
-      >
+        disabled={!createOrganization}>
+
         <Plus className="mr-2 h-4 w-4" />
         Create New Organization
-      </Button>
-    );
+      </Button>);
+
   }
 
   return (
@@ -62,36 +62,36 @@ export function CreateOrganizationForm() {
           onChange={(e) => setOrgName(e.target.value)}
           placeholder="Enter organization name"
           required
-          disabled={isCreating}
-        />
+          disabled={isCreating} />
+
       </div>
       <div className="flex gap-2">
         <Button
           type="submit"
           disabled={!orgName.trim() || isCreating}
-          className="flex-1"
-        >
-          {isCreating ? (
-            <>
+          className="flex-1">
+
+          {isCreating ?
+          <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Creating...
-            </>
-          ) : (
-            <>
+            </> :
+
+          <>
               <Plus className="w-4 h-4 mr-2" />
               Create Organization
             </>
-          )}
+          }
         </Button>
         <Button
           type="button"
           variant="outline"
           onClick={() => setShowForm(false)}
-          disabled={isCreating}
-        >
+          disabled={isCreating}>
+
           Cancel
         </Button>
       </div>
-    </form>
-  );
+    </form>);
+
 }

@@ -2,9 +2,6 @@ import { Prisma } from "@mcp/database";
 import { prisma } from "@/lib/db";
 
 export class PromptRepository {
-  /**
-   * Sanitize object for Prisma JSON fields by removing undefined values
-   */
   private sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
     if (obj === null || obj === undefined) {
       return {};
@@ -12,9 +9,6 @@ export class PromptRepository {
     return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
   }
 
-  /**
-   * Get organization prompts with their MCP server info
-   */
   async getOrganizationPrompts(organizationId: string) {
     return await prisma.organizationPrompt.findMany({
       where: {
@@ -37,9 +31,6 @@ export class PromptRepository {
     });
   }
 
-  /**
-   * Get default prompts for reference
-   */
   async getDefaultPrompts() {
     return await prisma.defaultPrompt.findMany({
       include: {
@@ -49,9 +40,6 @@ export class PromptRepository {
     });
   }
 
-  /**
-   * Create organization prompt
-   */
   async createPrompt(data: {
     organizationId: string;
     mcpServerId: string;
@@ -63,7 +51,6 @@ export class PromptRepository {
     arguments: Record<string, unknown>;
     createdBy?: string;
   }) {
-    // Find the next available version number for this prompt name
     const existingPrompts = await prisma.organizationPrompt.findMany({
       where: {
         organizationId: data.organizationId,
@@ -99,9 +86,6 @@ export class PromptRepository {
     });
   }
 
-  /**
-   * Update organization prompt
-   */
   async updatePrompt(
     promptId: string,
     data: {
@@ -134,9 +118,6 @@ export class PromptRepository {
     });
   }
 
-  /**
-   * Delete organization prompt (soft delete)
-   */
   async deletePrompt(promptId: string) {
     return await prisma.organizationPrompt.update({
       where: { id: promptId },
@@ -147,9 +128,6 @@ export class PromptRepository {
     });
   }
 
-  /**
-   * Get all MCP servers for dropdown options
-   */
   async getMcpServers() {
     return await prisma.mcpServer.findMany({
       where: {

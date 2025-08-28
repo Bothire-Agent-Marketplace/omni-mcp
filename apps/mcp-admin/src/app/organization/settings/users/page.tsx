@@ -1,18 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, UserPlus } from "lucide-react";
+import { redirect } from "next/navigation";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function UsersManagementPage() {
   const { userId, orgId } = await auth();
@@ -29,7 +29,7 @@ export default async function UsersManagementPage() {
     redirect("/");
   }
 
-  // Get organization members
+
   const members = await organizationService.getOrganizationMembers(organization.id);
 
   const getRoleBadgeVariant = (role: string) => {
@@ -60,8 +60,8 @@ export default async function UsersManagementPage() {
 
       <Separator />
 
-      {members.length === 0 ? (
-        <Card>
+      {members.length === 0 ?
+      <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <UserPlus className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-sm text-muted-foreground">No team members found.</p>
@@ -70,19 +70,19 @@ export default async function UsersManagementPage() {
               Invite your first team member
             </Button>
           </CardContent>
-        </Card>
-      ) : (
-        <Card>
+        </Card> :
+
+      <Card>
           <CardContent className="p-0">
             <div className="divide-y">
-              {members.map((member) => (
-                <div key={member.id} className="flex items-center justify-between p-6">
+              {members.map((member) =>
+            <div key={member.id} className="flex items-center justify-between p-6">
                   <div className="flex items-center space-x-4">
                     <Avatar>
-                      <AvatarImage 
-                        src={member.user.imageUrl || ''} 
-                        alt={`${member.user.firstName || ''} ${member.user.lastName || ''}`}
-                      />
+                      <AvatarImage
+                    src={member.user.imageUrl || ''}
+                    alt={`${member.user.firstName || ''} ${member.user.lastName || ''}`} />
+
                       <AvatarFallback>
                         {member.user.firstName?.charAt(0) || ''}{member.user.lastName?.charAt(0) || ''}
                       </AvatarFallback>
@@ -116,11 +116,11 @@ export default async function UsersManagementPage() {
                     </DropdownMenu>
                   </div>
                 </div>
-              ))}
+            )}
             </div>
           </CardContent>
         </Card>
-      )}
-    </div>
-  );
-} 
+      }
+    </div>);
+
+}

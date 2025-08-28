@@ -1,28 +1,5 @@
 import { z } from "zod";
-import type {
-  DefaultPrompt,
-  DefaultResource,
-  OrganizationPrompt,
-  OrganizationResource,
-} from "@mcp/database";
 
-// ============================================================================
-// BASE PRISMA TYPES
-// ============================================================================
-
-// Re-export Prisma types for direct use
-export type {
-  DefaultPrompt,
-  DefaultResource,
-  OrganizationPrompt,
-  OrganizationResource,
-} from "@mcp/database";
-
-// ============================================================================
-// SERVICE TYPES (Transformed from Prisma)
-// ============================================================================
-
-// Prompt-related types
 export interface PromptTemplate {
   id: string;
   name: string;
@@ -34,7 +11,7 @@ export interface PromptTemplate {
   arguments: z.ZodSchema;
   version: number;
   isActive: boolean;
-  // Additional fields for organization context
+
   organizationId?: string;
   isCustom?: boolean;
 }
@@ -43,7 +20,6 @@ export interface PromptRegistry {
   [name: string]: PromptTemplate;
 }
 
-// Resource-related types
 export interface ResourceDefinition {
   id: string;
   uri: string;
@@ -52,7 +28,7 @@ export interface ResourceDefinition {
   mimeType?: string;
   metadata?: Record<string, unknown>;
   isActive: boolean;
-  // Additional fields for organization context
+
   organizationId?: string;
   isCustom?: boolean;
 }
@@ -61,15 +37,36 @@ export interface ResourceRegistry {
   [uri: string]: ResourceDefinition;
 }
 
-// ============================================================================
-// TRANSFORMATION UTILITIES
-// ============================================================================
+type DefaultPromptModel = {
+  id: string;
+  name: string;
+  description: string;
+  template: unknown;
+  arguments: unknown;
+};
 
-/**
- * Transform DefaultPrompt from database to PromptTemplate
- */
+type OrganizationPromptModel = DefaultPromptModel & {
+  version: number;
+  isActive: boolean;
+  organizationId: string;
+};
+
+type DefaultResourceModel = {
+  id: string;
+  uri: string;
+  name: string;
+  description: string;
+  mimeType: string | null;
+  metadata?: unknown;
+};
+
+type OrganizationResourceModel = DefaultResourceModel & {
+  isActive: boolean;
+  organizationId: string;
+};
+
 export function transformDefaultPrompt(
-  dbPrompt: DefaultPrompt
+  dbPrompt: DefaultPromptModel
 ): PromptTemplate {
   return {
     id: dbPrompt.id,
@@ -79,17 +76,14 @@ export function transformDefaultPrompt(
     arguments: z.object(
       dbPrompt.arguments as unknown as Record<string, z.ZodTypeAny>
     ),
-    version: 1, // Default version for system prompts
+    version: 1,
     isActive: true,
     isCustom: false,
   };
 }
 
-/**
- * Transform OrganizationPrompt from database to PromptTemplate
- */
 export function transformOrganizationPrompt(
-  dbPrompt: OrganizationPrompt
+  dbPrompt: OrganizationPromptModel
 ): PromptTemplate {
   return {
     id: dbPrompt.id,
@@ -106,11 +100,8 @@ export function transformOrganizationPrompt(
   };
 }
 
-/**
- * Transform DefaultResource from database to ResourceDefinition
- */
 export function transformDefaultResource(
-  dbResource: DefaultResource
+  dbResource: DefaultResourceModel
 ): ResourceDefinition {
   return {
     id: dbResource.id,
@@ -124,11 +115,8 @@ export function transformDefaultResource(
   };
 }
 
-/**
- * Transform OrganizationResource from database to ResourceDefinition
- */
 export function transformOrganizationResource(
-  dbResource: OrganizationResource
+  dbResource: OrganizationResourceModel
 ): ResourceDefinition {
   return {
     id: dbResource.id,
@@ -143,30 +131,17 @@ export function transformOrganizationResource(
   };
 }
 
-// ============================================================================
-// MCP PROTOCOL TYPES
-// ============================================================================
-
-/**
- * Generic MCP list response format with pagination
- */
 export interface McpListResponse<T> {
   items: T[];
   nextCursor?: string;
 }
 
-/**
- * MCP tool definition
- */
 export interface McpTool {
   name: string;
   description: string;
   inputSchema: unknown;
 }
 
-/**
- * MCP resource definition
- */
 export interface McpResource {
   uri: string;
   name: string;
@@ -174,9 +149,6 @@ export interface McpResource {
   mimeType?: string;
 }
 
-/**
- * MCP prompt definition
- */
 export interface McpPrompt {
   name: string;
   description: string;
@@ -187,30 +159,20 @@ export interface McpPrompt {
   }>;
 }
 
-/**
- * Specific MCP list response types
- */
 export type McpToolsListResponse = McpListResponse<McpTool>;
 export type McpResourcesListResponse = McpListResponse<McpResource>;
 export type McpPromptsListResponse = McpListResponse<McpPrompt>;
 
-// ============================================================================
-// EXISTING TYPES (Keep for backward compatibility)
-// ============================================================================
-
-// Configuration context
 export interface ConfigContext {
-  organizationId: string | null; // null means load only defaults
+  organizationId: string | null;
   mcpServerId: string;
 }
 
-// Cache options
 export interface CacheOptions {
-  ttl?: number; // Time to live in milliseconds
-  maxSize?: number; // Maximum number of items in cache
+  ttl?: number;
+  maxSize?: number;
 }
 
-// Service interfaces
 export interface IPromptManager {
   getPrompts(context: ConfigContext): Promise<PromptRegistry>;
   getPrompt(
@@ -229,7 +191,6 @@ export interface IResourceManager {
   invalidateCache(context: ConfigContext): void;
 }
 
-// Default prompts and resources type
 export interface DefaultConfig<T> {
   [key: string]: T;
 }

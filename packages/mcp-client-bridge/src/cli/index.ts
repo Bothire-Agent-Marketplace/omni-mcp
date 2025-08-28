@@ -57,13 +57,11 @@ async function parseServers(
   serversInput: string
 ): Promise<Record<string, string>> {
   if (serversInput.startsWith("@")) {
-    // Load from file
     const { readFile } = await import("fs/promises");
     const filePath = serversInput.slice(1);
     const content = await readFile(filePath, "utf8");
     return JSON.parse(content);
   } else {
-    // Parse as JSON string
     return JSON.parse(serversInput);
   }
 }
@@ -92,7 +90,6 @@ async function generateCommand(options: CLIOptions): Promise<void> {
   const configs = await manager.generateConfigs(clientTypes);
 
   if (options.output) {
-    // Save to output directory
     const { writeFile, mkdir } = await import("fs/promises");
     const { resolve } = await import("path");
 
@@ -105,12 +102,10 @@ async function generateCommand(options: CLIOptions): Promise<void> {
       console.log(`✅ ${clientType} config saved to: ${filepath}`);
     }
   } else {
-    // Print to stdout
     console.log("\n📄 Generated configurations:");
     console.log(JSON.stringify(configs, null, 2));
   }
 
-  // Show summary
   const summary = manager.getSummary();
   console.log(`\n📊 Summary:`);
   console.log(`   Environment: ${summary.environment}`);

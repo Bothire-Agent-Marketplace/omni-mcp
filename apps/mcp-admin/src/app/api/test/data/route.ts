@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET /api/test/data - Load test data (fixtures, scenarios, etc.)
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
@@ -12,10 +11,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") || "fixtures";
     const category = searchParams.get("category") || "all";
-    const _organizationId = searchParams.get("organizationId");
+
     const count = parseInt(searchParams.get("count") || "10");
 
-    // Generate test data based on type
     let data: unknown;
 
     switch (type) {
@@ -53,7 +51,6 @@ function generateTestFixtures(category: string, _count: number) {
 
   if (category === "all" || category === "tools") {
     fixtures.tools = [
-      // Perplexity AI Tools
       {
         name: "perplexity_search",
         description: "Search using Perplexity AI",
@@ -80,7 +77,6 @@ function generateTestFixtures(category: string, _count: number) {
         },
       },
 
-      // Linear Tools
       {
         name: "linear_search_issues",
         description: "Search Linear issues",
@@ -104,7 +100,6 @@ function generateTestFixtures(category: string, _count: number) {
         },
       },
 
-      // Chrome Tools
       {
         name: "chrome_navigate",
         description: "Navigate Chrome to URL",
@@ -195,6 +190,7 @@ function generateTestScenarios(category: string, count: number) {
         },
         { action: "verify_response", expectSuccess: true },
       ],
+
       complexity: "simple",
     },
     {
@@ -204,6 +200,7 @@ function generateTestScenarios(category: string, count: number) {
         { action: "call_tool", tool: "invalid_tool", args: {} },
         { action: "verify_response", expectSuccess: false },
       ],
+
       complexity: "moderate",
     },
     {
@@ -222,6 +219,7 @@ function generateTestScenarios(category: string, count: number) {
           args: { query: "{{previous_result}}" },
         },
       ],
+
       complexity: "complex",
     },
   ];
@@ -252,7 +250,6 @@ function generateMockData(_category: string, _count: number) {
 }
 
 function generateSampleRequests(category: string, count: number) {
-  // If requesting defaults, provide better default parameters for forms
   if (category === "defaults") {
     return [
       {
@@ -281,7 +278,6 @@ function generateSampleRequests(category: string, count: number) {
     ];
   }
 
-  // Regular sample requests for documentation/examples
   return [
     {
       name: "Tool Call Request",

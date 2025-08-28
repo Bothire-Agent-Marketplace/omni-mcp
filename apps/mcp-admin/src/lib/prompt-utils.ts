@@ -1,6 +1,5 @@
 import { type ArgumentDefinition } from "@/components/arguments-schema-builder";
 
-// Type definitions for JSON schema properties
 interface JsonSchemaProperty {
   type: "string" | "number" | "boolean" | "object" | "array";
   description?: string;
@@ -14,9 +13,6 @@ export interface JsonSchema {
   [key: string]: JsonSchemaProperty;
 }
 
-/**
- * Convert visual argument definitions to JSON schema format
- */
 export function argumentsToJsonSchema(
   argumentsDef: ArgumentDefinition[]
 ): JsonSchema {
@@ -30,12 +26,10 @@ export function argumentsToJsonSchema(
       description: arg.description,
     };
 
-    // Add required field info
     if (arg.required) {
       property.required = true;
     }
 
-    // Add default value
     if (arg.defaultValue !== undefined && arg.defaultValue !== "") {
       switch (arg.type) {
         case "number":
@@ -47,28 +41,22 @@ export function argumentsToJsonSchema(
         case "array":
           try {
             property.default = JSON.parse(arg.defaultValue);
-          } catch {
-            // Invalid JSON, skip default
-          }
+          } catch {}
           break;
         case "object":
           try {
             property.default = JSON.parse(arg.defaultValue);
-          } catch {
-            // Invalid JSON, skip default
-          }
+          } catch {}
           break;
         default:
           property.default = arg.defaultValue;
       }
     }
 
-    // Add placeholder as example
     if (arg.placeholder) {
       property.placeholder = arg.placeholder;
     }
 
-    // Add enum options for string type
     if (arg.type === "string" && arg.options && arg.options.length > 0) {
       property.enum = arg.options.filter((option) => option.trim() !== "");
     }
@@ -79,9 +67,6 @@ export function argumentsToJsonSchema(
   return schema;
 }
 
-/**
- * Convert JSON schema format to visual argument definitions
- */
 export function jsonSchemaToArguments(
   schema: JsonSchema
 ): ArgumentDefinition[] {
@@ -98,7 +83,6 @@ export function jsonSchemaToArguments(
       placeholder: property.placeholder || "",
     };
 
-    // Convert default value to string for form handling
     if (property.default !== undefined) {
       if (typeof property.default === "object") {
         arg.defaultValue = JSON.stringify(property.default);
@@ -107,7 +91,6 @@ export function jsonSchemaToArguments(
       }
     }
 
-    // Add enum options for string type
     if (property.enum && Array.isArray(property.enum)) {
       arg.options = property.enum.map(String);
     }
@@ -118,9 +101,6 @@ export function jsonSchemaToArguments(
   return argumentsDef;
 }
 
-/**
- * Extract variables from a template string
- */
 export function extractVariablesFromTemplate(template: string): string[] {
   const variableRegex = /\{\{(\s*\w+\s*)\}\}/g;
   const variables: string[] = [];
@@ -136,9 +116,6 @@ export function extractVariablesFromTemplate(template: string): string[] {
   return variables;
 }
 
-/**
- * Validate template against argument schema
- */
 export function validateTemplate(
   template: string,
   argumentsSchema: ArgumentDefinition[]
@@ -151,7 +128,6 @@ export function validateTemplate(
     .filter((arg) => arg.name)
     .map((arg) => arg.name);
 
-  // Check for undefined variables
   variablesInTemplate.forEach((variable) => {
     if (!definedArguments.includes(variable)) {
       errors.push(
@@ -160,7 +136,6 @@ export function validateTemplate(
     }
   });
 
-  // Check for unused arguments
   definedArguments.forEach((argName) => {
     if (!variablesInTemplate.includes(argName)) {
       warnings.push(

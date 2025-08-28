@@ -15,38 +15,27 @@ export class ResourceManager implements IResourceManager {
     this.cache = new ConfigCache<ResourceRegistry>(cacheOptions);
   }
 
-  /**
-   * Get all resources for an organization and server, with defaults as fallback
-   */
   async getResources(context: ConfigContext): Promise<ResourceRegistry> {
     const cacheKey = context.organizationId || "default";
 
-    // Check cache first
     const cached = this.cache.get(cacheKey, context.mcpServerId);
     if (cached) {
       return cached;
     }
 
-    // Load defaults from database
     const defaultResources = await this.loadDefaultResources(
       context.mcpServerId
     );
 
-    // Load custom resources from database
     const customResources = await this.loadCustomResources(context);
 
-    // Merge with defaults (custom overrides default)
     const registry = { ...defaultResources, ...customResources };
 
-    // Cache the result
     this.cache.set(cacheKey, context.mcpServerId, registry);
 
     return registry;
   }
 
-  /**
-   * Get a specific resource by URI
-   */
   async getResource(
     context: ConfigContext,
     uri: string
@@ -55,17 +44,11 @@ export class ResourceManager implements IResourceManager {
     return resources[uri] || null;
   }
 
-  /**
-   * Invalidate cache for a specific organization and server
-   */
   invalidateCache(context: ConfigContext): void {
     const cacheKey = context.organizationId || "default";
     this.cache.delete(cacheKey, context.mcpServerId);
   }
 
-  /**
-   * Load default resources from database
-   */
   private async loadDefaultResources(
     mcpServerId: string
   ): Promise<ResourceRegistry> {
@@ -94,13 +77,9 @@ export class ResourceManager implements IResourceManager {
     return registry;
   }
 
-  /**
-   * Load custom resources from database
-   */
   private async loadCustomResources(
     context: ConfigContext
   ): Promise<ResourceRegistry> {
-    // Skip custom resources if no organization context
     if (!context.organizationId) {
       return {};
     }
@@ -132,17 +111,11 @@ export class ResourceManager implements IResourceManager {
     return registry;
   }
 
-  /**
-   * List all resource URIs
-   */
   async listResourceUris(context: ConfigContext): Promise<string[]> {
     const resources = await this.getResources(context);
     return Object.keys(resources);
   }
 
-  /**
-   * Filter resources by mime type
-   */
   async getResourcesByMimeType(
     context: ConfigContext,
     mimeType: string

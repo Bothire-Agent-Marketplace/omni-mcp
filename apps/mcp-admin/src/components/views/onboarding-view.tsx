@@ -1,12 +1,12 @@
+import { Plus } from "lucide-react";
+import { CreateOrganizationForm } from "../forms/create-organization-form";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Plus } from "lucide-react";
-import { CreateOrganizationForm } from "../forms/create-organization-form";
+  CardTitle } from
+"@/components/ui/card";
 
 export function OnboardingView() {
   return (
@@ -39,6 +39,6 @@ export function OnboardingView() {
           </Card>
         </div>
       </div>
-    </main>
-  );
+    </main>);
+
 }

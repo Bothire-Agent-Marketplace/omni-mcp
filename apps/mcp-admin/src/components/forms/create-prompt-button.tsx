@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { PromptFormDialog } from "@/components/prompt-form-dialog";
 import { useState } from "react";
+import { PromptFormDialog } from "@/components/prompt-form-dialog";
+import { Button } from "@/components/ui/button";
 import type { McpServer } from "@/types/prompts";
 
 interface CreatePromptButtonProps {
@@ -14,8 +14,8 @@ interface CreatePromptButtonProps {
 
 export function CreatePromptButton({
   mcpServers,
-  organizationId,
-  userId,
+  organizationId: _organizationId,
+  userId: _userId,
 }: CreatePromptButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -34,8 +34,7 @@ export function CreatePromptButton({
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         mcpServers={mcpServers}
-        onSave={(newPrompt) => {
-          // Refresh the page to show updated data
+        onSave={() => {
           window.location.reload();
         }}
       />

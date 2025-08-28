@@ -1,12 +1,7 @@
 import { CommonInputSchemas } from "./common.js";
 import { ToolInputSchema } from "./types.js";
 
-// ============================================================================
-// LINEAR MCP SERVER - Input Schemas
-// ============================================================================
-
 export const LinearInputSchemas = {
-  // Search issues tool
   searchIssues: {
     type: "object",
     properties: {
@@ -44,7 +39,6 @@ export const LinearInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Get teams tool
   getTeams: {
     type: "object",
     properties: {
@@ -59,7 +53,6 @@ export const LinearInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Get users tool
   getUsers: {
     type: "object",
     properties: {
@@ -74,7 +67,6 @@ export const LinearInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Get projects tool
   getProjects: {
     type: "object",
     properties: {
@@ -99,7 +91,6 @@ export const LinearInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Get issue details tool
   getIssueDetails: {
     type: "object",
     properties: {

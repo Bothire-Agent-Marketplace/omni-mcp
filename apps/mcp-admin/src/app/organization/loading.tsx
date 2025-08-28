@@ -11,6 +11,6 @@ export default function Loading() {
         </div>
         <Skeleton className="h-48 w-full" />
       </div>
-    </div>
-  );
+    </div>);
+
 }

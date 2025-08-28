@@ -7,30 +7,18 @@ export class ResourceService {
     private orgRepo: OrganizationRepository
   ) {}
 
-  /**
-   * Get organization resources with their MCP server info
-   */
   async getOrganizationResources(organizationId: string) {
     return await this.resourceRepo.getOrganizationResources(organizationId);
   }
 
-  /**
-   * Get default resources for reference
-   */
   async getDefaultResources() {
     return await this.resourceRepo.getDefaultResources();
   }
 
-  /**
-   * Get all MCP servers for dropdown options
-   */
   async getMcpServers() {
     return await this.resourceRepo.getMcpServers();
   }
 
-  /**
-   * Get resources data for a page (organization + defaults + servers)
-   */
   async getResourcesPageData(organizationId: string) {
     const [resources, defaultResources, mcpServers] = await Promise.all([
       this.resourceRepo.getOrganizationResources(organizationId),
@@ -45,9 +33,6 @@ export class ResourceService {
     };
   }
 
-  /**
-   * Create organization resource
-   */
   async createResource(data: {
     organizationId: string;
     mcpServerId: string;
@@ -61,9 +46,6 @@ export class ResourceService {
     return await this.resourceRepo.createResource(data);
   }
 
-  /**
-   * Update organization resource
-   */
   async updateResource(
     resourceId: string,
     data: {
@@ -78,9 +60,6 @@ export class ResourceService {
     return await this.resourceRepo.updateResource(resourceId, data);
   }
 
-  /**
-   * Delete organization resource (soft delete)
-   */
   async deleteResource(resourceId: string) {
     return await this.resourceRepo.deleteResource(resourceId);
   }

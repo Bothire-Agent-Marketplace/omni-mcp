@@ -1,15 +1,5 @@
 import { ToolInputSchema } from "@mcp/schemas";
 
-// ============================================================================
-// REUSABLE MCP REGISTRY FUNCTIONS
-// ============================================================================
-// These functions eliminate boilerplate across all MCP servers by providing
-// generic implementations that work with server-specific definitions.
-
-// =============================================================================
-// TYPES FOR SERVER DEFINITIONS
-// =============================================================================
-
 export interface ToolDefinition<TClient = unknown> {
   handler: (
     client: TClient,
@@ -61,10 +51,6 @@ export interface PromptDefinition {
   };
 }
 
-// =============================================================================
-// GENERIC REGISTRY FUNCTIONS
-// =============================================================================
-
 type ToolHandler = (params: Record<string, unknown>) => Promise<{
   content: Array<{
     type: "text";
@@ -89,9 +75,6 @@ type PromptHandler = (args: Record<string, unknown>) => Promise<{
   }>;
 }>;
 
-/**
- * Creates tool handlers from tool definitions
- */
 export function createGenericToolHandlers<TClient = unknown>(
   definitions: Record<string, ToolDefinition<TClient>>,
   client: TClient
@@ -106,9 +89,6 @@ export function createGenericToolHandlers<TClient = unknown>(
   return handlers;
 }
 
-/**
- * Gets available tools from tool definitions
- */
 export function getGenericAvailableTools<TClient = unknown>(
   definitions: Record<string, ToolDefinition<TClient>>
 ): Array<{
@@ -119,9 +99,6 @@ export function getGenericAvailableTools<TClient = unknown>(
   return Object.values(definitions).map((def) => def.metadata);
 }
 
-/**
- * Creates resource handlers from resource definitions
- */
 export function createGenericResourceHandlers<TClient = unknown>(
   definitions: Record<string, ResourceDefinition<TClient>>,
   client: TClient
@@ -135,9 +112,6 @@ export function createGenericResourceHandlers<TClient = unknown>(
   return handlers;
 }
 
-/**
- * Gets available resources from resource definitions
- */
 export function getGenericAvailableResources<TClient = unknown>(
   definitions: Record<string, ResourceDefinition<TClient>>
 ): Array<{
@@ -149,9 +123,6 @@ export function getGenericAvailableResources<TClient = unknown>(
   return Object.values(definitions).map((def) => def.metadata);
 }
 
-/**
- * Creates prompt handlers from prompt definitions
- */
 export function createGenericPromptHandlers(
   definitions: Record<string, PromptDefinition>
 ): Record<string, PromptHandler> {
@@ -165,9 +136,6 @@ export function createGenericPromptHandlers(
   return handlers;
 }
 
-/**
- * Gets available prompts from prompt definitions
- */
 export function getGenericAvailablePrompts(
   definitions: Record<string, PromptDefinition>
 ): Array<{

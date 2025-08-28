@@ -1,7 +1,3 @@
-// ============================================================================
-// PERPLEXITY MCP SERVER - Tools
-// ============================================================================
-
 import { PerplexityInputSchemas } from "@mcp/schemas";
 import {
   createGenericToolHandlers,
@@ -9,13 +5,6 @@ import {
   ToolDefinition,
 } from "@mcp/utils";
 import * as handlers from "./handlers.js";
-
-// TODO: Replace with your actual perplexity SDK/API client
-// import { PerplexityClient } from "@perplexity/sdk";
-
-// ============================================================================
-// PERPLEXITY MCP SERVER - Tool Definitions
-// ============================================================================
 
 const perplexityToolDefinitions: Record<string, ToolDefinition<unknown>> = {
   perplexity_search: {
@@ -54,10 +43,6 @@ const perplexityToolDefinitions: Record<string, ToolDefinition<unknown>> = {
     },
   },
 };
-
-// ============================================================================
-// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
-// ============================================================================
 
 export const createToolHandlers = () =>
   createGenericToolHandlers(perplexityToolDefinitions, {});

@@ -1,12 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
+import { Shield, AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, AlertTriangle } from "lucide-react";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function RolesManagementPage() {
   const { userId, orgId } = await auth();
@@ -23,25 +23,25 @@ export default async function RolesManagementPage() {
   }
 
   const roles = [
-    {
-      name: "Admin",
-      value: "admin",
-      description: "Full access to organization settings and user management",
-      permissions: ["manage_users", "manage_settings", "manage_services", "view_audit_logs"],
-    },
-    {
-      name: "Member",
-      value: "member", 
-      description: "Access to organization services and basic functionality",
-      permissions: ["use_services", "view_organization"],
-    },
-    {
-      name: "Viewer",
-      value: "viewer",
-      description: "Read-only access to organization information",
-      permissions: ["view_organization"],
-    },
-  ];
+  {
+    name: "Admin",
+    value: "admin",
+    description: "Full access to organization settings and user management",
+    permissions: ["manage_users", "manage_settings", "manage_services", "view_audit_logs"]
+  },
+  {
+    name: "Member",
+    value: "member",
+    description: "Access to organization services and basic functionality",
+    permissions: ["use_services", "view_organization"]
+  },
+  {
+    name: "Viewer",
+    value: "viewer",
+    description: "Read-only access to organization information",
+    permissions: ["view_organization"]
+  }];
+
 
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
@@ -68,8 +68,8 @@ export default async function RolesManagementPage() {
       <Card>
         <CardContent className="p-0">
           <div className="divide-y">
-            {roles.map((role) => (
-              <div key={role.value} className="p-6">
+            {roles.map((role) =>
+            <div key={role.value} className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <Shield className="h-8 w-8 text-muted-foreground" />
@@ -90,15 +90,15 @@ export default async function RolesManagementPage() {
                 <div className="mt-4">
                   <p className="text-sm font-medium text-muted-foreground mb-2">Permissions:</p>
                   <div className="flex flex-wrap gap-2">
-                    {role.permissions.map((permission) => (
-                      <Badge key={permission} variant="outline">
+                    {role.permissions.map((permission) =>
+                  <Badge key={permission} variant="outline">
                         {permission.replace('_', ' ')}
                       </Badge>
-                    ))}
+                  )}
                   </div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </CardContent>
       </Card>
@@ -109,6 +109,6 @@ export default async function RolesManagementPage() {
           Role permissions are currently managed through Clerk. Custom role management will be available in a future update.
         </AlertDescription>
       </Alert>
-    </div>
-  );
-} 
+    </div>);
+
+}

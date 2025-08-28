@@ -1,6 +1,3 @@
-// Testing Service - Handles MCP testing operations
-// Follows the established service pattern in the codebase
-
 export interface McpTestCapabilities {
   operations: string[];
   tools: Array<{ name: string; description?: string }>;
@@ -47,26 +44,23 @@ interface CacheEntry {
   key: string;
   result: McpTestResult;
   timestamp: number;
-  ttl: number; // Time to live in milliseconds
+  ttl: number;
 }
 
 export class TestingService {
   private baseUrl: string;
   private sessionId: string | null = null;
   private lastSessionTime: number = 0;
-  private SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
+  private SESSION_TIMEOUT = 30 * 60 * 1000;
   private cache = new Map<string, CacheEntry>();
-  private CACHE_TTL = 60 * 60 * 1000; // 1 hour default TTL
+  private CACHE_TTL = 60 * 60 * 1000;
 
   constructor() {
     this.baseUrl = "/api/test";
-    // Generate a session ID that will be reused
+
     this.sessionId = `test-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  /**
-   * Generate cache key from request parameters
-   */
   private generateCacheKey(request: McpTestRequest): string {
     const keyData = {
       operation: request.operation,
@@ -77,16 +71,10 @@ export class TestingService {
     return btoa(JSON.stringify(keyData)).replace(/[^a-zA-Z0-9]/g, "");
   }
 
-  /**
-   * Check if cache entry is valid
-   */
   private isCacheValid(entry: CacheEntry): boolean {
     return Date.now() - entry.timestamp < entry.ttl;
   }
 
-  /**
-   * Get result from cache if valid
-   */
   private getCachedResult(request: McpTestRequest): McpTestResult | null {
     if (request.options?.bypassCache) {
       return null;
@@ -96,7 +84,6 @@ export class TestingService {
     const entry = this.cache.get(cacheKey);
 
     if (entry && this.isCacheValid(entry)) {
-      // Clone result and update metadata to indicate it's cached
       const cachedResult = {
         ...entry.result,
         metadata: {
@@ -110,7 +97,6 @@ export class TestingService {
       return cachedResult;
     }
 
-    // Clean up expired entry
     if (entry && !this.isCacheValid(entry)) {
       this.cache.delete(cacheKey);
     }
@@ -118,24 +104,19 @@ export class TestingService {
     return null;
   }
 
-  /**
-   * Store result in cache
-   */
   private setCachedResult(
     request: McpTestRequest,
     result: McpTestResult
   ): void {
     const cacheKey = this.generateCacheKey(request);
 
-    // Don't cache failed requests
     if (!result.success) {
       return;
     }
 
-    // Use longer TTL for expensive operations
     let ttl = this.CACHE_TTL;
     if (request.operation === "tool" && request.target.includes("perplexity")) {
-      ttl = 2 * 60 * 60 * 1000; // 2 hours for Perplexity
+      ttl = 2 * 60 * 60 * 1000;
     }
 
     const entry: CacheEntry = {
@@ -151,17 +132,11 @@ export class TestingService {
     );
   }
 
-  /**
-   * Clear all cache entries
-   */
   clearCache(): void {
     this.cache.clear();
     console.log("Cache cleared");
   }
 
-  /**
-   * Get cache statistics
-   */
   getCacheStats(): {
     size: number;
     entries: Array<{
@@ -183,13 +158,9 @@ export class TestingService {
     return { size: this.cache.size, entries };
   }
 
-  /**
-   * Get headers with session management
-   */
   private getHeaders(): Record<string, string> {
     const now = Date.now();
 
-    // Refresh session ID if it's been too long (prevents stale sessions)
     if (now - this.lastSessionTime > this.SESSION_TIMEOUT) {
       this.sessionId = `test-session-${now}-${Math.random().toString(36).substr(2, 9)}`;
     }
@@ -203,14 +174,10 @@ export class TestingService {
     };
   }
 
-  /**
-   * Load available MCP capabilities
-   */
   async loadCapabilities(organizationContext?: {
     organizationClerkId?: string;
     simulate?: boolean;
   }): Promise<McpTestCapabilities> {
-    // Build URL with query params for organization context simulation
     const url = new URL(`${this.baseUrl}/mcp`, window.location.origin);
 
     if (
@@ -241,17 +208,12 @@ export class TestingService {
     return data.capabilities;
   }
 
-  /**
-   * Execute an MCP test operation with caching
-   */
   async runTest(request: McpTestRequest): Promise<McpTestResult> {
-    // Check cache first
     const cachedResult = this.getCachedResult(request);
     if (cachedResult) {
       return cachedResult;
     }
 
-    // Execute request
     const response = await fetch(`${this.baseUrl}/mcp`, {
       method: "POST",
       headers: this.getHeaders(),
@@ -269,15 +231,11 @@ export class TestingService {
 
     const result = data.testResult;
 
-    // Cache successful results
     this.setCachedResult(request, result);
 
     return result;
   }
 
-  /**
-   * Load test data (fixtures, scenarios, etc.)
-   */
   async loadTestData(
     type: "fixtures" | "scenarios" | "mock-data" | "sample-requests",
     category?: string,
@@ -307,9 +265,6 @@ export class TestingService {
     return data.data;
   }
 
-  /**
-   * Run a tool test
-   */
   async testTool(
     name: string,
     args: Record<string, unknown> = {},
@@ -328,9 +283,6 @@ export class TestingService {
     });
   }
 
-  /**
-   * Run a prompt test
-   */
   async testPrompt(
     name: string,
     organizationContext?: McpTestRequest["organizationContext"]
@@ -347,9 +299,6 @@ export class TestingService {
     });
   }
 
-  /**
-   * Run a resource test
-   */
   async testResource(
     uri: string,
     organizationContext?: McpTestRequest["organizationContext"]
@@ -366,9 +315,6 @@ export class TestingService {
     });
   }
 
-  /**
-   * Run a health check test
-   */
   async testHealth(
     target: string = "gateway",
     organizationContext?: McpTestRequest["organizationContext"]
@@ -386,5 +332,4 @@ export class TestingService {
   }
 }
 
-// Export singleton instance
 export const testingService = new TestingService();

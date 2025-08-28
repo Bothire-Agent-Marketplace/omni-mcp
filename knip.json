@@ -6,9 +6,6 @@
     },
     "packages/*": {},
     "apps/*": {},
-    "packages/dev-tools": {
-      "entry": ["src/index.ts", "src/cli/index.ts"]
-    },
     "packages/eslint-config": {
       "ignoreDependencies": ["eslint-config-next"]
     },
@@ -73,6 +70,13 @@
       ]
     }
   },
-  "ignore": ["**/dist/**", "**/node_modules/**", "**/*.d.ts", "dev-servers.config.js.example", ".github/**"],
+  "ignore": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/*.d.ts",
+    "dev-servers.config.js.example",
+    ".github/**",
+    "scripts/strip-comments.mjs"
+  ],
   "ignoreBinaries": ["ngrok", "pkill", "lt"]
 }

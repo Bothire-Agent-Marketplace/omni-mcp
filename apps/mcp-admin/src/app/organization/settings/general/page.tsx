@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function GeneralSettingsPage() {
   const { userId, orgId } = await auth();
@@ -39,8 +39,8 @@ export default async function GeneralSettingsPage() {
             name="name"
             value={organization.name}
             disabled
-            className="bg-muted"
-          />
+            className="bg-muted" />
+
         </div>
 
         <div className="space-y-2">
@@ -50,8 +50,8 @@ export default async function GeneralSettingsPage() {
             name="slug"
             value={organization.slug}
             disabled
-            className="bg-muted"
-          />
+            className="bg-muted" />
+
         </div>
 
         <div className="space-y-2 sm:col-span-2">
@@ -61,8 +61,8 @@ export default async function GeneralSettingsPage() {
             name="created"
             value={organization.createdAt.toLocaleDateString()}
             disabled
-            className="bg-muted"
-          />
+            className="bg-muted" />
+
         </div>
       </div>
 
@@ -71,6 +71,6 @@ export default async function GeneralSettingsPage() {
       <div className="flex justify-end">
         <Button>Save Changes</Button>
       </div>
-    </div>
-  );
-} 
+    </div>);
+
+}

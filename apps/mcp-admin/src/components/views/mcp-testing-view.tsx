@@ -1,32 +1,32 @@
 "use client";
 
-import { useMcpTesting } from "@/hooks/use-mcp-testing";
+import type { Organization } from "@mcp/database/client";
 import {
   TestingHeader,
   QuickStartPresets,
   OrganizationContextSelector,
   TestingTabs,
   TestResultsDisplay,
-  TestHistoryDisplay,
-} from "@/components/testing";
+  TestHistoryDisplay } from
+"@/components/testing";
+import { useMcpTesting } from "@/hooks/use-mcp-testing";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
-import type { Organization } from "@mcp/database/client";
 
 interface McpTestingViewProps {
   currentOrganization: Organization;
-  //fix this type to proper role type from @database/client
-  availableOrganizations: (Organization & { role: string })[];
+
+  availableOrganizations: (Organization & {role: string;})[];
   initialCapabilities: McpTestCapabilities | null;
 }
 
 export function McpTestingView({
   currentOrganization,
   availableOrganizations,
-  initialCapabilities,
+  initialCapabilities
 }: McpTestingViewProps) {
-  // Use the custom hook for all testing logic
+
   const {
-    // State
+
     activeTab,
     setActiveTab,
     capabilities,
@@ -39,7 +39,7 @@ export function McpTestingView({
     lastTestResult,
     testHistory,
 
-    // Forms
+
     toolForm,
     setToolForm,
     promptForm,
@@ -49,7 +49,7 @@ export function McpTestingView({
     healthForm,
     setHealthForm,
 
-    // Actions
+
     loadCapabilities,
     loadQuickPreset,
     handleToolTest,
@@ -57,20 +57,20 @@ export function McpTestingView({
     handleResourceTest,
     handleHealthTest,
 
-    // Helpers
+
     formatResponseTime,
-    getDefaultArgsForTool,
+    getDefaultArgsForTool
   } = useMcpTesting({
     currentOrganization,
-    initialCapabilities,
+    initialCapabilities
   });
 
   return (
     <div className="space-y-6">
       <TestingHeader
         isLoadingCapabilities={isLoadingCapabilities}
-        onRefreshCapabilities={loadCapabilities}
-      />
+        onRefreshCapabilities={loadCapabilities} />
+
 
       <QuickStartPresets onLoadPreset={loadQuickPreset} />
 
@@ -80,8 +80,8 @@ export function McpTestingView({
         selectedOrganization={selectedOrganization}
         onSelectedOrganizationChange={(org) => setSelectedOrganization(org)}
         simulateContext={simulateContext}
-        onSimulateContextChange={setSimulateContext}
-      />
+        onSimulateContextChange={setSimulateContext} />
+
 
       <TestingTabs
         activeTab={activeTab}
@@ -101,20 +101,20 @@ export function McpTestingView({
         onHandlePromptTest={handlePromptTest}
         onHandleResourceTest={handleResourceTest}
         onHandleHealthTest={handleHealthTest}
-        onGetDefaultArgsForTool={getDefaultArgsForTool}
-      />
+        onGetDefaultArgsForTool={getDefaultArgsForTool} />
 
-      {lastTestResult && (
-        <TestResultsDisplay
-          lastTestResult={lastTestResult}
-          formatResponseTime={formatResponseTime}
-        />
-      )}
+
+      {lastTestResult &&
+      <TestResultsDisplay
+        lastTestResult={lastTestResult}
+        formatResponseTime={formatResponseTime} />
+
+      }
 
       <TestHistoryDisplay
         testHistory={testHistory}
-        formatResponseTime={formatResponseTime}
-      />
-    </div>
-  );
+        formatResponseTime={formatResponseTime} />
+
+    </div>);
+
 }

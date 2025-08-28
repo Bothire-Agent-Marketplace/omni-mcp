@@ -1,28 +1,28 @@
 "use client";
 
+import { Loader2, Play, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Loader2, Play, RefreshCw } from "lucide-react";
+  SelectValue } from
+"@/components/ui/select";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface ResourceTestingTabProps {
   capabilities: McpTestCapabilities | null;
   isLoadingCapabilities: boolean;
-  resourceForm: { uri: string };
-  onResourceFormChange: (form: { uri: string }) => void;
+  resourceForm: {uri: string;};
+  onResourceFormChange: (form: {uri: string;}) => void;
   isTestRunning: boolean;
   onHandleResourceTest: (bypassCache: boolean) => void;
 }
@@ -33,7 +33,7 @@ export function ResourceTestingTab({
   resourceForm,
   onResourceFormChange,
   isTestRunning,
-  onHandleResourceTest,
+  onHandleResourceTest
 }: ResourceTestingTabProps) {
   const handleResourceUriChange = (value: string) => {
     onResourceFormChange({ uri: value });
@@ -46,17 +46,17 @@ export function ResourceTestingTab({
           <Label htmlFor="resource-uri">Resource URI</Label>
           <Select
             value={resourceForm.uri}
-            onValueChange={handleResourceUriChange}
-          >
+            onValueChange={handleResourceUriChange}>
+
             <SelectTrigger>
               <SelectValue placeholder="Select a resource to test" />
             </SelectTrigger>
             <SelectContent>
-              {capabilities?.resources.map((resource) => (
-                <SelectItem key={resource.uri} value={resource.uri}>
+              {capabilities?.resources.map((resource) =>
+              <SelectItem key={resource.uri} value={resource.uri}>
                   {resource.name || resource.uri}
                 </SelectItem>
-              ))}
+              )}
             </SelectContent>
           </Select>
         </div>
@@ -65,13 +65,13 @@ export function ResourceTestingTab({
           <DropdownMenuTrigger asChild>
             <Button
               disabled={!resourceForm.uri || isTestRunning}
-              className="w-full"
-            >
-              {isTestRunning ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4 mr-2" />
-              )}
+              className="w-full">
+
+              {isTestRunning ?
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
+
+              <Play className="w-4 h-4 mr-2" />
+              }
               Test Resource
             </Button>
           </DropdownMenuTrigger>
@@ -91,34 +91,34 @@ export function ResourceTestingTab({
       <div className="space-y-4">
         <h4 className="font-medium">Available Resources</h4>
         <div className="space-y-2 max-h-64 overflow-y-auto">
-          {isLoadingCapabilities ? (
-            <div className="flex items-center gap-2">
+          {isLoadingCapabilities ?
+          <div className="flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin" />
               Loading resources...
-            </div>
-          ) : capabilities?.resources.length ? (
-            capabilities.resources.map((resource) => (
-              <div key={resource.uri} className="p-2 border rounded-lg">
+            </div> :
+          capabilities?.resources.length ?
+          capabilities.resources.map((resource) =>
+          <div key={resource.uri} className="p-2 border rounded-lg">
                 <div className="font-mono text-sm font-medium">
                   {resource.name || resource.uri}
                 </div>
                 <div className="text-xs text-muted-foreground mt-1">
                   {resource.uri}
                 </div>
-                {resource.description && (
-                  <div className="text-xs text-muted-foreground mt-1">
+                {resource.description &&
+            <div className="text-xs text-muted-foreground mt-1">
                     {resource.description}
                   </div>
-                )}
+            }
               </div>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground">
+          ) :
+
+          <div className="text-sm text-muted-foreground">
               No resources available
             </div>
-          )}
+          }
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

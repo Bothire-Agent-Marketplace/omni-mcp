@@ -8,18 +8,12 @@ export class UserService {
     private orgRepo: OrganizationRepository
   ) {}
 
-  /**
-   * Get user with their organizations by Clerk ID
-   * This is the main method used by the app pages
-   */
   async getUserWithOrganizations(clerkId: string) {
-    // First find the user by Clerk ID
     const user = await this.userRepo.findByClerkId(clerkId);
     if (!user) {
       return null;
     }
 
-    // Get their organization memberships
     const memberships = await this.userRepo.getUserOrganizations(user.id);
 
     return {
@@ -28,30 +22,18 @@ export class UserService {
     };
   }
 
-  /**
-   * Get user by database ID
-   */
   async getUserById(userId: string) {
     return await this.userRepo.findById(userId);
   }
 
-  /**
-   * Get user by Clerk ID
-   */
   async getUserByClerkId(clerkId: string) {
     return await this.userRepo.findByClerkId(clerkId);
   }
 
-  /**
-   * Handle user creation/update from Clerk webhook
-   */
   async handleUserUpsert(userData: UserJSON) {
     await this.userRepo.upsertUser(userData);
   }
 
-  /**
-   * Handle user deletion from Clerk webhook
-   */
   async handleUserDeletion(clerkId: string) {
     const user = await this.userRepo.findByClerkId(clerkId);
     if (user) {
@@ -59,9 +41,6 @@ export class UserService {
     }
   }
 
-  /**
-   * Create a user record directly (used for webhook race conditions)
-   */
   async createUserFromMembership(userData: {
     clerkId: string;
     email: string;

@@ -1,7 +1,5 @@
-// Re-export the database client from the shared package
 export { db as prisma } from "@mcp/database";
 
-// Health check function
 export async function checkDbHealth(): Promise<boolean> {
   try {
     const { prisma } = await import("./db");

@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from "@eslint/js";
 import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
@@ -10,6 +8,8 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
+      "**/generated/**",
+      "**/.next/**",
       "**/*.d.ts",
       ".prettierrc.js",
       "vitest.config.mts",
@@ -39,17 +39,19 @@ export default tseslint.config(
       "unused-imports": unusedImports,
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": "off", // Disabled in favor of unused-imports
+      "@typescript-eslint/no-unused-vars": "off",
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "error",
         {
           vars: "all",
-          varsIgnorePattern: "^_",
           args: "after-used",
           argsIgnorePattern: "^_",
         },
       ],
+
+      "no-empty": ["error", { allowEmptyCatch: true }],
+
       "import/order": [
         "warn",
         {
@@ -61,6 +63,7 @@ export default tseslint.config(
             "sibling",
             "index",
           ],
+
           pathGroups: [
             {
               pattern: "@mcp/**",
@@ -68,11 +71,13 @@ export default tseslint.config(
               position: "before",
             },
           ],
+
           pathGroupsExcludedImportTypes: ["builtin"],
           "newlines-between": "never",
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
+
       "import/first": "error",
       "import/no-duplicates": "error",
       "@typescript-eslint/no-explicit-any": "error",

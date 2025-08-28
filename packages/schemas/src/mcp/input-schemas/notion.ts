@@ -1,12 +1,7 @@
 import { CommonInputSchemas } from "./common.js";
 import { ToolInputSchema } from "./types.js";
 
-// ============================================================================
-// NOTION MCP SERVER - Input Schemas
-// ============================================================================
-
 export const NotionInputSchemas = {
-  // Create a database under a page
   createDatabase: {
     type: "object",
     properties: {
@@ -15,13 +10,11 @@ export const NotionInputSchemas = {
         description: "The Notion page_id to create the database under",
       },
       title: { type: "string", description: "Database title" },
-      // Optional: allow custom property overrides later
     },
     required: ["parentPageId", "title"],
     additionalProperties: true,
   } as ToolInputSchema,
 
-  // Query a database with optional sort/filter
   queryDatabase: {
     type: "object",
     properties: {
@@ -36,7 +29,6 @@ export const NotionInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Create a page (row) in a database
   createPage: {
     type: "object",
     properties: {
@@ -55,7 +47,6 @@ export const NotionInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Update page relations
   updatePageRelations: {
     type: "object",
     properties: {
@@ -67,7 +58,6 @@ export const NotionInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Generic search
   search: {
     type: "object",
     properties: {

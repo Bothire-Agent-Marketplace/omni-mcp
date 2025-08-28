@@ -1,9 +1,4 @@
-// ============================================================================
-// PERPLEXITY MCP SERVER - API Client
-// ============================================================================
-
 import { perplexityServerConfig } from "../config/config.js";
-// Using protocol input schemas only; remove runtime Zod
 import {
   PerplexityRequest,
   PerplexityResponse,
@@ -36,10 +31,6 @@ async function callPerplexityAPI(
 
   return response.json();
 }
-
-// ============================================================================
-// TOOL HANDLERS - Following Linear server pattern
-// ============================================================================
 
 export async function handlePerplexitySearch(
   client: unknown,
@@ -221,10 +212,6 @@ export async function handlePerplexitySummarize(
     ],
   };
 }
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
 
 function extractSources(content: string): string[] {
   const urlRegex = /\[\d+\]:\s*([^\s]+)/g;

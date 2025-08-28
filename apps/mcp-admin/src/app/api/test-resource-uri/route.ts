@@ -6,7 +6,6 @@ const TestResourceUriSchema = z.object({
   uri: z.string().url("Invalid URI format"),
 });
 
-// Helper function to format bytes
 function formatBytes(bytes: number): string {
   const sizes = ["Bytes", "KB", "MB", "GB"];
   if (bytes === 0) return "0 Bytes";
@@ -19,7 +18,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { uri } = TestResourceUriSchema.parse(body);
 
-    // Only test HTTP/HTTPS URLs for security
     if (!uri.match(/^https?:\/\/.+/i)) {
       return NextResponse.json(
         createErrorResponse(
@@ -30,13 +28,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Test the URI accessibility
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
       const response = await fetch(uri, {
-        method: "HEAD", // Use HEAD to avoid downloading the full resource
+        method: "HEAD",
         signal: controller.signal,
         headers: {
           "User-Agent": "MCP-Admin Resource Tester/1.0",
@@ -55,7 +52,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Extract metadata from headers
       const contentType = response.headers.get("content-type") || undefined;
       const contentLength = response.headers.get("content-length");
       let size: string | undefined;
@@ -92,7 +88,6 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        // Handle different types of network errors
         if (fetchError.message.includes("fetch")) {
           return NextResponse.json(
             createErrorResponse(

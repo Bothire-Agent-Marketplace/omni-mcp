@@ -24,6 +24,7 @@
     "@fastify/sensible": "^6.0.3",
     "@fastify/websocket": "^11.2.0",
     "@mcp/capabilities": "workspace:*",
+    "@mcp/config-service": "workspace:*",
     "@mcp/database": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "@mcp/utils": "workspace:*",

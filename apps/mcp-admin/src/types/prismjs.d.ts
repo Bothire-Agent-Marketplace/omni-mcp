@@ -8,3 +8,5 @@ declare module "prismjs" {
     matchedStr?: string;
   }
 }
+
+declare module "prismjs/components/*";
