@@ -63,7 +63,9 @@ export async function createMcpServer<TClient = unknown>(
     configLoader
   );
 
-  const baseOptions = {
+  const baseOptions: Parameters<
+    typeof createEnhancedMcpHttpServer<TClient>
+  >[0] = {
     serverName,
     config,
     dynamicHandlers,
@@ -79,12 +81,15 @@ export async function createMcpServer<TClient = unknown>(
     getAvailablePrompts: async (context: RequestContext | undefined) => {
       return dynamicHandlers.getAvailablePrompts(context);
     },
-  } as const;
+  };
 
-  const server = createEnhancedMcpHttpServer<TClient>({
-    ...(client !== undefined ? { client } : {}),
+  const options: Parameters<typeof createEnhancedMcpHttpServer<TClient>>[0] = {
     ...baseOptions,
-  });
+  };
+  if (client !== undefined) {
+    (options as { client?: TClient }).client = client;
+  }
+  const server = createEnhancedMcpHttpServer<TClient>(options);
 
   return server;
 }

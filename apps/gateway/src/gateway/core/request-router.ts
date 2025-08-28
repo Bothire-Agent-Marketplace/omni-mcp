@@ -3,9 +3,8 @@ import {
   MCPJsonRpcResponse,
   Session,
   McpGatewayConfig,
-  isJsonRpcErrorResponse,
 } from "@mcp/schemas";
-import { McpLogger } from "@mcp/utils";
+import { McpLogger, postJson } from "@mcp/utils";
 import { MCPProtocolAdapter } from "../protocol-adapter.js";
 import { MCPServerManager } from "../server-manager.js";
 
@@ -162,18 +161,11 @@ export class MCPRequestRouter {
       headers["x-organization-clerk-id"] = session.organizationClerkId;
     }
 
-    const response = await fetch(`${serverInstance.url}/mcp`, {
-      method: "POST",
-      headers: { ...headers, "x-request-id": correlationId },
-      body: JSON.stringify(request),
-    });
-
-    const mcpResponse = (await response.json()) as MCPJsonRpcResponse;
-
-    if (!response.ok || isJsonRpcErrorResponse(mcpResponse)) {
-      return mcpResponse;
-    }
-
+    const mcpResponse = await postJson<MCPJsonRpcResponse>(
+      `${serverInstance.url}/mcp`,
+      request,
+      { headers, requestId: correlationId, timeoutMs: 10000, retries: 1 }
+    );
     return mcpResponse;
   }
 

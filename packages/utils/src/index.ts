@@ -2,6 +2,7 @@ export * from "./env-loader.js";
 export * from "./validation.js";
 export * from "./mcp-server-utilities.js";
 export * from "./logger.js";
+export * from "./http-client.js";
 
 export type McpErrorCode =
   | "BAD_REQUEST"

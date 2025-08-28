@@ -30,7 +30,6 @@
     "@mcp/utils": "workspace:*",
     "fastify": "^5.4.0",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^3.3.2",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

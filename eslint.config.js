@@ -124,7 +124,14 @@ export default tseslint.config(
     },
   },
   {
-    files: ["apps/gateway/src/**/*.ts"],
+    files: [
+      "packages/**/src/**/*.ts",
+      "apps/gateway/src/**/*.ts",
+      "apps/devtools-mcp-server/src/**/*.ts",
+      "apps/linear-mcp-server/src/**/*.ts",
+      "apps/notion-mcp-server/src/**/*.ts",
+      "apps/perplexity-mcp-server/src/**/*.ts",
+    ],
     plugins: {
       "relative-ext": relativeExtPlugin,
     },

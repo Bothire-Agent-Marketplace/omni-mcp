@@ -1,10 +1,10 @@
 import { EventEmitter } from "events";
-import fetch from "node-fetch";
 import {
   McpServerRuntimeConfig,
   ServerInstance,
   HealthStatus,
 } from "@mcp/schemas";
+import { getJson } from "@mcp/utils";
 import { McpLogger } from "@mcp/utils";
 
 export class MCPServerManager extends EventEmitter {
@@ -112,25 +112,15 @@ export class MCPServerManager extends EventEmitter {
     try {
       const healthUrl = `${server.url}/health`;
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      const response = await fetch(healthUrl, {
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (response.ok) {
+      try {
+        await getJson(healthUrl, { timeoutMs: 5000 });
         if (!server.isHealthy) {
           this.logger.info(`Server '${serverId}' is now healthy.`);
         }
         server.isHealthy = true;
-      } else {
+      } catch {
         if (server.isHealthy) {
-          this.logger.warn(
-            `Server '${serverId}' is now unhealthy. Status: ${response.status}`
-          );
+          this.logger.warn(`Server '${serverId}' is now unhealthy.`);
         }
         server.isHealthy = false;
       }
