@@ -102,6 +102,7 @@ export async function formatIssueWithRelations(issue: Issue): Promise<{
   updatedAt: string;
   createdAt: string;
   url: string;
+  labels: string[];
   relatedIssues: Array<{
     relationType: string;
     identifier: string;
@@ -120,6 +121,8 @@ export async function formatIssueWithRelations(issue: Issue): Promise<{
   ]);
 
   const relationsConnection = await issue.relations();
+  const labelsConnection = await issue.labels();
+  const labelNames = labelsConnection.nodes.map((l) => l.name);
   const relatedList = await Promise.all(
     relationsConnection.nodes.map(async (relation) => {
       const relatedIssue = await relation.relatedIssue;
@@ -152,6 +155,7 @@ export async function formatIssueWithRelations(issue: Issue): Promise<{
     updatedAt: issue.updatedAt.toISOString?.() ?? String(issue.updatedAt),
     createdAt: issue.createdAt.toISOString?.() ?? String(issue.createdAt),
     url: issue.url,
+    labels: labelNames,
     relatedIssues: relatedList.filter(Boolean) as Array<{
       relationType: string;
       identifier: string;
