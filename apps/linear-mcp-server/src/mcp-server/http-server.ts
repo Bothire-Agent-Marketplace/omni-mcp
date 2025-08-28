@@ -13,7 +13,6 @@ export async function createLinearHttpServer(
 ): Promise<FastifyInstance> {
   const linearClient = new LinearClient({ apiKey: config.linearApiKey });
 
-  // Use consolidated factory - eliminates 40+ lines of boilerplate
   return createMcpServerWithClient({
     serverName: "linear",
     serverKey: "linear",
@@ -21,7 +20,5 @@ export async function createLinearHttpServer(
     client: linearClient,
     createToolHandlers,
     getAvailableTools,
-    // Resources and prompts are fully dynamic from database
-    // No need to specify empty handlers or dynamic setup - factory handles it
   });
 }

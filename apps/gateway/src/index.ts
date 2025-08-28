@@ -12,7 +12,6 @@ import {
   MCPRouteGeneric,
   HealthRouteGeneric,
   WebSocketRouteGeneric,
-  // Deprecated schemas removed - use unified response schemas instead
   HTTPHeaders,
 } from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
@@ -20,7 +19,6 @@ import { getGatewayConfig } from "./config.js";
 import { MCPGateway } from "./gateway/mcp-gateway.js";
 import { registerSecurityMiddleware } from "./middleware/security.js";
 
-// Helper function to convert Fastify headers to our HTTPHeaders type
 function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
   const headers: HTTPHeaders = {};
 
@@ -28,7 +26,6 @@ function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
     if (typeof value === "string") {
       headers[key] = value;
     } else if (Array.isArray(value)) {
-      // Take the first value for array headers
       headers[key] = value[0];
     } else if (value !== undefined) {
       headers[key] = String(value);
@@ -40,7 +37,6 @@ function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
 
 let serverInstance: FastifyInstance | null = null;
 
-// Store SSE connections
 const sseConnections = new Map<string, FastifyReply>();
 
 async function createServer(): Promise<FastifyInstance> {
@@ -48,17 +44,14 @@ async function createServer(): Promise<FastifyInstance> {
     return serverInstance;
   }
 
-  // Load gateway configuration
   const gatewayConfig = await getGatewayConfig();
 
-  // Initialize logger
   const logger = createMcpLogger({
     serverName: "mcp-gateway",
     logLevel: gatewayConfig.env === "production" ? "info" : "debug",
     environment: gatewayConfig.env,
   });
 
-  // Setup global error handlers
   setupGlobalErrorHandlers(logger);
 
   logger.serverStartup(gatewayConfig.port, {
@@ -69,11 +62,9 @@ async function createServer(): Promise<FastifyInstance> {
   try {
     logger.info("Starting MCP Gateway...");
 
-    // Initialize the MCP Gateway
     const mcpGateway = new MCPGateway(gatewayConfig, logger);
     await mcpGateway.initialize();
 
-    // Create Fastify server with proper TypeScript configuration
     const server: FastifyInstance = fastify({
       logger: false,
       bodyLimit: gatewayConfig.maxRequestSizeMb * 1024 * 1024,
@@ -85,7 +76,6 @@ async function createServer(): Promise<FastifyInstance> {
       },
     });
 
-    // Register Security Middleware (must be first)
     await registerSecurityMiddleware(server, {
       logger,
       enableRateLimit: gatewayConfig.enableRateLimit,
@@ -98,7 +88,6 @@ async function createServer(): Promise<FastifyInstance> {
       securityHeaders: gatewayConfig.securityHeaders,
     });
 
-    // CORS Middleware
     server.register(cors, {
       origin: gatewayConfig.allowedOrigins,
       credentials: gatewayConfig.corsCredentials,
@@ -106,16 +95,14 @@ async function createServer(): Promise<FastifyInstance> {
       allowedHeaders: ["Content-Type", "Authorization", "x-api-key"],
     });
 
-    // WebSocket Support
     server.register(websocket);
 
-    // Health check endpoint with proper typing and schema
     server.get<HealthRouteGeneric>(
       "/health",
       {
         schema: {
           response: {
-            200: {}, // Use standard response - no schema needed
+            200: {},
           },
         },
       },
@@ -134,7 +121,6 @@ async function createServer(): Promise<FastifyInstance> {
       }
     );
 
-    // SSE endpoint for mcp-bridge compatibility
     server.get("/sse", async (request: FastifyRequest, reply: FastifyReply) => {
       const sessionId = Math.random().toString(36).substr(2, 9);
 
@@ -146,10 +132,8 @@ async function createServer(): Promise<FastifyInstance> {
         "Access-Control-Allow-Headers": "Cache-Control",
       });
 
-      // Store the connection
       sseConnections.set(sessionId, reply);
 
-      // Send initial connection event
       reply.raw.write(
         `data: ${JSON.stringify({
           type: "connection",
@@ -157,13 +141,11 @@ async function createServer(): Promise<FastifyInstance> {
         })}\n\n`
       );
 
-      // Handle client disconnect
       request.raw.on("close", () => {
         sseConnections.delete(sessionId);
         logger.info(`SSE connection closed: ${sessionId}`);
       });
 
-      // Keep connection alive
       const keepAlive = setInterval(() => {
         if (reply.raw.destroyed) {
           clearInterval(keepAlive);
@@ -176,7 +158,6 @@ async function createServer(): Promise<FastifyInstance> {
       logger.info(`SSE connection established: ${sessionId}`);
     });
 
-    // Messages endpoint for mcp-bridge compatibility
     server.post(
       "/messages",
       async (request: FastifyRequest, reply: FastifyReply) => {
@@ -203,7 +184,6 @@ async function createServer(): Promise<FastifyInstance> {
       }
     );
 
-    // MCP HTTP/JSON-RPC endpoint with proper typing and schema validation
     server.post<MCPRouteGeneric>(
       "/mcp",
       {
@@ -225,10 +205,10 @@ async function createServer(): Promise<FastifyInstance> {
             additionalProperties: false,
           },
           response: {
-            400: {}, // Use standard error response
-            401: {}, // Use standard error response
-            404: {}, // Use standard error response
-            500: {}, // Use standard error response
+            400: {},
+            401: {},
+            404: {},
+            500: {},
           },
         },
       },
@@ -249,7 +229,6 @@ async function createServer(): Promise<FastifyInstance> {
       }
     );
 
-    // WebSocket support for real-time MCP communication
     server.get<WebSocketRouteGeneric>(
       "/mcp/ws",
       {
@@ -273,7 +252,6 @@ async function createServer(): Promise<FastifyInstance> {
       }
     );
 
-    // Global error handler with proper typing
     server.setErrorHandler((error, request, reply) => {
       logger.error("Fastify error handler", error, {
         url: request.url,
@@ -285,7 +263,6 @@ async function createServer(): Promise<FastifyInstance> {
         validationContext: error.validationContext,
       });
 
-      // Handle validation errors
       if (error.validation) {
         return reply.status(400).send({
           error: "Validation failed",
@@ -294,7 +271,6 @@ async function createServer(): Promise<FastifyInstance> {
         });
       }
 
-      // Handle other errors
       const statusCode = error.statusCode || 500;
       return reply.status(statusCode).send({
         error: statusCode >= 500 ? "Internal server error" : "Bad request",
@@ -302,10 +278,8 @@ async function createServer(): Promise<FastifyInstance> {
       });
     });
 
-    // Graceful shutdown with proper cleanup
     const close = async () => {
       logger.info("Initiating graceful shutdown...");
-      // Close all SSE connections
       for (const [_sessionId, reply] of sseConnections.entries()) {
         if (!reply.raw.destroyed) {
           reply.raw.end();
@@ -317,7 +291,6 @@ async function createServer(): Promise<FastifyInstance> {
       logger.info("Gateway shutdown complete");
     };
 
-    // Handle shutdown signals
     process.on("SIGINT", close);
     process.on("SIGTERM", close);
 
@@ -331,10 +304,8 @@ async function createServer(): Promise<FastifyInstance> {
 
 async function start() {
   try {
-    // Load gateway configuration
     const gatewayConfig = await getGatewayConfig();
 
-    // Initialize logger for startup
     const logger = createMcpLogger({
       serverName: "mcp-gateway",
       logLevel: gatewayConfig.env === "production" ? "info" : "debug",
@@ -370,7 +341,6 @@ async function start() {
       logger.info(`🔑 Development API key: ${gatewayConfig.mcpApiKey}`);
     }
   } catch (error) {
-    // Create a basic logger for error reporting if config loading fails
     const logger = createMcpLogger({
       serverName: "mcp-gateway",
       logLevel: "error",
@@ -381,10 +351,8 @@ async function start() {
   }
 }
 
-// Export for testing
 export { createServer };
 
-// Start the server if this is the main module
 if (import.meta.url === `file://${process.argv[1]}`) {
   start();
 }

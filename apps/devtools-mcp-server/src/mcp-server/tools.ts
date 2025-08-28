@@ -1,18 +1,9 @@
-// ============================================================================
-// DEVTOOLS MCP SERVER - Tools
-// ============================================================================
-
 import { DevToolsInputSchemas } from "@mcp/schemas";
 import { ToolHandler } from "@mcp/server-core";
 import { getGenericAvailableTools, ToolDefinition } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
-// ============================================================================
-// DEVTOOLS MCP SERVER - Tool Definitions
-// ============================================================================
-
 const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
-  // Browser Management
   browser_start: {
     handler: handlers.handleStartBrowser,
     metadata: {
@@ -59,7 +50,6 @@ const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
     },
   },
 
-  // Console Tools
   console_logs: {
     handler: handlers.handleGetConsoleLogs,
     metadata: {
@@ -78,7 +68,6 @@ const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
     },
   },
 
-  // Network Tools
   network_requests: {
     handler: handlers.handleGetNetworkRequests,
     metadata: {
@@ -97,7 +86,6 @@ const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
     },
   },
 
-  // DOM Interaction Tools
   dom_click: {
     handler: handlers.handleClickElement,
     metadata: {
@@ -107,10 +95,6 @@ const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
     },
   },
 };
-
-// ============================================================================
-// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
-// ============================================================================
 
 export function createToolHandlers(): Record<string, ToolHandler> {
   return {

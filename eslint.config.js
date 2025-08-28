@@ -1,5 +1,3 @@
-// @ts-check
-
 import eslint from "@eslint/js";
 import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";

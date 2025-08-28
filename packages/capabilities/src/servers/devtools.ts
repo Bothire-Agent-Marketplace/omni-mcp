@@ -1,9 +1,5 @@
 import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
-// ============================================================================
-// CHROME DEVTOOLS MCP SERVER - Definition (Streamlined)
-// ============================================================================
-
 export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "devtools",
   port: 3003,
@@ -13,19 +9,14 @@ export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   envVar: "DEVTOOLS_SERVER_URL",
   isEnabled: true,
   tools: [
-    // Browser Management (match server implementation)
     "browser_start",
     "browser_navigate",
     "browser_status",
     "browser_close",
     "browser_screenshot",
-
-    // Console Tools (3 tools)
     "console_logs",
     "console_execute",
     "console_clear",
-
-    // Network Monitoring (2 tools)
     "network_requests",
     "network_response",
   ],
