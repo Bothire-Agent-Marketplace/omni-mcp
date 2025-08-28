@@ -1,81 +1,91 @@
-# MCP Gateway
+## MCP Gateway
 
-## Local Development Testing
+The MCP Gateway is the single HTTP/JSON-RPC entry point for all MCP servers in this monorepo. It
+enforces API-key authentication, applies security controls, and routes requests to registered
+servers.
 
-### API Key Requirement
+### Endpoints
 
-The gateway **always requires an API key** for security. This ensures consistent authentication patterns between development and production.
+- MCP JSON-RPC: `POST /mcp`
+- Health: `GET /health`
+- WebSocket (optional): `GET /mcp/ws`
 
-**Development API Key:**
-For local testing, use the well-known development API key:
-```
-dev-api-key-12345
-```
+### Authentication
 
-**Example Usage:**
-```bash
-# Test with development API key
-curl -X POST http://localhost:37373/mcp \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: dev-api-key-12345" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "prompts/list", "params": {}}'
+All requests must include an API key (development and production).
 
-# Alternative: Use Authorization header
-curl -X POST http://localhost:37373/mcp \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer dev-api-key-12345" \
-  -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
-```
+Headers (choose one):
 
-### Organization Context
+- `x-api-key: <key>`
+- `Authorization: Bearer <key>`
 
-Organization context is automatically extracted from:
-1. **API keys** (linked to organizations in database)
-2. **Clerk JWT tokens** (containing org_id)
-3. **Session tokens** (existing gateway sessions)
+Default development key: `dev-api-key-12345` (not valid in production)
 
-If no organization context is found, requests will fail with authentication errors.
-
-## Production Configuration
-
-### Required Environment Variables
+### Quick start (local)
 
 ```bash
-# Production API key (required)
-MCP_API_KEY=your-secure-production-api-key
+# List tools
+curl -sS http://localhost:37373/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: dev-api-key-12345' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
-# JWT secret for session management
-JWT_SECRET=your-jwt-secret
-
-# Other optional configuration
-GATEWAY_PORT=37373
-GATEWAY_HOST=0.0.0.0
-ALLOWED_ORIGINS=https://your-domain.com
+# Health
+curl -sS http://localhost:37373/health
 ```
 
-### Security Features
+### Environment variables
 
-- **Always requires API key** - No bypass logic
-- **Production validation** - Prevents development keys in production
-- **Organization context** - Automatic extraction from authenticated requests
-- **Rate limiting** - Enabled in production
-- **Security headers** - Enabled in production
-- **CORS protection** - Configurable origins
+These are read at startup; production validation enforces secure values.
 
-## Development vs Production
+- `MCP_API_KEY` (required in production)
+- `JWT_SECRET` (required): session and signing secret
+- `GATEWAY_PORT` (default 37373)
+- `GATEWAY_HOST` (default 0.0.0.0)
+- `ALLOWED_ORIGINS` (required in production; comma-separated)
+- `API_RATE_LIMIT` (per-minute; enabled in production)
+- `MAX_REQUEST_SIZE` (MB, default 1)
+- `CORS_CREDENTIALS` (default true)
+- `SESSION_TIMEOUT` (ms)
+- `MAX_CONCURRENT_SESSIONS`
+- `LOG_LEVEL` (debug|info|warn|error)
 
-| Feature | Development | Production |
-|---------|-------------|------------|
-| API Key | `dev-api-key-12345` (fallback) | Environment variable required |
-| Rate Limiting | Disabled | Enabled |
-| Security Headers | Disabled | Enabled |
-| CORS | Permissive | Strict |
-| Logging | Debug level | Info level |
+In development, the loader merges env from, in order of precedence:
 
-## Security Benefits
+1. `secrets/.env.<env>.local`
+2. app `.env*` files
+3. repo `.env*` files
 
-✅ **No bypass logic** - Same authentication everywhere  
-✅ **No NODE_ENV spoofing** - Security doesn't depend on environment variables  
-✅ **Simple codebase** - Single authentication path  
-✅ **Better habits** - Developers learn proper auth patterns  
-✅ **Consistent testing** - Local tests mirror production behavior 
+### Security defaults
+
+- API key required in all environments
+- Production guardrails: refuses `dev-api-key-12345` and empty `ALLOWED_ORIGINS`
+- CORS/security headers enabled in production
+- Rate limiting enabled in production
+
+### JSON-RPC request format
+
+```json
+{ "jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": { "name": "...", "arguments": {} } }
+```
+
+Common methods:
+
+- `tools/list`, `resources/list`, `prompts/list`
+- `tools/call`, `resources/read`, `prompts/get`
+
+### Deployment (overview)
+
+Run the Gateway as a containerized service listening on `$PORT` with the env set above. For Cloud
+Run:
+
+- Build image and deploy one service for the gateway
+- Store secrets in Secret Manager or service env vars (do not bake into images)
+- Set `ALLOWED_ORIGINS` to your frontend origins
+
+### Troubleshooting
+
+- 401/403: missing/invalid API key
+- 400: schema validation failed (check JSON-RPC payload)
+- 429: rate limit exceeded (production)
+- 500: inspect logs; include `LOG_LEVEL=debug` in development
