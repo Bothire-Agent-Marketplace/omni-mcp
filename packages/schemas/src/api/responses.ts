@@ -103,14 +103,15 @@ export function createErrorResponse(
   details?: unknown,
   code?: string
 ): ApiErrorResponse {
-  return {
+  const res: ApiErrorResponse = {
     success: false,
     error,
-    message,
-    details,
-    code,
     timestamp: new Date().toISOString(),
   };
+  if (message !== undefined) res.message = message;
+  if (details !== undefined) res.details = details;
+  if (code !== undefined) res.code = code;
+  return res;
 }
 
 export function createPaginatedResponse<T>(
@@ -118,13 +119,14 @@ export function createPaginatedResponse<T>(
   pagination: PaginationMeta,
   message?: string
 ): PaginatedResponse<T> {
-  return {
+  const res: PaginatedResponse<T> = {
     success: true,
     data,
-    message,
     timestamp: new Date().toISOString(),
     meta: { pagination },
-  };
+  } as PaginatedResponse<T>;
+  if (message !== undefined) (res as ApiSuccessResponse<T[]>).message = message;
+  return res;
 }
 
 export function createHealthResponse(

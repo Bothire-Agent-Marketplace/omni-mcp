@@ -104,7 +104,8 @@ export class MCPRequestRouter {
         const mcpResponse = await this.executeOnServer(
           request,
           session,
-          serverInstance
+          serverInstance,
+          requestId
         );
 
         const duration = Date.now() - startTime;
@@ -147,7 +148,8 @@ export class MCPRequestRouter {
   private async executeOnServer(
     request: MCPJsonRpcRequest,
     session: Session,
-    serverInstance: { id: string; url: string }
+    serverInstance: { id: string; url: string },
+    correlationId: string
   ): Promise<MCPJsonRpcResponse> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -162,7 +164,7 @@ export class MCPRequestRouter {
 
     const response = await fetch(`${serverInstance.url}/mcp`, {
       method: "POST",
-      headers,
+      headers: { ...headers, "x-request-id": correlationId },
       body: JSON.stringify(request),
     });
 

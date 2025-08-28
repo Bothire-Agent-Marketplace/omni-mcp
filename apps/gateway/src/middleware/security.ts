@@ -2,7 +2,7 @@ import helmet from "@fastify/helmet";
 import rateLimit from "@fastify/rate-limit";
 import sensible from "@fastify/sensible";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { HTTPRequestBody } from "@mcp/schemas";
+import { validateJsonRpcRequest } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
 interface MCPQueryParams {
@@ -171,20 +171,16 @@ export async function registerSecurityMiddleware(
     "preHandler",
     async (request: FastifyRequest, reply: FastifyReply) => {
       if (request.url === "/mcp" && request.method === "POST") {
-        const validation = validateMCPRequest(request.body);
-        if (!validation.valid) {
+        const result = validateJsonRpcRequest(request.body);
+        if (!result.valid) {
           logger.warn("Invalid MCP request", {
-            errors: validation.errors,
-            body:
-              typeof request.body === "object"
-                ? JSON.stringify(request.body).slice(0, 200)
-                : request.body,
+            errors: result.errors,
           });
 
           return reply.code(400).send({
             error: "Invalid request",
             message: "MCP request validation failed",
-            details: validation.errors,
+            details: result.errors,
           });
         }
       }
@@ -250,55 +246,4 @@ function maskApiKey(apiKey: string): string {
   return apiKey.slice(0, 8) + "*".repeat(apiKey.length - 8);
 }
 
-function validateMCPRequest(body: unknown): {
-  valid: boolean;
-  errors: string[];
-} {
-  const errors: string[] = [];
-
-  if (!body || typeof body !== "object") {
-    return {
-      valid: false,
-      errors: ["Request body must be a valid JSON object"],
-    };
-  }
-
-  const mcpBody = body as HTTPRequestBody;
-
-  if (mcpBody.jsonrpc !== "2.0") {
-    errors.push("jsonrpc field must be '2.0'");
-  }
-
-  if (!mcpBody.method || typeof mcpBody.method !== "string") {
-    errors.push("method field is required and must be a string");
-  }
-
-  if (
-    mcpBody.id !== undefined &&
-    typeof mcpBody.id !== "string" &&
-    typeof mcpBody.id !== "number"
-  ) {
-    errors.push("id field must be a string or number if provided");
-  }
-
-  if (mcpBody.method === "tools/call") {
-    if (!mcpBody.params || typeof mcpBody.params !== "object") {
-      errors.push("params field is required for tools/call");
-    } else {
-      if (!mcpBody.params.name || typeof mcpBody.params.name !== "string") {
-        errors.push("params.name is required for tools/call");
-      }
-      if (
-        mcpBody.params.arguments &&
-        typeof mcpBody.params.arguments !== "object"
-      ) {
-        errors.push("params.arguments must be an object if provided");
-      }
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
+// Validation handled via @mcp/schemas helpers

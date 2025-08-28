@@ -99,7 +99,7 @@ export const McpServerConfigSchema = z.object({
   logLevel: z.enum(["debug", "info", "warn", "error"]),
 
   apiKey: z.string().optional(),
-  baseUrl: z.string().url().optional(),
+  baseUrl: z.url().optional(),
   timeout: z.number().int().positive().optional(),
   maxRetries: z.number().int().min(0).max(10).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),

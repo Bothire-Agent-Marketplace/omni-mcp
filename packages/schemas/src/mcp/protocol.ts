@@ -5,7 +5,7 @@ export interface MCPJsonRpcRequest {
 
   method: string;
 
-  params?: Record<string, unknown>;
+  params?: Record<string, unknown> | undefined;
 
   id?: string | number;
 }

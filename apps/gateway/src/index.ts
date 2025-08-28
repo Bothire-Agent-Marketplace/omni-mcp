@@ -134,6 +134,11 @@ async function createServer(): Promise<FastifyInstance> {
 
     server.register(websocket);
 
+    // Attach request id header for correlation (Fastify generates request.id)
+    server.addHook("onRequest", async (request, reply) => {
+      reply.header("x-request-id", request.id);
+    });
+
     server.get<HealthRouteGeneric>(
       "/health",
       {

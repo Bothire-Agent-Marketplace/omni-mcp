@@ -59,8 +59,12 @@ function extractOrganizationContext(
     try {
       const token = authHeader.substring(7);
 
+      const payloadSegment = token.split(".")[1];
+      if (!payloadSegment) {
+        return undefined;
+      }
       const payload = JSON.parse(
-        Buffer.from(token.split(".")[1], "base64").toString()
+        Buffer.from(payloadSegment, "base64").toString()
       );
 
       if (payload.org) {
