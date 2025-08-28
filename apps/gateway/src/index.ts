@@ -262,7 +262,7 @@ async function createServer(): Promise<FastifyInstance> {
             logger.error("Invalid JSON-RPC response schema", undefined, {
               validationErrors: parsed.error.issues,
             });
-            const { id } = request.body as { id?: string | number | null };
+            const { id } = request.body;
             const err = createInternalErrorResponse(
               "Response validation failed",
               id ?? undefined

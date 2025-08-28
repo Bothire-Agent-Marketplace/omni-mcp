@@ -3,6 +3,38 @@ import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
 import tseslint from "typescript-eslint";
 
+const relativeExtPlugin = {
+  rules: {
+    "require-js-extension": {
+      meta: {
+        type: "problem",
+        docs: {
+          description:
+            "Require .js extension on relative imports (NodeNext ESM). Ignore type-only imports.",
+        },
+        schema: [],
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source && node.source.value;
+            if (typeof source !== "string") return;
+            if (!source.startsWith(".")) return;
+            // @ts-expect-error - ESLint AST typing in JS config
+            if (node.importKind === "type") return;
+            if (/(\.js|\.mjs|\.cjs|\.json)$/i.test(source)) return;
+            context.report({
+              node: node.source,
+              message:
+                "Relative imports must include a .js extension for NodeNext ESM.",
+            });
+          },
+        };
+      },
+    },
+  },
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -89,6 +121,15 @@ export default tseslint.config(
         typescript: true,
         node: true,
       },
+    },
+  },
+  {
+    files: ["apps/gateway/src/**/*.ts"],
+    plugins: {
+      "relative-ext": relativeExtPlugin,
+    },
+    rules: {
+      "relative-ext/require-js-extension": "error",
     },
   },
 
