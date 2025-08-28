@@ -264,7 +264,7 @@ async function createServer(): Promise<FastifyInstance> {
             });
             const err = createInternalErrorResponse(
               "Response validation failed",
-              (request.body as { id?: string | number | null })?.id
+              (request.body as { id?: string | number | null })?.id ?? undefined
             );
             return reply.status(500).send(err);
           }
