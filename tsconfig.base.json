@@ -14,11 +14,7 @@
     "noEmitOnError": true,
     "sourceMap": true,
     "declarationMap": true,
-    "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@mcp/*": ["packages/*/src"]
-    }
+    "resolveJsonModule": true
   },
   "references": [
     { "path": "./apps/gateway" },

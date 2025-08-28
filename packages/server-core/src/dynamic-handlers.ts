@@ -270,9 +270,10 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
     try {
       const resources = await this.configLoader.loadResources(configContext);
-      return Object.values(resources)
-        .filter((resource: ResourceDefinition) => resource.isActive)
-        .map((resource: ResourceDefinition) => ({
+      const resourceArray = Object.values(resources) as ResourceDefinition[];
+      return resourceArray
+        .filter((resource) => resource.isActive)
+        .map((resource) => ({
           uri: resource.uri,
           name: resource.name,
           description: resource.description,
@@ -300,9 +301,10 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
 
     try {
       const prompts = await this.configLoader.loadPrompts(configContext);
-      return Object.values(prompts)
-        .filter((prompt: PromptTemplate) => prompt.isActive)
-        .map((prompt: PromptTemplate) => ({
+      const promptArray = Object.values(prompts) as PromptTemplate[];
+      return promptArray
+        .filter((prompt) => prompt.isActive)
+        .map((prompt) => ({
           name: prompt.name,
           description: prompt.description,
         }));

@@ -1,22 +1,10 @@
 import { z } from "zod";
-import type {
-  DefaultPrompt,
-  DefaultResource,
-  OrganizationPrompt,
-  OrganizationResource,
-} from "@mcp/database";
 
 // ============================================================================
 // BASE PRISMA TYPES
 // ============================================================================
 
-// Re-export Prisma types for direct use
-export type {
-  DefaultPrompt,
-  DefaultResource,
-  OrganizationPrompt,
-  OrganizationResource,
-} from "@mcp/database";
+// Prisma model types are not required at compile-time here; use structural typing
 
 // ============================================================================
 // SERVICE TYPES (Transformed from Prisma)
@@ -68,8 +56,36 @@ export interface ResourceRegistry {
 /**
  * Transform DefaultPrompt from database to PromptTemplate
  */
+type DefaultPromptModel = {
+  id: string;
+  name: string;
+  description: string;
+  template: unknown;
+  arguments: unknown;
+};
+
+type OrganizationPromptModel = DefaultPromptModel & {
+  version: number;
+  isActive: boolean;
+  organizationId: string;
+};
+
+type DefaultResourceModel = {
+  id: string;
+  uri: string;
+  name: string;
+  description: string;
+  mimeType: string | null;
+  metadata?: unknown;
+};
+
+type OrganizationResourceModel = DefaultResourceModel & {
+  isActive: boolean;
+  organizationId: string;
+};
+
 export function transformDefaultPrompt(
-  dbPrompt: DefaultPrompt
+  dbPrompt: DefaultPromptModel
 ): PromptTemplate {
   return {
     id: dbPrompt.id,
@@ -89,7 +105,7 @@ export function transformDefaultPrompt(
  * Transform OrganizationPrompt from database to PromptTemplate
  */
 export function transformOrganizationPrompt(
-  dbPrompt: OrganizationPrompt
+  dbPrompt: OrganizationPromptModel
 ): PromptTemplate {
   return {
     id: dbPrompt.id,
@@ -110,7 +126,7 @@ export function transformOrganizationPrompt(
  * Transform DefaultResource from database to ResourceDefinition
  */
 export function transformDefaultResource(
-  dbResource: DefaultResource
+  dbResource: DefaultResourceModel
 ): ResourceDefinition {
   return {
     id: dbResource.id,
@@ -128,7 +144,7 @@ export function transformDefaultResource(
  * Transform OrganizationResource from database to ResourceDefinition
  */
 export function transformOrganizationResource(
-  dbResource: OrganizationResource
+  dbResource: OrganizationResourceModel
 ): ResourceDefinition {
   return {
     id: dbResource.id,

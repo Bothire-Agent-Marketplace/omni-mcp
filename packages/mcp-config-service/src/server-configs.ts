@@ -1,9 +1,9 @@
-import type { MCPServerDefinition } from "@mcp/capabilities/src/types";
 import type {
   Environment,
   McpServerRuntimeConfig,
   McpServersRuntimeConfig,
 } from "@mcp/schemas";
+import type { MCPServerDefinition } from "../../capabilities/src/types.js";
 
 export type MCPServerRuntimeConfig = McpServerRuntimeConfig;
 export type MCPServersRuntimeConfig = McpServersRuntimeConfig;

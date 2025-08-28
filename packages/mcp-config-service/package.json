@@ -19,7 +19,6 @@
   },
   "dependencies": {
     "@mcp/database": "workspace:*",
-    "@mcp/capabilities": "workspace:*",
     "@mcp/schemas": "workspace:*",
     "lru-cache": "^11.1.0",
     "zod": "^4.0.5"
