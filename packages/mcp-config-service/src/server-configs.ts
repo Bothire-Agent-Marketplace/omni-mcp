@@ -5,35 +5,21 @@ import type {
   McpServersRuntimeConfig,
 } from "@mcp/schemas";
 
-// Re-export for backward compatibility
 export type MCPServerRuntimeConfig = McpServerRuntimeConfig;
 export type MCPServersRuntimeConfig = McpServersRuntimeConfig;
 
-/**
- * Builds the complete runtime configuration for all MCP servers,
- * which is primarily used by the Gateway to manage its connections.
- */
 export async function buildMCPServersConfig(
   allMcpServers: Record<string, MCPServerDefinition>,
   env: Environment
 ): Promise<MCPServersRuntimeConfig> {
   const result: MCPServersRuntimeConfig = {};
 
-  // Dev server overrides removed; always rely on registry definitions
-
   for (const [key, serverDef] of Object.entries(allMcpServers)) {
     const isProduction = env === "production";
 
-    // Check if server is enabled based on registry definition only
     const isServerEnabled = serverDef.isEnabled;
+    if (!isServerEnabled) continue;
 
-    // Skip disabled servers
-    if (!isServerEnabled) {
-      continue;
-    }
-
-    // In production, the URL is read from an environment variable for flexibility.
-    // In development, we construct it from the defined port.
     const url = isProduction
       ? process.env[serverDef.envVar] || serverDef.productionUrl
       : `http://localhost:${serverDef.port}`;
@@ -44,7 +30,6 @@ export async function buildMCPServersConfig(
       );
     }
 
-    // Combine all capabilities for gateway routing
     const allCapabilities = [
       ...serverDef.tools,
       ...serverDef.resources,
@@ -65,7 +50,6 @@ export async function buildMCPServersConfig(
   return result;
 }
 
-// Helper function to find which server provides a specific capability
 export function getServerByCapability(
   allMcpServers: Record<string, MCPServerDefinition>,
   capability: string

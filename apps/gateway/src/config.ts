@@ -1,6 +1,6 @@
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
-import { buildMCPServersConfig } from "packages/utils/src/mcp-server-configs.js";
+import { buildMCPServersConfig } from "@mcp/config-service";
 import { McpGatewayConfig } from "@mcp/schemas";
 import {
   detectEnvironment,
