@@ -3,7 +3,12 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "tsBuildInfoFile": "./dist/.tsbuildinfo"
+    "tsBuildInfoFile": "./dist/.tsbuildinfo",
+    "composite": true,
+    "baseUrl": "../../",
+    "paths": {
+      "@mcp/*": ["packages/*/src"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
