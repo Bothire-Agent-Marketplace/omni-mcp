@@ -34,6 +34,43 @@ curl -sS http://localhost:37373/mcp \
 curl -sS http://localhost:37373/health
 ```
 
+### Testing via transports
+
+HTTP (JSON-RPC):
+
+```bash
+# Ping
+curl -sS http://localhost:37373/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: dev-api-key-12345' \
+  -d '{"jsonrpc":"2.0","id":"1","method":"ping"}'
+
+# Call a tool
+curl -sS http://localhost:37373/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'x-api-key: dev-api-key-12345' \
+  -d '{"jsonrpc":"2.0","id":"2","method":"tools/call","params":{"name":"linear_search_issues","arguments":{"query":"status:open"}}}'
+```
+
+SSE (Server-Sent Events):
+
+```bash
+# Connect (Ctrl+C to exit)
+curl -N http://localhost:37373/sse \
+  -H 'Authorization: Bearer dev-api-key-12345'
+```
+
+WebSocket:
+
+```bash
+# Using websocat (brew install websocat)
+websocat -H 'Authorization: Bearer dev-api-key-12345' \
+  ws://localhost:37373/mcp/ws
+
+# Then send a JSON-RPC message
+{"jsonrpc":"2.0","id":"1","method":"ping"}
+```
+
 ### Environment variables
 
 These are read at startup; production validation enforces secure values.
