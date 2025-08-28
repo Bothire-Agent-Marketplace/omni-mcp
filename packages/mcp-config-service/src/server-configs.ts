@@ -1,4 +1,4 @@
-import type { MCPServerDefinition } from "@mcp/capabilities";
+import type { MCPServerDefinition } from "@mcp/capabilities/src/types";
 import type {
   Environment,
   McpServerRuntimeConfig,
