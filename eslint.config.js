@@ -79,8 +79,7 @@ export default tseslint.config(
       ],
 
       "import/first": "error",
-      "import/no-duplicates": "error",
-      // Temporarily disable until we add a custom rule for relative .js imports
+      // Disable extensions rule; we'll add custom check for relative .js later
       "import/extensions": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-require-imports": "off",

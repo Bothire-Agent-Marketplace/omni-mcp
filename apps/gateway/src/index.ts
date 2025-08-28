@@ -13,6 +13,8 @@ import {
   HealthRouteGeneric,
   WebSocketRouteGeneric,
   HTTPHeaders,
+  MCPJsonRpcResponseSchema,
+  createInternalErrorResponse,
 } from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import { getGatewayConfig } from "./config.js";
@@ -255,7 +257,18 @@ async function createServer(): Promise<FastifyInstance> {
             request.body,
             convertHeaders(request.headers)
           );
-          return reply.send(response);
+          const parsed = MCPJsonRpcResponseSchema.safeParse(response);
+          if (!parsed.success) {
+            logger.error("Invalid JSON-RPC response schema", undefined, {
+              validationErrors: parsed.error.issues,
+            });
+            const err = createInternalErrorResponse(
+              "Response validation failed",
+              (request.body as { id?: string | number | null })?.id
+            );
+            return reply.status(500).send(err);
+          }
+          return reply.send(parsed.data);
         } catch (error) {
           logger.error("HTTP request error", error as Error);
           return reply.status(500).send({
