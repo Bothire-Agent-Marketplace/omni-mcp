@@ -56,7 +56,7 @@ graph LR
 - Discovers server definitions from `@mcp/capabilities`
 - Port: 37373
 
-### MCP Servers (`apps/*-mcp-server/`)
+## MCP Servers (`apps/*-mcp-server/`)
 
 Shared pattern via `@mcp/server-core`:
 
@@ -66,26 +66,7 @@ Shared pattern via `@mcp/server-core`:
   - `createMcpServerWithClient` (e.g., Linear)
   - `createMcpServerWithoutClient` (e.g., Perplexity)
 
-Example outline:
-
-```ts
-// http-server.ts
-import type { FastifyInstance } from "fastify";
-import { createMcpServerWithoutClient } from "@mcp/server-core";
-import { createToolHandlers, getAvailableTools } from "./tools.js";
-
-export async function createDomainHttpServer(config: DomainServerConfig): Promise<FastifyInstance> {
-  return createMcpServerWithoutClient({
-    serverName: "domain",
-    serverKey: "domain",
-    config,
-    createToolHandlers,
-    getAvailableTools,
-  });
-}
-```
-
-Default ports: Linear 3001, Perplexity 3002, DevTools 3003, Notion 3004
+For the complete MCP server pattern, see `docs/MCP_SERVER_PATTERN.md`.
 
 ### Config Service (`@mcp/config-service`)
 
@@ -103,31 +84,6 @@ Default ports: Linear 3001, Perplexity 3002, DevTools 3003, Notion 3004
 ### Admin UI (`apps/mcp-admin/`)
 
 - Next.js App Router for org management and real-time testing
-
-## MCP Server Pattern (Steps)
-
-1. Declare tools
-
-```ts
-// tools.ts
-import * as handlers from "./handlers.js";
-export const createToolHandlers = () => ({ my_tool: handlers.handleMyTool });
-export const getAvailableTools = () => [
-  { name: "my_tool", description: "Do something", inputSchema: {} },
-];
-```
-
-2. Implement handlers
-
-```ts
-// handlers.ts
-export async function handleMyTool(_client: unknown, _params: unknown) {
-  return { content: [{ type: "text", text: "ok" }] };
-}
-```
-
-3. Create server (see outline above)
-4. Prompts/resources are dynamic—no hardcoding
 
 ## Conventions
 
