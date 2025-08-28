@@ -12,38 +12,34 @@
 ### High‑Level Diagram
 
 ```mermaid
-graph LR
-  subgraph Clients
-    C1["MCP Clients (Cursor/Claude/etc.)"]
+flowchart LR
+  subgraph "Clients"
+    C1["MCP Clients"]
     AUI["Admin UI (Next.js)"]
   end
 
-  C1 -->|MCP HTTP/JSON-RPC| GW[Gateway (Fastify)]
-  AUI -->|Testing/Management| GW
+  C1 --> GW["Gateway (Fastify)"]
+  AUI --> GW
 
-  GW -->|Route by capability| L[Linear Server]
-  GW -->|Route by capability| P[Perplexity Server]
-  GW -->|Route by capability| D[DevTools Server]
-  GW -->|Route by capability| N[Notion Server]
+  GW --> L["Linear Server"]
+  GW --> P["Perplexity Server"]
+  GW --> D["DevTools Server"]
+  GW --> N["Notion Server"]
 
-  subgraph Config
-    CS[@mcp/config-service]
-    CAP[@mcp/capabilities]
+  subgraph "Config"
+    CS["@mcp/config-service"]
+    CAP["@mcp/capabilities"]
   end
 
-  GW -- Build runtime config --> CS
-  CS -- Discover definitions --> CAP
+  GW --> CS
+  CS --> CAP
 
-  subgraph Data
-    DB[(PostgreSQL)]
+  subgraph "Data"
+    DB["PostgreSQL"]
   end
 
-  L --> CS
-  P --> CS
-  D --> CS
-  N --> CS
-
-  CS <-- Prisma --> DB
+  CS --> DB
+  DB --> CS
 ```
 
 ## Components
