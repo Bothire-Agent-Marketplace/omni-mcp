@@ -3,6 +3,44 @@ import { PrismaClient } from "../generated/index.js";
 const prisma = new PrismaClient();
 
 const DEFAULT_PROMPTS = {
+  notion: [
+    {
+      name: "notion_workflow",
+      description: "Step-by-step workflow for Notion tasks",
+      template: [
+        {
+          role: "user",
+          content:
+            "Help me with this Notion task: {{task}}. Please guide me through:\n\n1. Understanding the structure\n2. Designing the database/page\n3. Implementing properties and relations\n4. Testing and refining\n\nLet's start - what are we building?",
+        },
+      ],
+      arguments: {
+        task: {
+          type: "string",
+          description: "Task description",
+          optional: true,
+        },
+      },
+    },
+    {
+      name: "notion_automation",
+      description: "Automation guidance for Notion pages/databases",
+      template: [
+        {
+          role: "user",
+          content:
+            "Let's automate this Notion process: {{process}}. We'll cover:\n\n1. Identifying repetitive tasks\n2. Designing automation workflow\n3. Triggers and conditions\n4. Monitoring and optimization\n\nWhat process would you like to automate?",
+        },
+      ],
+      arguments: {
+        process: {
+          type: "string",
+          description: "Process name",
+          optional: true,
+        },
+      },
+    },
+  ],
   linear: [
     {
       name: "create_issue_workflow",
@@ -144,6 +182,22 @@ const DEFAULT_PROMPTS = {
 };
 
 const DEFAULT_RESOURCES = {
+  notion: [
+    {
+      uri: "notion://recent-pages",
+      name: "notion-recent-pages",
+      description: "List of recently edited Notion pages",
+      mimeType: "application/json",
+      metadata: { refreshInterval: 300000, cacheable: true },
+    },
+    {
+      uri: "notion://databases",
+      name: "notion-databases",
+      description: "List of accessible Notion databases",
+      mimeType: "application/json",
+      metadata: { refreshInterval: 3600000, cacheable: true },
+    },
+  ],
   linear: [
     {
       uri: "linear://teams",

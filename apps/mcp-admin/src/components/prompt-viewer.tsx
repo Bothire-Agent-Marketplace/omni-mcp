@@ -1,27 +1,22 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Copy,
   User,
   Settings,
   Code,
   Info,
-  CheckCircle2,
-  AlertCircle,
   Clock,
   Server,
   MessageSquare,
-  Hash } from
-"lucide-react";
+  Hash,
+} from "lucide-react";
 import { toast } from "sonner";
-import type { OrganizationPrompt, DefaultPrompt } from "@/types/prompts";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { extractVariablesFromTemplate } from "@/lib/prompt-utils";
-
+import type { OrganizationPrompt, DefaultPrompt } from "@/types/prompts";
 
 interface ArgumentConfig {
   type?: string;
@@ -47,7 +42,7 @@ export function PromptViewer({
   showActions = true,
   onEdit,
   onCopy,
-  onDelete
+  onDelete: _onDelete,
 }: PromptViewerProps) {
   const isCustomPrompt = "version" in prompt && "createdByUser" in prompt;
 
@@ -55,20 +50,18 @@ export function PromptViewer({
     if (typeof prompt.template === "string") {
       return prompt.template;
     } else if (Array.isArray(prompt.template)) {
-
-      return prompt.template.
-      map((item) => {
-        if (item && typeof item === "object" && "content" in item) {
-          return (item as {content: string;}).content;
-        }
-        return JSON.stringify(item);
-      }).
-      join("\n\n");
+      return prompt.template
+        .map((item) => {
+          if (item && typeof item === "object" && "content" in item) {
+            return (item as { content: string }).content;
+          }
+          return JSON.stringify(item);
+        })
+        .join("\n\n");
     } else if (
-    typeof prompt.template === "object" &&
-    prompt.template !== null)
-    {
-
+      typeof prompt.template === "object" &&
+      prompt.template !== null
+    ) {
       const templateObj = prompt.template as Record<string, unknown>;
 
       if ("message" in templateObj && typeof templateObj.message === "string") {
@@ -92,12 +85,12 @@ export function PromptViewer({
   };
 
   const formatUserName = (
-  user?: {
-    email: string;
-    firstName?: string | null;
-    lastName?: string | null;
-  } | null) =>
-  {
+    user?: {
+      email: string;
+      firstName?: string | null;
+      lastName?: string | null;
+    } | null
+  ) => {
     if (!user) return "System";
     if (user.firstName && user.lastName) {
       return `${user.firstName} ${user.lastName}`;
@@ -114,14 +107,14 @@ export function PromptViewer({
             <h2 className="text-2xl font-bold text-foreground">
               {prompt.name}
             </h2>
-            {isCustomPrompt &&
-            <>
+            {isCustomPrompt && (
+              <>
                 <Badge variant="secondary">
                   v{(prompt as OrganizationPrompt).version}
                 </Badge>
                 <Badge variant="outline">Custom</Badge>
               </>
-            }
+            )}
             {!isCustomPrompt && <Badge variant="secondary">Default</Badge>}
           </div>
           <p className="text-muted-foreground text-lg">{prompt.description}</p>
@@ -133,47 +126,47 @@ export function PromptViewer({
               <span>{prompt.mcpServer.name}</span>
             </div>
 
-            {isCustomPrompt &&
-            <>
+            {isCustomPrompt && (
+              <>
                 <div className="flex items-center gap-1">
                   <User className="w-4 h-4" />
                   <span>
                     Created by{" "}
                     {formatUserName(
-                    (prompt as OrganizationPrompt).createdByUser
-                  )}
+                      (prompt as OrganizationPrompt).createdByUser
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   <span>
                     {new Date(
-                    (prompt as OrganizationPrompt).createdAt
-                  ).toLocaleDateString()}
+                      (prompt as OrganizationPrompt).createdAt
+                    ).toLocaleDateString()}
                   </span>
                 </div>
               </>
-            }
+            )}
           </div>
         </div>
 
         {}
-        {showActions &&
-        <div className="flex items-center gap-2">
-            {onEdit &&
-          <Button variant="outline" size="sm" onClick={onEdit}>
+        {showActions && (
+          <div className="flex items-center gap-2">
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
                 <Settings className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-          }
-            {onCopy &&
-          <Button variant="outline" size="sm" onClick={onCopy}>
+            )}
+            {onCopy && (
+              <Button variant="outline" size="sm" onClick={onCopy}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
-          }
+            )}
           </div>
-        }
+        )}
       </div>
 
       {}
@@ -194,8 +187,8 @@ export function PromptViewer({
             variant="ghost"
             size="sm"
             onClick={() => copyToClipboard(templateContent, "Template")}
-            className="w-fit">
-
+            className="w-fit"
+          >
             <Copy className="w-4 h-4 mr-2" />
             Copy Template
           </Button>
@@ -203,8 +196,8 @@ export function PromptViewer({
       </Card>
 
       {}
-      {variables.length > 0 &&
-      <Card>
+      {variables.length > 0 && (
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Hash className="w-5 h-5 text-primary" />
@@ -216,22 +209,22 @@ export function PromptViewer({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {variables.map((variable, index) =>
-            <div
-              key={index}
-              className="bg-muted rounded-lg p-3 font-mono text-sm">
-
+              {variables.map((variable, index) => (
+                <div
+                  key={index}
+                  className="bg-muted rounded-lg p-3 font-mono text-sm"
+                >
                   <code className="text-primary">{`{{${variable}}}`}</code>
                 </div>
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
-      }
+      )}
 
       {}
-      {argumentEntries.length > 0 &&
-      <Card>
+      {argumentEntries.length > 0 && (
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Code className="w-5 h-5 text-primary" />
@@ -243,34 +236,34 @@ export function PromptViewer({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {argumentEntries.map(([key, config]) =>
-            <div
-              key={key}
-              className="border rounded-lg p-4 space-y-3 bg-card">
-
+              {argumentEntries.map(([key, config]) => (
+                <div
+                  key={key}
+                  className="border rounded-lg p-4 space-y-3 bg-card"
+                >
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-medium text-foreground">{key}</h4>
-                    {config.type &&
-                <Badge variant="outline" className="text-xs font-mono">
+                    {config.type && (
+                      <Badge variant="outline" className="text-xs font-mono">
                         {config.type}
                       </Badge>
-                }
-                    {config.required &&
-                <Badge variant="destructive" className="text-xs">
+                    )}
+                    {config.required && (
+                      <Badge variant="destructive" className="text-xs">
                         Required
                       </Badge>
-                }
+                    )}
                   </div>
 
-                  {config.description &&
-              <p className="text-sm text-muted-foreground">
+                  {config.description && (
+                    <p className="text-sm text-muted-foreground">
                       {config.description}
                     </p>
-              }
+                  )}
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                    {config.default !== undefined &&
-                <div>
+                    {config.default !== undefined && (
+                      <div>
                         <span className="font-medium text-muted-foreground">
                           Default:
                         </span>
@@ -278,9 +271,9 @@ export function PromptViewer({
                           {JSON.stringify(config.default)}
                         </code>
                       </div>
-                }
-                    {config.placeholder &&
-                <div>
+                    )}
+                    {config.placeholder && (
+                      <div>
                         <span className="font-medium text-muted-foreground">
                           Placeholder:
                         </span>
@@ -288,36 +281,36 @@ export function PromptViewer({
                           {config.placeholder}
                         </span>
                       </div>
-                }
-                    {config.enum &&
-                <div className="md:col-span-2">
+                    )}
+                    {config.enum && (
+                      <div className="md:col-span-2">
                         <span className="font-medium text-muted-foreground">
                           Options:
                         </span>
                         <div className="flex flex-wrap gap-1 mt-1">
-                          {config.enum.map((option, idx) =>
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs">
-
+                          {config.enum.map((option, idx) => (
+                            <Badge
+                              key={idx}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {option}
                             </Badge>
-                    )}
+                          ))}
                         </div>
                       </div>
-                }
+                    )}
                   </div>
                 </div>
-            )}
+              ))}
             </div>
           </CardContent>
         </Card>
-      }
+      )}
 
       {}
-      {isCustomPrompt &&
-      <Card>
+      {isCustomPrompt && (
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Info className="w-5 h-5 text-primary" />
@@ -354,8 +347,8 @@ export function PromptViewer({
                 </div>
                 <div className="text-sm">
                   {new Date(
-                  (prompt as OrganizationPrompt).createdAt
-                ).toLocaleString()}
+                    (prompt as OrganizationPrompt).createdAt
+                  ).toLocaleString()}
                 </div>
               </div>
               <div>
@@ -364,14 +357,14 @@ export function PromptViewer({
                 </div>
                 <div className="text-sm">
                   {new Date(
-                  (prompt as OrganizationPrompt).updatedAt
-                ).toLocaleString()}
+                    (prompt as OrganizationPrompt).updatedAt
+                  ).toLocaleString()}
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }

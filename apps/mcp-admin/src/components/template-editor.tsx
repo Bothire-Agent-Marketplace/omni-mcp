@@ -1,12 +1,12 @@
 "use client";
 
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { Textarea } from "@/components/ui/textarea";
+import type { ArgumentDefinition } from "./arguments-schema-builder";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
-import type { ArgumentDefinition } from "./arguments-schema-builder";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TemplateEditorProps {
   value: string;

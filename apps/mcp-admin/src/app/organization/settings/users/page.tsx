@@ -1,18 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
+import { MoreHorizontal, UserPlus } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
-import { MoreHorizontal, UserPlus } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function UsersManagementPage() {
   const { userId, orgId } = await auth();

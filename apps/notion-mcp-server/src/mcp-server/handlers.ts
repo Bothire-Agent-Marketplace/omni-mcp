@@ -3,15 +3,6 @@ import {
   GetNotionItemRequestSchema,
   CreateNotionItemRequestSchema,
 } from "../schemas/domain-schemas.js";
-import type {
-  NotionItemResource,
-  NotionProjectResource,
-} from "../types/domain-types.js";
-
-interface _NotionItemFilter {
-  query?: string;
-  limit?: number;
-}
 
 export async function handleNotionSearchItems(params: unknown) {
   const validatedParams = SearchNotionItemsRequestSchema.parse(params);
@@ -253,72 +244,4 @@ export async function handleNotionSearch(params: unknown) {
   return {
     content: [{ type: "text" as const, text: JSON.stringify(json, null, 2) }],
   };
-}
-
-async function _handleNotionItemsResource(uri: string) {
-  try {
-    const items: NotionItemResource[] = [
-      {
-        id: "1",
-        title: "Sample Item",
-        description: "Development stub item",
-        uri: uri,
-        mimeType: "application/json",
-      },
-    ];
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(items, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching items: ${errorMessage}`,
-        },
-      ],
-    };
-  }
-}
-
-async function _handleNotionProjectsResource(uri: string) {
-  try {
-    const projects: NotionProjectResource[] = [
-      {
-        id: "1",
-        name: "Sample Project",
-        description: "Development stub project",
-        uri: uri,
-        mimeType: "application/json",
-      },
-    ];
-
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: JSON.stringify(projects, null, 2),
-        },
-      ],
-    };
-  } catch (error: unknown) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-    return {
-      contents: [
-        {
-          uri: uri,
-          text: `Error fetching projects: ${errorMessage}`,
-        },
-      ],
-    };
-  }
 }

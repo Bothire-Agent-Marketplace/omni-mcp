@@ -1,10 +1,10 @@
 "use client";
 
+import { Loader2, RefreshCw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, RefreshCw, Trash2 } from "lucide-react";
 import { testingService } from "@/lib/services/testing.service";
-import { toast } from "sonner";
 
 interface TestingHeaderProps {
   isLoadingCapabilities: boolean;

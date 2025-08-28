@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { PromptsView } from "@/components/views/prompts-view";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function PromptsPage() {
   const { userId, orgId } = await auth();

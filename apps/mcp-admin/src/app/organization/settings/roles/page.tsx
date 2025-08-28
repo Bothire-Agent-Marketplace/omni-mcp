@@ -1,12 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
+import { Shield, AlertTriangle } from "lucide-react";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
-import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Shield, AlertTriangle } from "lucide-react";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function RolesManagementPage() {
   const { userId, orgId } = await auth();

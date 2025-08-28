@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OnboardingView } from "@/components/views/onboarding-view";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 
 export const dynamic = "force-dynamic";

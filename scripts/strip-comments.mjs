@@ -3,8 +3,8 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import * as babelParser from "@babel/parser";
 import generate from "@babel/generator";
+import * as babelParser from "@babel/parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -102,7 +102,7 @@ function processFile(filePath) {
       attachComment: true,
       errorRecovery: true,
     });
-  } catch (err) {
+  } catch {
     // Skip files that fail to parse (rare)
     return false;
   }

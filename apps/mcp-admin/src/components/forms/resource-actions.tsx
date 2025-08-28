@@ -1,22 +1,22 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { ResourceViewer } from "@/components/resource-viewer";
-import { ResourceFormDialog } from "@/components/resource-form-dialog";
 import { useState } from "react";
+import { ResourceFormDialog } from "@/components/resource-form-dialog";
+import { ResourceViewer } from "@/components/resource-viewer";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle } from
-"@/components/ui/dialog";
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { OrganizationResource, McpServer } from "@/types/resources";
 
 interface ResourceActionsProps {
@@ -27,8 +27,8 @@ interface ResourceActionsProps {
 
 export function ResourceActions({
   resource,
-  organizationId,
-  mcpServers
+  organizationId: _organizationId,
+  mcpServers,
 }: ResourceActionsProps) {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -39,12 +39,11 @@ export function ResourceActions({
         const response = await fetch(
           `/api/organization/resources/${resource.id}`,
           {
-            method: "DELETE"
+            method: "DELETE",
           }
         );
 
         if (response.ok) {
-
           window.location.reload();
         } else {
           alert("Failed to delete resource");
@@ -100,10 +99,9 @@ export function ResourceActions({
         resource={resource}
         mcpServers={mcpServers}
         onSave={() => {
-
           window.location.reload();
-        }} />
-
-    </>);
-
+        }}
+      />
+    </>
+  );
 }

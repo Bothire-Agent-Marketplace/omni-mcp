@@ -3,8 +3,8 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import * as babelParser from "@babel/parser";
 import generate from "@babel/generator";
+import * as babelParser from "@babel/parser";
 import traverseModule from "@babel/traverse";
 
 const __filename = fileURLToPath(import.meta.url);

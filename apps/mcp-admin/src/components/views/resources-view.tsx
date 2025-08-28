@@ -1,7 +1,7 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreateResourceButton } from "../forms/create-resource-button";
+import { ResourceActions } from "../forms/resource-actions";
 import { Badge } from "@/components/ui/badge";
-import { Plus } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,8 +10,6 @@ import {
   TableHeader,
   TableRow } from
 "@/components/ui/table";
-import { CreateResourceButton } from "../forms/create-resource-button";
-import { ResourceActions } from "../forms/resource-actions";
 import type {
   OrganizationResource,
   DefaultResource,

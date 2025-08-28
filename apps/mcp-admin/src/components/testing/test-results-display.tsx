@@ -1,5 +1,14 @@
 "use client";
 
+import {
+  CheckCircle2,
+  XCircle,
+  Clock,
+  AlertTriangle,
+  Timer } from
+"lucide-react";
+import { AIResponseRenderer } from "@/components/ai-response-renderer";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -9,15 +18,6 @@ import {
   CardTitle } from
 "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  CheckCircle2,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  Timer } from
-"lucide-react";
-import { AIResponseRenderer } from "@/components/ai-response-renderer";
 import type { McpTestResult } from "@/lib/services/testing.service";
 
 interface TestResultsDisplayProps {

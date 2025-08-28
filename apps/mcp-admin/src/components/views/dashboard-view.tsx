@@ -1,14 +1,3 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle } from
-"@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   Activity,
   BarChart3,
@@ -23,7 +12,18 @@ import {
   Shield,
   Clock } from
 "lucide-react";
+import Link from "next/link";
 import { OrganizationSwitcher } from "../forms/organization-switcher";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle } from
+"@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 interface Organization {
   id: string;
@@ -53,7 +53,6 @@ export function DashboardView({
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 space-y-8">
-        {}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Building2 className="w-6 h-6 text-muted-foreground" />

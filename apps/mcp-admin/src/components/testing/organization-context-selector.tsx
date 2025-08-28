@@ -1,5 +1,8 @@
 "use client";
 
+import { Info, Users } from "lucide-react";
+import type { Organization } from "@mcp/database/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Card,
   CardContent,
@@ -15,9 +18,6 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Info, Users } from "lucide-react";
-import type { Organization } from "@mcp/database/client";
 
 interface OrganizationMembership extends Organization {
   role: string;

@@ -21,11 +21,3 @@ export const CreateNotionItemRequestSchema = z.object({
     .optional()
     .describe("Description for the new notion item"),
 });
-
-export const NotionWorkflowArgsSchema = z.object({
-  task: z.string().optional().describe("Specific notion task to help with"),
-});
-
-export const NotionAutomationArgsSchema = z.object({
-  action: z.string().optional().describe("Specific notion action to automate"),
-});

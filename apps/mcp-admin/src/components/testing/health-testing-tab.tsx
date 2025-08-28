@@ -1,6 +1,13 @@
 "use client";
 
+import { Loader2, Play, RefreshCw, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -9,13 +16,6 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
-import { Loader2, Play, RefreshCw, Activity } from "lucide-react";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface HealthTestingTabProps {

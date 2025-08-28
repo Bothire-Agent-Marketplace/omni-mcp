@@ -7,7 +7,14 @@ const compat = new FlatCompat({
 
 export default [
   {
-    ignores: ["dist", ".next", "node_modules", "**/*.d.ts", "**/*.cjs"],
+    ignores: [
+      "dist",
+      ".next",
+      "node_modules",
+      "**/*.d.ts",
+      "**/*.cjs",
+      "**/generated/**",
+    ],
   },
   js.configs.recommended,
   ...compat.extends("next/core-web-vitals"),

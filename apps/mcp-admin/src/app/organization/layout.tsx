@@ -1,7 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 
 export const dynamic = "force-dynamic";

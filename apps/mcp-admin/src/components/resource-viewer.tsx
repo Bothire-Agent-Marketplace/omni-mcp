@@ -1,10 +1,5 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Copy,
   User,
@@ -19,10 +14,13 @@ import {
   FileText,
   Database,
   ExternalLink,
-  Download } from
-"lucide-react";
-import { toast } from "sonner";
+} from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { OrganizationResource, DefaultResource } from "@/types/resources";
 
 interface ResourceViewerProps {
@@ -34,12 +32,11 @@ interface ResourceViewerProps {
   onDelete?: () => void;
 }
 
-
 const URI_PATTERNS = {
   http: /^https?:\/\/.+/i,
   file: /^file:\/\/.+/i,
   data: /^data:.+/i,
-  custom: /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.+/
+  custom: /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/.+/,
 };
 
 export function ResourceViewer({
@@ -48,7 +45,7 @@ export function ResourceViewer({
   showActions = true,
   onEdit,
   onCopy,
-  onDelete
+  onDelete: _onDelete,
 }: ResourceViewerProps) {
   const [uriTestResult, setUriTestResult] = useState<{
     success: boolean;
@@ -61,7 +58,6 @@ export function ResourceViewer({
 
   const isCustomResource = "createdByUser" in resource;
 
-
   const getUriInfo = (uri: string) => {
     if (URI_PATTERNS.http.test(uri)) {
       return {
@@ -69,7 +65,7 @@ export function ResourceViewer({
         icon: Globe,
         scheme: "HTTP/HTTPS",
         accessible: true,
-        badgeVariant: "default" as const
+        badgeVariant: "default" as const,
       };
     }
     if (URI_PATTERNS.file.test(uri)) {
@@ -78,7 +74,7 @@ export function ResourceViewer({
         icon: FileText,
         scheme: "File System",
         accessible: false,
-        badgeVariant: "secondary" as const
+        badgeVariant: "secondary" as const,
       };
     }
     if (URI_PATTERNS.data.test(uri)) {
@@ -87,7 +83,7 @@ export function ResourceViewer({
         icon: Database,
         scheme: "Embedded Data",
         accessible: true,
-        badgeVariant: "outline" as const
+        badgeVariant: "outline" as const,
       };
     }
     return {
@@ -95,12 +91,11 @@ export function ResourceViewer({
       icon: Link,
       scheme: "Custom Scheme",
       accessible: false,
-      badgeVariant: "secondary" as const
+      badgeVariant: "secondary" as const,
     };
   };
 
   const uriInfo = getUriInfo(resource.uri);
-
 
   const testUri = async () => {
     if (!uriInfo.accessible) return;
@@ -110,18 +105,18 @@ export function ResourceViewer({
       const response = await fetch("/api/test-resource-uri", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ uri: resource.uri })
+        body: JSON.stringify({ uri: resource.uri }),
       });
 
       const result = await response.json();
       setUriTestResult(result);
-    } catch (error) {
+    } catch {
       setUriTestResult({
         success: false,
         error: "Failed to test URI",
-        accessible: false
+        accessible: false,
       });
     } finally {
       setIsTestingUri(false);
@@ -140,12 +135,12 @@ export function ResourceViewer({
   };
 
   const formatUserName = (
-  user?: {
-    email: string;
-    firstName?: string | null;
-    lastName?: string | null;
-  } | null) =>
-  {
+    user?: {
+      email: string;
+      firstName?: string | null;
+      lastName?: string | null;
+    } | null
+  ) => {
     if (!user) return "System";
     if (user.firstName && user.lastName) {
       return `${user.firstName} ${user.lastName}`;
@@ -172,11 +167,11 @@ export function ResourceViewer({
             </h2>
             {isCustomResource && <Badge variant="outline">Custom</Badge>}
             {!isCustomResource && <Badge variant="secondary">Default</Badge>}
-            {resource.mimeType &&
-            <Badge variant="outline" className="font-mono text-xs">
+            {resource.mimeType && (
+              <Badge variant="outline" className="font-mono text-xs">
                 {resource.mimeType}
               </Badge>
-            }
+            )}
           </div>
           <p className="text-muted-foreground text-lg">
             {resource.description}
@@ -189,53 +184,53 @@ export function ResourceViewer({
               <span>{resource.mcpServer.name}</span>
             </div>
 
-            {isCustomResource &&
-            <>
+            {isCustomResource && (
+              <>
                 <div className="flex items-center gap-1">
                   <User className="w-4 h-4" />
                   <span>
                     Created by{" "}
                     {formatUserName(
-                    (resource as OrganizationResource).createdByUser
-                  )}
+                      (resource as OrganizationResource).createdByUser
+                    )}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   <span>
                     {new Date(
-                    (resource as OrganizationResource).createdAt
-                  ).toLocaleDateString()}
+                      (resource as OrganizationResource).createdAt
+                    ).toLocaleDateString()}
                   </span>
                 </div>
               </>
-            }
+            )}
           </div>
         </div>
 
         {}
-        {showActions &&
-        <div className="flex items-center gap-2">
-            {uriInfo.accessible &&
-          <Button variant="outline" size="sm" onClick={openResource}>
+        {showActions && (
+          <div className="flex items-center gap-2">
+            {uriInfo.accessible && (
+              <Button variant="outline" size="sm" onClick={openResource}>
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Open
               </Button>
-          }
-            {onEdit &&
-          <Button variant="outline" size="sm" onClick={onEdit}>
+            )}
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit}>
                 <Settings className="w-4 h-4 mr-2" />
                 Edit
               </Button>
-          }
-            {onCopy &&
-          <Button variant="outline" size="sm" onClick={onCopy}>
+            )}
+            {onCopy && (
+              <Button variant="outline" size="sm" onClick={onCopy}>
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
               </Button>
-          }
+            )}
           </div>
-        }
+        )}
       </div>
 
       {}
@@ -261,91 +256,91 @@ export function ResourceViewer({
               variant="ghost"
               size="sm"
               onClick={() => copyToClipboard(resource.uri, "URI")}
-              className="w-fit">
-
+              className="w-fit"
+            >
               <Copy className="w-4 h-4 mr-2" />
               Copy URI
             </Button>
           </div>
 
           {}
-          {uriInfo.accessible &&
-          <div className="space-y-3">
+          {uriInfo.accessible && (
+            <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Button
-                variant="outline"
-                size="sm"
-                onClick={testUri}
-                disabled={isTestingUri}>
-
-                  {isTestingUri ?
-                <>
+                  variant="outline"
+                  size="sm"
+                  onClick={testUri}
+                  disabled={isTestingUri}
+                >
+                  {isTestingUri ? (
+                    <>
                       <Clock className="w-4 h-4 mr-2 animate-spin" />
                       Testing...
-                    </> :
-
-                <>
+                    </>
+                  ) : (
+                    <>
                       <CheckCircle2 className="w-4 h-4 mr-2" />
                       Test URI
                     </>
-                }
+                  )}
                 </Button>
               </div>
 
-              {uriTestResult &&
-            <Alert
-              className={
-              uriTestResult.success ?
-              "border-green-200" :
-              "border-red-200"
-              }>
-
+              {uriTestResult && (
+                <Alert
+                  className={
+                    uriTestResult.success
+                      ? "border-green-200"
+                      : "border-red-200"
+                  }
+                >
                   <div className="flex items-center gap-2">
-                    {uriTestResult.success ?
-                <CheckCircle2 className="w-4 h-4 text-green-600" /> :
-
-                <AlertCircle className="w-4 h-4 text-red-600" />
-                }
+                    {uriTestResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                    )}
                     <span className="font-medium">
-                      {uriTestResult.success ?
-                  "URI Accessible" :
-                  "URI Not Accessible"}
+                      {uriTestResult.success
+                        ? "URI Accessible"
+                        : "URI Not Accessible"}
                     </span>
                   </div>
                   <AlertDescription className="mt-2">
-                    {uriTestResult.success ?
-                <div className="space-y-1">
-                        {uriTestResult.contentType &&
-                  <div>
+                    {uriTestResult.success ? (
+                      <div className="space-y-1">
+                        {uriTestResult.contentType && (
+                          <div>
                             Content Type:{" "}
                             <code className="bg-muted px-1 rounded">
                               {uriTestResult.contentType}
                             </code>
                           </div>
-                  }
-                        {uriTestResult.size &&
-                  <div>
+                        )}
+                        {uriTestResult.size && (
+                          <div>
                             Size:{" "}
                             <code className="bg-muted px-1 rounded">
                               {uriTestResult.size}
                             </code>
                           </div>
-                  }
-                      </div> :
-
-                <div>{uriTestResult.error}</div>
-                }
+                        )}
+                      </div>
+                    ) : (
+                      <div>{uriTestResult.error}</div>
+                    )}
                   </AlertDescription>
                 </Alert>
-            }
+              )}
             </div>
-          }
+          )}
         </CardContent>
       </Card>
 
       {}
-      {isCustomResource &&
-      <Card>
+      {isCustomResource && (
+        <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Info className="w-5 h-5 text-primary" />
@@ -374,8 +369,8 @@ export function ResourceViewer({
                 </div>
                 <div className="text-sm">
                   {new Date(
-                  (resource as OrganizationResource).createdAt
-                ).toLocaleString()}
+                    (resource as OrganizationResource).createdAt
+                  ).toLocaleString()}
                 </div>
               </div>
               <div>
@@ -384,14 +379,14 @@ export function ResourceViewer({
                 </div>
                 <div className="text-sm">
                   {new Date(
-                  (resource as OrganizationResource).updatedAt
-                ).toLocaleString()}
+                    (resource as OrganizationResource).updatedAt
+                  ).toLocaleString()}
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-      }
-    </div>);
-
+      )}
+    </div>
+  );
 }

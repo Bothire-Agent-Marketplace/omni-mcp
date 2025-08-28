@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +10,6 @@ import {
   CardHeader,
   CardTitle } from
 "@/components/ui/card";
-import { AlertCircle, RefreshCw } from "lucide-react";
 
 export default function Error({
   error,

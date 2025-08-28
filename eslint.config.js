@@ -8,6 +8,8 @@ export default tseslint.config(
     ignores: [
       "**/dist/**",
       "**/node_modules/**",
+      "**/generated/**",
+      "**/.next/**",
       "**/*.d.ts",
       ".prettierrc.js",
       "vitest.config.mts",
@@ -43,7 +45,6 @@ export default tseslint.config(
         "error",
         {
           vars: "all",
-          varsIgnorePattern: "^_",
           args: "after-used",
           argsIgnorePattern: "^_",
         },

@@ -1,5 +1,6 @@
 "use client";
 
+import { Zap, MessageSquare, Database, Activity } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle } from
 "@/components/ui/card";
-import { Zap, MessageSquare, Database, Activity } from "lucide-react";
 
 interface QuickStartPresetsProps {
   onLoadPreset: (preset: "search" | "linear" | "devtools") => void;

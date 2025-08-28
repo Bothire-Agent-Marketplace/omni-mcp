@@ -1,7 +1,7 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { Label } from "@/components/ui/label";
 
 interface PerplexityResponse {
   id?: string;

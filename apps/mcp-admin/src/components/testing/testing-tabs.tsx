@@ -1,5 +1,12 @@
 "use client";
 
+import { Zap, MessageSquare, Database, Activity } from "lucide-react";
+import {
+  ToolTestingTab,
+  PromptTestingTab,
+  ResourceTestingTab,
+  HealthTestingTab } from
+".";
 import {
   Card,
   CardContent,
@@ -8,13 +15,6 @@ import {
   CardTitle } from
 "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Zap, MessageSquare, Database, Activity } from "lucide-react";
-import {
-  ToolTestingTab,
-  PromptTestingTab,
-  ResourceTestingTab,
-  HealthTestingTab } from
-".";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface TestingTabsProps {

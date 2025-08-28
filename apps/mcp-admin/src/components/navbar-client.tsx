@@ -6,9 +6,9 @@ import {
   useAuth,
   useOrganization } from
 "@clerk/nextjs";
+import { Settings, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Settings, Loader2 } from "lucide-react";
 
 export function NavbarClient() {
   const { orgId, isLoaded } = useAuth();

@@ -1,10 +1,10 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { ServiceFactory } from "@/lib/services/service.factory";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { ServiceFactory } from "@/lib/services/service.factory";
 
 export default async function GeneralSettingsPage() {
   const { userId, orgId } = await auth();

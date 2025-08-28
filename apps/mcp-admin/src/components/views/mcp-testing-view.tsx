@@ -1,6 +1,6 @@
 "use client";
 
-import { useMcpTesting } from "@/hooks/use-mcp-testing";
+import type { Organization } from "@mcp/database/client";
 import {
   TestingHeader,
   QuickStartPresets,
@@ -9,8 +9,8 @@ import {
   TestResultsDisplay,
   TestHistoryDisplay } from
 "@/components/testing";
+import { useMcpTesting } from "@/hooks/use-mcp-testing";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
-import type { Organization } from "@mcp/database/client";
 
 interface McpTestingViewProps {
   currentOrganization: Organization;

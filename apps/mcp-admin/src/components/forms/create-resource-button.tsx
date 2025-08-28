@@ -1,9 +1,9 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { ResourceFormDialog } from "@/components/resource-form-dialog";
 import { useState } from "react";
+import { ResourceFormDialog } from "@/components/resource-form-dialog";
+import { Button } from "@/components/ui/button";
 import type { McpServer } from "@/types/resources";
 
 interface CreateResourceButtonProps {
@@ -14,8 +14,8 @@ interface CreateResourceButtonProps {
 
 export function CreateResourceButton({
   mcpServers,
-  organizationId,
-  userId
+  organizationId: _organizationId,
+  userId: _userId,
 }: CreateResourceButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -24,8 +24,8 @@ export function CreateResourceButton({
       <Button
         onClick={() => setIsDialogOpen(true)}
         size="lg"
-        className="min-w-[140px]">
-
+        className="min-w-[140px]"
+      >
         <Plus className="w-4 h-4 mr-2" />
         Create Resource
       </Button>
@@ -34,11 +34,10 @@ export function CreateResourceButton({
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         mcpServers={mcpServers}
-        onSave={(newResource) => {
-
+        onSave={() => {
           window.location.reload();
-        }} />
-
-    </>);
-
+        }}
+      />
+    </>
+  );
 }

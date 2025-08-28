@@ -1,10 +1,14 @@
 "use client";
 
+import { Eye, Copy } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { CreatePromptButton } from "../forms/create-prompt-button";
+import { PromptActions } from "../forms/prompt-actions";
+import { PromptViewer } from "../prompt-viewer";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Eye, Copy } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,10 +23,6 @@ import {
   TableHeader,
   TableRow } from
 "@/components/ui/table";
-import { CreatePromptButton } from "../forms/create-prompt-button";
-import { PromptActions } from "../forms/prompt-actions";
-import { PromptViewer } from "../prompt-viewer";
-import { toast } from "sonner";
 import type {
   OrganizationPrompt,
   DefaultPrompt,

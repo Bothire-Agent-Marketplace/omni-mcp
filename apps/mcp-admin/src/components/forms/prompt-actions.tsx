@@ -1,22 +1,22 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
-import { PromptViewer } from "@/components/prompt-viewer";
-import { PromptFormDialog } from "@/components/prompt-form-dialog";
 import { useState } from "react";
+import { PromptFormDialog } from "@/components/prompt-form-dialog";
+import { PromptViewer } from "@/components/prompt-viewer";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle } from
-"@/components/ui/dialog";
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { OrganizationPrompt, McpServer } from "@/types/prompts";
 
 interface PromptActionsProps {
@@ -27,8 +27,8 @@ interface PromptActionsProps {
 
 export function PromptActions({
   prompt,
-  organizationId,
-  mcpServers
+  organizationId: _organizationId,
+  mcpServers,
 }: PromptActionsProps) {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -37,11 +37,10 @@ export function PromptActions({
     if (confirm("Are you sure you want to delete this prompt?")) {
       try {
         const response = await fetch(`/api/organization/prompts/${prompt.id}`, {
-          method: "DELETE"
+          method: "DELETE",
         });
 
         if (response.ok) {
-
           window.location.reload();
         } else {
           alert("Failed to delete prompt");
@@ -96,11 +95,10 @@ export function PromptActions({
         onOpenChange={setIsEditDialogOpen}
         prompt={prompt}
         mcpServers={mcpServers}
-        onSave={(updatedPrompt) => {
-
+        onSave={() => {
           window.location.reload();
-        }} />
-
-    </>);
-
+        }}
+      />
+    </>
+  );
 }

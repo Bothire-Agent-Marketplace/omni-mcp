@@ -1,11 +1,15 @@
 "use client";
 
+import { Play, Copy, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
+import type { ArgumentDefinition } from "./arguments-schema-builder";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -14,12 +18,8 @@ import {
   SelectValue } from
 "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Play, Copy, RotateCcw, AlertCircle, CheckCircle2 } from "lucide-react";
-import { toast } from "sonner";
-import type { ArgumentDefinition } from "./arguments-schema-builder";
 
 interface PromptTesterProps {
   template: string;
@@ -324,7 +324,7 @@ export function PromptTester({
                         updateVariableValue(arg.name, checked)
                         } />
 
-                        <Label>{Boolean(value) ? "True" : "False"}</Label>
+                        <Label>{value ? "True" : "False"}</Label>
                       </div> :
 
                     arg.type === "array" || arg.type === "object" ?

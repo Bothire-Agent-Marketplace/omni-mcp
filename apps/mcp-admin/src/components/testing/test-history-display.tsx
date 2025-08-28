@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -8,7 +9,6 @@ import {
   CardHeader,
   CardTitle } from
 "@/components/ui/card";
-import { CheckCircle2, XCircle } from "lucide-react";
 import type { McpTestResult } from "@/lib/services/testing.service";
 
 interface TestHistoryDisplayProps {

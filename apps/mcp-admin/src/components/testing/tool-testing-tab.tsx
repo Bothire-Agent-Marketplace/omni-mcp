@@ -1,8 +1,14 @@
 "use client";
 
+import { Loader2, Play, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -10,13 +16,7 @@ import {
   SelectTrigger,
   SelectValue } from
 "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger } from
-"@/components/ui/dropdown-menu";
-import { Loader2, Play, RefreshCw } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface ToolTestingTabProps {
