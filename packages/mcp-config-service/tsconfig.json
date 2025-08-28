@@ -7,5 +7,10 @@
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"],
-  "references": [{ "path": "../database" }, { "path": "../schemas" }, { "path": "../utils" }]
+  "references": [
+    { "path": "../database" },
+    { "path": "../schemas" },
+    { "path": "../utils" },
+    { "path": "../capabilities" }
+  ]
 }

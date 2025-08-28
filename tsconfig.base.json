@@ -23,7 +23,10 @@
   "references": [
     { "path": "./apps/gateway" },
     { "path": "./apps/linear-mcp-server" },
+    { "path": "./apps/notion-mcp-server" },
+    { "path": "./apps/perplexity-mcp-server" },
     { "path": "./packages/capabilities" },
+    { "path": "./packages/mcp-config-service" },
     { "path": "./packages/mcp-client-bridge" },
     { "path": "./packages/schemas" },
     { "path": "./packages/utils" }
