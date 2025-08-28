@@ -53,6 +53,7 @@
     "dev:all-servers": "turbo dev --filter=@mcp/*-server",
     "dev:full": "turbo dev --filter=@mcp/gateway --filter=@mcp/linear-server",
     "health-check": "node scripts/health-check.js",
+    "strip:comments": "node scripts/strip-comments.mjs",
     "mcp": "node scripts/mcp-cli.js",
     "mcp-remote": "mcp-remote",
     "mcp:client-bridge": "pnpm --filter @mcp/client-bridge build && node packages/mcp-client-bridge/dist/cli/index.js",
