@@ -10,10 +10,6 @@ export interface ServerInstance {
   capabilities: string[];
 }
 
-// ============================================================================
-// SESSION MANAGEMENT TYPES (UNIFIED)
-// ============================================================================
-
 /**
  * Core session data - shared between runtime and database
  */
@@ -80,7 +76,6 @@ export interface HealthStatus {
   };
 }
 
-// HTTP Types - consolidated from various components
 export interface HTTPHeaders {
   authorization?: string;
   Authorization?: string;
@@ -108,9 +103,6 @@ export interface GatewayHTTPResponse extends HTTPResponse {
   sessionToken?: string;
 }
 
-// Deprecated schemas removed - use unified schemas from @mcp/schemas
-
-// Fastify Route Generic Interfaces
 export interface MCPRouteGeneric {
   Body: HTTPRequestBody;
   Headers: HTTPHeaders;

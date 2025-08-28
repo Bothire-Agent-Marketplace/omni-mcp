@@ -174,7 +174,7 @@ database-driven configuration, multi-tenant support, and comprehensive developer
 ├── @mcp/utils            # Logging, validation, common utilities
 ├── @mcp/capabilities     # Server capability registry
 ├── @mcp/database         # Prisma client and migrations
-└── @mcp/dev-tools        # Developer CLI and testing utilities
+└── (removed)
 ```
 
 #### **Supporting Packages**:

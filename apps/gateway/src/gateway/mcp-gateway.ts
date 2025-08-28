@@ -108,7 +108,6 @@ export class MCPGateway {
 
       const mcpResponse = await this.routeRequest(mcpRequest, session);
 
-      // For protocol methods and MCP bridge compatibility, return JSON-RPC response directly
       return mcpResponse;
     } catch (error) {
       this.logger.error(
@@ -211,12 +210,10 @@ export class MCPGateway {
     request: MCPJsonRpcRequest,
     session: Session
   ): Promise<MCPJsonRpcResponse> {
-    // Handle core MCP protocol methods directly
     if (this.protocolHandler.isProtocolMethod(request.method)) {
       return await this.protocolHandler.handleProtocolMethod(request, session);
     }
 
-    // Route all other requests to appropriate servers
     return await this.requestRouter.routeAndExecuteRequest(request, session);
   }
 }

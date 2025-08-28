@@ -54,7 +54,6 @@ async function createGatewayConfig(): Promise<McpGatewayConfig> {
     mcpServers: await buildMCPServersConfig(ALL_MCP_SERVERS, env),
   };
 
-  // Final validation for production
   if (isProduction) {
     if (config.allowedOrigins.length === 0) {
       throw new Error("ALLOWED_ORIGINS must be set in production.");

@@ -4,10 +4,6 @@ import { ToolHandler } from "@mcp/server-core";
 import { getGenericAvailableTools, ToolDefinition } from "@mcp/utils";
 import * as handlers from "./handlers.js";
 
-// ============================================================================
-// LINEAR MCP SERVER - Tool Definitions
-// ============================================================================
-
 const linearToolDefinitions: Record<string, ToolDefinition<LinearClient>> = {
   linear_search_issues: {
     handler: handlers.handleLinearSearchIssues,
@@ -50,10 +46,6 @@ const linearToolDefinitions: Record<string, ToolDefinition<LinearClient>> = {
     },
   },
 };
-
-// ============================================================================
-// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
-// ============================================================================
 
 export function createToolHandlers(
   linearClient: LinearClient | undefined

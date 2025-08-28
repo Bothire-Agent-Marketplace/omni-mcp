@@ -1,17 +1,5 @@
 import { z } from "zod";
 
-// ============================================================================
-// MCP Server - Domain-Specific Zod Validation Schemas
-// ============================================================================
-// This file contains Zod schemas for runtime validation of tool parameters and prompt arguments.
-// These schemas are specific to the domain this MCP server serves.
-// For Notion: Items, Projects, etc.
-// For future servers: Replace with relevant domain schemas (GitHub: Repos, Issues, PRs, etc.)
-//
-// NOTE: These are separate from the inputSchemas in @mcp/schemas which are for MCP protocol.
-// These schemas are for internal validation within the server's business logic.
-
-// Tool validation schemas - Update these for your specific domain tools
 export const SearchNotionItemsRequestSchema = z.object({
   query: z.string().describe("Text to search in item titles and descriptions"),
   limit: z
@@ -34,7 +22,6 @@ export const CreateNotionItemRequestSchema = z.object({
     .describe("Description for the new notion item"),
 });
 
-// Prompt validation schemas - Update these for your specific prompts
 export const NotionWorkflowArgsSchema = z.object({
   task: z.string().optional().describe("Specific notion task to help with"),
 });

@@ -6,9 +6,6 @@
     },
     "packages/*": {},
     "apps/*": {},
-    "packages/dev-tools": {
-      "entry": ["src/index.ts", "src/cli/index.ts"]
-    },
     "packages/eslint-config": {
       "ignoreDependencies": ["eslint-config-next"]
     },
