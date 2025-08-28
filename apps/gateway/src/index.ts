@@ -13,6 +13,8 @@ import {
   HealthRouteGeneric,
   WebSocketRouteGeneric,
   HTTPHeaders,
+  MCPJsonRpcResponseSchema,
+  createInternalErrorResponse,
 } from "@mcp/schemas";
 import { createMcpLogger, setupGlobalErrorHandlers } from "@mcp/utils";
 import { getGatewayConfig } from "./config.js";
@@ -33,6 +35,41 @@ function convertHeaders(fastifyHeaders: IncomingHttpHeaders): HTTPHeaders {
   }
 
   return headers;
+}
+
+function extractApiKeyFromRequest(request: FastifyRequest): string | null {
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    return authHeader.slice(7);
+  }
+
+  const apiKeyHeader = request.headers["x-api-key"];
+  if (apiKeyHeader && typeof apiKeyHeader === "string") {
+    return apiKeyHeader;
+  }
+
+  const query = request.query as Record<string, unknown> | undefined;
+  const apiKeyQuery =
+    query && typeof query["api_key"] === "string"
+      ? (query["api_key"] as string)
+      : null;
+  if (apiKeyQuery) {
+    return apiKeyQuery;
+  }
+
+  return null;
+}
+
+function isValidApiKey(providedKey: string, configuredKey: string): boolean {
+  if (!configuredKey || providedKey.length !== configuredKey.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < providedKey.length; i++) {
+    result |= providedKey.charCodeAt(i) ^ configuredKey.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 let serverInstance: FastifyInstance | null = null;
@@ -122,6 +159,17 @@ async function createServer(): Promise<FastifyInstance> {
     );
 
     server.get("/sse", async (request: FastifyRequest, reply: FastifyReply) => {
+      // Enforce API key on SSE
+      const providedKey = extractApiKeyFromRequest(request);
+      if (
+        !providedKey ||
+        !isValidApiKey(providedKey, gatewayConfig.mcpApiKey)
+      ) {
+        return reply
+          .code(401)
+          .send({ error: "Unauthorized", message: "Valid API key required" });
+      }
+
       const sessionId = Math.random().toString(36).substr(2, 9);
 
       reply.raw.writeHead(200, {
@@ -162,9 +210,7 @@ async function createServer(): Promise<FastifyInstance> {
       "/messages",
       async (request: FastifyRequest, reply: FastifyReply) => {
         try {
-          logger.info("Received message via /messages endpoint", {
-            body: request.body,
-          });
+          logger.info("Received message via /messages endpoint");
 
           const response = await mcpGateway.handleHttpRequest(
             request.body,
@@ -202,12 +248,7 @@ async function createServer(): Promise<FastifyInstance> {
             required: ["jsonrpc", "method"],
             additionalProperties: false,
           },
-          response: {
-            400: {},
-            401: {},
-            404: {},
-            500: {},
-          },
+          // Note: Response schema enforced via runtime validation
         },
       },
       async (request: FastifyRequest<MCPRouteGeneric>, reply: FastifyReply) => {
@@ -216,7 +257,19 @@ async function createServer(): Promise<FastifyInstance> {
             request.body,
             convertHeaders(request.headers)
           );
-          return reply.send(response);
+          const parsed = MCPJsonRpcResponseSchema.safeParse(response);
+          if (!parsed.success) {
+            logger.error("Invalid JSON-RPC response schema", undefined, {
+              validationErrors: parsed.error.issues,
+            });
+            const { id } = request.body;
+            const err = createInternalErrorResponse(
+              "Response validation failed",
+              id ?? undefined
+            );
+            return reply.status(500).send(err);
+          }
+          return reply.send(parsed.data);
         } catch (error) {
           logger.error("HTTP request error", error as Error);
           return reply.status(500).send({
@@ -242,10 +295,18 @@ async function createServer(): Promise<FastifyInstance> {
         },
       },
       (connection, request: FastifyRequest<WebSocketRouteGeneric>) => {
-        logger.info("New WebSocket connection established", {
-          query: request.query,
-          headers: request.headers,
-        });
+        const providedKey = extractApiKeyFromRequest(request);
+        if (
+          !providedKey ||
+          !isValidApiKey(providedKey, gatewayConfig.mcpApiKey)
+        ) {
+          try {
+            connection.socket.close(1008, "Unauthorized");
+          } catch {}
+          return;
+        }
+
+        logger.info("New WebSocket connection established");
         mcpGateway.handleWebSocketConnection(connection);
       }
     );

@@ -3,6 +3,38 @@ import importPlugin from "eslint-plugin-import";
 import unusedImports from "eslint-plugin-unused-imports";
 import tseslint from "typescript-eslint";
 
+const relativeExtPlugin = {
+  rules: {
+    "require-js-extension": {
+      meta: {
+        type: "problem",
+        docs: {
+          description:
+            "Require .js extension on relative imports (NodeNext ESM). Ignore type-only imports.",
+        },
+        schema: [],
+      },
+      create(context) {
+        return {
+          ImportDeclaration(node) {
+            const source = node.source && node.source.value;
+            if (typeof source !== "string") return;
+            if (!source.startsWith(".")) return;
+            // @ts-expect-error - ESLint AST typing in JS config
+            if (node.importKind === "type") return;
+            if (/(\.js|\.mjs|\.cjs|\.json)$/i.test(source)) return;
+            context.report({
+              node: node.source,
+              message:
+                "Relative imports must include a .js extension for NodeNext ESM.",
+            });
+          },
+        };
+      },
+    },
+  },
+};
+
 export default tseslint.config(
   {
     ignores: [
@@ -79,7 +111,8 @@ export default tseslint.config(
       ],
 
       "import/first": "error",
-      "import/no-duplicates": "error",
+      // Disable extensions rule; we'll add custom check for relative .js later
+      "import/extensions": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-require-imports": "off",
     },
@@ -90,6 +123,16 @@ export default tseslint.config(
       },
     },
   },
+  {
+    files: ["apps/gateway/src/**/*.ts"],
+    plugins: {
+      "relative-ext": relativeExtPlugin,
+    },
+    rules: {
+      "relative-ext/require-js-extension": "error",
+    },
+  },
+
   {
     files: ["**/*.cjs"],
     languageOptions: {

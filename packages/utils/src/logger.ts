@@ -14,6 +14,53 @@ export interface McpLogContext {
   [key: string]: unknown;
 }
 
+function mask(value: unknown): string {
+  if (typeof value !== "string") return "[REDACTED]";
+  if (value.length <= 8) return "*".repeat(value.length);
+  return value.slice(0, 8) + "*".repeat(value.length - 8);
+}
+
+const SENSITIVE_KEYS = new Set([
+  "authorization",
+  "x-api-key",
+  "api_key",
+  "apikey",
+  "access_token",
+  "refresh_token",
+  "token",
+  "secret",
+  "password",
+  "body",
+  "requestbody",
+]);
+
+function redactMetaDeep(input: unknown): unknown {
+  if (input === null || input === undefined) return input;
+  if (Array.isArray(input)) return input.map((v) => redactMetaDeep(v));
+  if (typeof input === "object") {
+    const obj = input as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const lower = key.toLowerCase();
+      if (
+        SENSITIVE_KEYS.has(lower) ||
+        lower.includes("secret") ||
+        lower.includes("token") ||
+        lower.includes("apikey") ||
+        lower.includes("password")
+      ) {
+        out[key] = mask(value);
+      } else if (lower === "headers") {
+        out[key] = "[REDACTED]";
+      } else {
+        out[key] = redactMetaDeep(value);
+      }
+    }
+    return out;
+  }
+  return input;
+}
+
 const mcpFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
@@ -29,6 +76,8 @@ const mcpFormat = winston.format.combine(
       ...meta
     } = info;
 
+    const safeMeta = redactMetaDeep(meta) as Record<string, unknown>;
+
     const logEntry: Record<string, unknown> = {
       timestamp,
       level,
@@ -36,7 +85,7 @@ const mcpFormat = winston.format.combine(
       serverName:
         serverName || process.env.MCP_SERVER_NAME || "unknown-mcp-server",
       environment: info.environment,
-      ...meta,
+      ...safeMeta,
     };
 
     if (requestId) {
