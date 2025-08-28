@@ -226,7 +226,9 @@ export class DatabaseDynamicHandlerRegistry implements DynamicHandlerRegistry {
           uri: resource.uri,
           name: resource.name,
           description: resource.description,
-          mimeType: resource.mimeType,
+          ...(resource.mimeType !== undefined
+            ? { mimeType: resource.mimeType }
+            : {}),
         }));
     } catch (error) {
       console.error("Error loading resources:", error);

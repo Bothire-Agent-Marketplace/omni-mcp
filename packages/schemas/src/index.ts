@@ -43,6 +43,13 @@ export {
 } from "./mcp/protocol.js";
 
 export {
+  validateJsonRpcRequest,
+  parseJsonRpcRequest,
+  buildInvalidRequestError,
+  buildInvalidParamsError,
+} from "./mcp/helpers.js";
+
+export {
   type Environment,
   EnvironmentSchema,
   type McpServerConfig,
