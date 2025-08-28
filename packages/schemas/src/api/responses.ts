@@ -1,24 +1,12 @@
 import { z } from "zod";
 
-/**
- * Standardized API Response Types
- * Used across all HTTP endpoints for consistent response structures
- */
-
-// ============================================================================
-// SUCCESS RESPONSE TYPES
-// ============================================================================
-
-/**
- * Standard success response structure
- */
 export const ApiSuccessResponseSchema = z.object({
   success: z.literal(true),
   data: z.unknown().optional(),
   message: z.string().optional(),
   timestamp: z.string().optional(),
   meta: z.record(z.string(), z.unknown()).optional(),
-  executionTime: z.number().optional(), // Added for MCP protocol compatibility
+  executionTime: z.number().optional(),
 });
 
 export type ApiSuccessResponse<T = unknown> = {
@@ -27,16 +15,9 @@ export type ApiSuccessResponse<T = unknown> = {
   message?: string;
   timestamp?: string;
   meta?: Record<string, unknown>;
-  executionTime?: number; // Added for MCP protocol compatibility
+  executionTime?: number;
 };
 
-// ============================================================================
-// ERROR RESPONSE TYPES
-// ============================================================================
-
-/**
- * Standard error response structure
- */
 export const ApiErrorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
@@ -55,23 +36,12 @@ export type ApiErrorResponse = {
   code?: string;
 };
 
-// ============================================================================
-// COMBINED RESPONSE TYPE
-// ============================================================================
-
-/**
- * Combined API response type for all endpoints
- */
 export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 export const ApiResponseSchema = z.union([
   ApiSuccessResponseSchema,
   ApiErrorResponseSchema,
 ]);
-
-// ============================================================================
-// HEALTH CHECK RESPONSES
-// ============================================================================
 
 export const ApiHealthStatusSchema = z.object({
   status: z.enum(["ok", "error", "degraded"]),
@@ -93,10 +63,6 @@ export const ApiHealthStatusSchema = z.object({
 
 export type ApiHealthStatus = z.infer<typeof ApiHealthStatusSchema>;
 
-// ============================================================================
-// PAGINATION RESPONSES
-// ============================================================================
-
 export const PaginationMetaSchema = z.object({
   page: z.number().int().positive(),
   limit: z.number().int().positive(),
@@ -114,13 +80,6 @@ export type PaginatedResponse<T> = ApiSuccessResponse<T[]> & {
   };
 };
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Create a standardized success response
- */
 export function createSuccessResponse<T>(
   data?: T,
   message?: string,
@@ -138,9 +97,6 @@ export function createSuccessResponse<T>(
   return response;
 }
 
-/**
- * Create a standardized error response
- */
 export function createErrorResponse(
   error: string,
   message?: string,
@@ -157,9 +113,6 @@ export function createErrorResponse(
   };
 }
 
-/**
- * Create a paginated response
- */
 export function createPaginatedResponse<T>(
   data: T[],
   pagination: PaginationMeta,
@@ -174,9 +127,6 @@ export function createPaginatedResponse<T>(
   };
 }
 
-/**
- * Create a health status response
- */
 export function createHealthResponse(
   status: "ok" | "error" | "degraded",
   services?: Record<
@@ -188,6 +138,7 @@ export function createHealthResponse(
       details?: string;
     }
   >,
+
   environment?: string,
   version?: string
 ): ApiHealthStatus {

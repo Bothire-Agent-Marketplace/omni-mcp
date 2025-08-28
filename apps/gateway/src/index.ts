@@ -166,13 +166,11 @@ async function createServer(): Promise<FastifyInstance> {
             body: request.body,
           });
 
-          // Process the MCP request through the gateway
           const response = await mcpGateway.handleHttpRequest(
             request.body,
             convertHeaders(request.headers)
           );
 
-          // Send response back immediately for synchronous requests
           return reply.send(response);
         } catch (error) {
           logger.error("Messages endpoint error", error as Error);

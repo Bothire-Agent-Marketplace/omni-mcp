@@ -3,11 +3,6 @@
 import { spawn } from "child_process";
 import { platform } from "os";
 
-/**
- * Development cleanup script
- * Kills hanging processes and frees up ports
- */
-
 const COMMON_PORTS = [3000, 3001, 3002, 3003, 3004, 3005, 5555, 37373];
 
 const PROCESS_NAMES = [
@@ -62,7 +57,7 @@ function killProcessOnPort(port) {
       });
 
       lsofCmd.on("error", () => {
-        resolve(); // lsof might not be available
+        resolve();
       });
     }
   });

@@ -3,8 +3,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Plus } from "lucide-react";
 import { CreateOrganizationForm } from "../forms/create-organization-form";
 
@@ -39,6 +39,6 @@ export function OnboardingView() {
           </Card>
         </div>
       </div>
-    </main>
-  );
+    </main>);
+
 }

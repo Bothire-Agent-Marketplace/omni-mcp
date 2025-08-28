@@ -1,7 +1,3 @@
-// ============================================================================
-// NOTION MCP SERVER - Prompts
-// ============================================================================
-
 import {
   createGenericPromptHandlers,
   getGenericAvailablePrompts,
@@ -12,13 +8,7 @@ import {
   NotionAutomationArgsSchema,
 } from "../schemas/domain-schemas.js";
 
-// ============================================================================
-// NOTION MCP SERVER - Prompts
-// ============================================================================
-
-// Prompt implementation functions
 function notionWorkflowPrompt(args: unknown = {}) {
-  // Validate and parse input with Zod
   const validatedArgs = NotionWorkflowArgsSchema.parse(args);
   const { task } = validatedArgs;
 
@@ -43,7 +33,6 @@ Let's start - what specific aspect of notion are we working on?`,
 }
 
 function notionAutomationPrompt(args: unknown = {}) {
-  // Validate and parse input with Zod
   const validatedArgs = NotionAutomationArgsSchema.parse(args);
   const { action } = validatedArgs;
 
@@ -67,10 +56,6 @@ What notion process would you like to automate?`,
   };
 }
 
-// ============================================================================
-// NOTION MCP SERVER - Prompt Definitions
-// ============================================================================
-
 const _notionPromptDefinitions: Record<string, PromptDefinition> = {
   notion_workflow: {
     handler: async (args) => notionWorkflowPrompt(args),
@@ -87,10 +72,6 @@ const _notionPromptDefinitions: Record<string, PromptDefinition> = {
     },
   },
 };
-
-// ============================================================================
-// EXPORTED REGISTRY FUNCTIONS - Using Generic Implementations
-// ============================================================================
 
 const _createPromptHandlers = () =>
   createGenericPromptHandlers(_notionPromptDefinitions);

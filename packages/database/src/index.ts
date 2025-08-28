@@ -1,10 +1,8 @@
-// Export the Prisma client and all types
 import { existsSync } from "fs";
 import { join } from "path";
 import { config } from "dotenv";
 import { PrismaClient } from "../generated/index.js";
 
-// Load environment variables
 function loadEnvFiles() {
   const envPaths = [
     join(process.cwd(), ".env"),
@@ -23,7 +21,6 @@ loadEnvFiles();
 
 export * from "../generated";
 
-// Create a singleton instance
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
@@ -34,7 +31,6 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = db;
 }
 
-// Export types for the service interfaces
 export interface OrganizationData {
   id: string;
   name: string;
@@ -52,7 +48,6 @@ export interface EnabledService {
   configuration: Record<string, unknown>;
 }
 
-// Export common database utilities
 export async function connectToDatabase() {
   try {
     await db.$connect();

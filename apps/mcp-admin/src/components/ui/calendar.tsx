@@ -1,15 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   ChevronDownIcon,
   ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react"
-import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker"
+  ChevronRightIcon } from
+"lucide-react";
+import { DayButton, DayPicker, getDefaultClassNames } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button, buttonVariants } from "@/components/ui/button";
 
 function Calendar({
   className,
@@ -20,10 +20,10 @@ function Calendar({
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
-}) {
-  const defaultClassNames = getDefaultClassNames()
+
+
+}: React.ComponentProps<typeof DayPicker> & {buttonVariant?: React.ComponentProps<typeof Button>["variant"];}) {
+  const defaultClassNames = getDefaultClassNames();
 
   return (
     <DayPicker
@@ -37,8 +37,8 @@ function Calendar({
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
-          date.toLocaleString("default", { month: "short" }),
-        ...formatters,
+        date.toLocaleString("default", { month: "short" }),
+        ...formatters
       }}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
@@ -79,9 +79,9 @@ function Calendar({
         ),
         caption_label: cn(
           "select-none font-medium",
-          captionLayout === "label"
-            ? "text-sm"
-            : "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
+          captionLayout === "label" ?
+          "text-sm" :
+          "rounded-md pl-2 pr-1 flex items-center gap-1 text-sm h-8 [&>svg]:text-muted-foreground [&>svg]:size-3.5",
           defaultClassNames.caption_label
         ),
         table: "w-full border-collapse",
@@ -122,7 +122,7 @@ function Calendar({
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
-        ...classNames,
+        ...classNames
       }}
       components={{
         Root: ({ className, rootRef, ...props }) => {
@@ -131,29 +131,29 @@ function Calendar({
               data-slot="calendar"
               ref={rootRef}
               className={cn(className)}
-              {...props}
-            />
-          )
+              {...props} />);
+
+
         },
         Chevron: ({ className, orientation, ...props }) => {
           if (orientation === "left") {
             return (
-              <ChevronLeftIcon className={cn("size-4", className)} {...props} />
-            )
+              <ChevronLeftIcon className={cn("size-4", className)} {...props} />);
+
           }
 
           if (orientation === "right") {
             return (
               <ChevronRightIcon
                 className={cn("size-4", className)}
-                {...props}
-              />
-            )
+                {...props} />);
+
+
           }
 
           return (
-            <ChevronDownIcon className={cn("size-4", className)} {...props} />
-          )
+            <ChevronDownIcon className={cn("size-4", className)} {...props} />);
+
         },
         DayButton: CalendarDayButton,
         WeekNumber: ({ children, ...props }) => {
@@ -162,14 +162,14 @@ function Calendar({
               <div className="flex size-(--cell-size) items-center justify-center text-center">
                 {children}
               </div>
-            </td>
-          )
+            </td>);
+
         },
-        ...components,
+        ...components
       }}
-      {...props}
-    />
-  )
+      {...props} />);
+
+
 }
 
 function CalendarDayButton({
@@ -178,12 +178,12 @@ function CalendarDayButton({
   modifiers,
   ...props
 }: React.ComponentProps<typeof DayButton>) {
-  const defaultClassNames = getDefaultClassNames()
+  const defaultClassNames = getDefaultClassNames();
 
-  const ref = React.useRef<HTMLButtonElement>(null)
+  const ref = React.useRef<HTMLButtonElement>(null);
   React.useEffect(() => {
-    if (modifiers.focused) ref.current?.focus()
-  }, [modifiers.focused])
+    if (modifiers.focused) ref.current?.focus();
+  }, [modifiers.focused]);
 
   return (
     <Button
@@ -192,10 +192,10 @@ function CalendarDayButton({
       size="icon"
       data-day={day.date.toLocaleDateString()}
       data-selected-single={
-        modifiers.selected &&
-        !modifiers.range_start &&
-        !modifiers.range_end &&
-        !modifiers.range_middle
+      modifiers.selected &&
+      !modifiers.range_start &&
+      !modifiers.range_end &&
+      !modifiers.range_middle
       }
       data-range-start={modifiers.range_start}
       data-range-end={modifiers.range_end}
@@ -205,9 +205,9 @@ function CalendarDayButton({
         defaultClassNames.day,
         className
       )}
-      {...props}
-    />
-  )
+      {...props} />);
+
+
 }
 
-export { Calendar, CalendarDayButton }
+export { Calendar, CalendarDayButton };

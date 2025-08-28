@@ -1,9 +1,5 @@
 import { MCPServerSchema, type MCPServerDefinition } from "../types.js";
 
-// ============================================================================
-// PERPLEXITY MCP SERVER - Definition
-// ============================================================================
-
 export const PERPLEXITY_SERVER: MCPServerDefinition = MCPServerSchema.parse({
   name: "perplexity",
   port: 3002,
@@ -18,6 +14,7 @@ export const PERPLEXITY_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "perplexity_compare",
     "perplexity_summarize",
   ],
+
   resources: ["perplexity://search-history", "perplexity://models"],
   prompts: ["perplexity_workflow", "perplexity_automation"],
 });

@@ -7,25 +7,15 @@ import {
 import { AuditAction, MembershipRole, Prisma } from "@mcp/database";
 import { prisma } from "./db";
 
-/**
- * Database service for handling Clerk webhook events
- */
 export class DatabaseService {
-  /**
-   * Sanitize object for Prisma JSON fields by removing undefined values
-   * This is the recommended approach from Prisma documentation
-   */
   private static sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
     if (obj === null || obj === undefined) {
       return {};
     }
-    // JSON.parse(JSON.stringify()) removes undefined values and ensures Prisma compatibility
+
     return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
   }
 
-  /**
-   * Create audit log entry
-   */
   private static async createAuditLog(
     organizationId: string | null,
     userId: string | null,
@@ -51,13 +41,9 @@ export class DatabaseService {
       });
     } catch (error) {
       console.error("Failed to create audit log:", error);
-      // Don't throw - audit logs shouldn't break the main operation
     }
   }
 
-  /**
-   * Generate unique slug from name
-   */
   private static async generateUniqueSlug(
     name: string,
     excludeId?: string
@@ -67,7 +53,6 @@ export class DatabaseService {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    // Check if base slug is unique
     const existingOrg = await prisma.organization.findFirst({
       where: {
         slug: baseSlug,
@@ -80,7 +65,6 @@ export class DatabaseService {
       return baseSlug;
     }
 
-    // If not unique, add a number suffix
     let counter = 1;
     let candidateSlug = `${baseSlug}-${counter}`;
 
@@ -102,11 +86,7 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Convert Clerk role to database role
-   */
   private static mapClerkRoleToDbRole(clerkRole: string): MembershipRole {
-    // Strip the "org:" prefix from Clerk roles (e.g., "org:admin" -> "admin")
     const roleWithoutPrefix = clerkRole.replace(/^org:/, "");
 
     const validRoles = ["admin", "member", "viewer"] as const;
@@ -116,15 +96,9 @@ export class DatabaseService {
       return roleWithoutPrefix as MembershipRole;
     }
 
-    // Fallback to member for unknown roles
     return MembershipRole.member;
   }
 
-  // User Operations
-
-  /**
-   * Create or update user from Clerk data
-   */
   static async upsertUser(userData: UserJSON): Promise<void> {
     const sanitizedMetadata = this.sanitizeForPrisma(userData.public_metadata);
     const userPayload = {
@@ -137,7 +111,6 @@ export class DatabaseService {
     };
 
     try {
-      // Use Prisma's upsert to handle race conditions gracefully
       const user = await prisma.user.upsert({
         where: { clerkId: userData.id },
         update: {
@@ -147,7 +120,6 @@ export class DatabaseService {
         create: userPayload,
       });
 
-      // Create audit log for the operation
       await this.createAuditLog(
         null,
         user.id,
@@ -160,23 +132,18 @@ export class DatabaseService {
         this.sanitizeForPrisma(userPayload)
       );
     } catch (error: unknown) {
-      // Handle unique constraint violations gracefully
       if (
         error &&
         typeof error === "object" &&
         "code" in error &&
         error.code === "P2002"
       ) {
-        // User already exists, skip silently
         return;
       }
       throw error;
     }
   }
 
-  /**
-   * Soft delete user
-   */
   static async deleteUser(deletedData: DeletedObjectJSON): Promise<void> {
     const user = await prisma.user.findUnique({
       where: { clerkId: deletedData.id },
@@ -193,7 +160,7 @@ export class DatabaseService {
       where: { clerkId: deletedData.id },
       data: {
         deletedAt: new Date(),
-        // Anonymize email to prevent conflicts
+
         email: `deleted-${deletedData.id}@deleted.local`,
       },
     });
@@ -209,11 +176,6 @@ export class DatabaseService {
     );
   }
 
-  // Organization Operations
-
-  /**
-   * Create or update organization from Clerk data
-   */
   static async upsertOrganization(orgData: OrganizationJSON): Promise<void> {
     const existingOrg = await prisma.organization.findUnique({
       where: { clerkId: orgData.id },
@@ -227,7 +189,6 @@ export class DatabaseService {
     };
 
     if (existingOrg) {
-      // Update existing organization
       await prisma.organization.update({
         where: { clerkId: orgData.id },
         data: {
@@ -249,7 +210,6 @@ export class DatabaseService {
         this.sanitizeForPrisma(orgPayload)
       );
     } else {
-      // Use upsert to handle both clerkId and slug uniqueness
       const newOrg = await prisma.organization.upsert({
         where: { clerkId: orgData.id },
         update: {
@@ -269,14 +229,10 @@ export class DatabaseService {
         this.sanitizeForPrisma(orgPayload)
       );
 
-      // Create default service enablements for new organization
       await this.createDefaultServiceEnablements(newOrg.id);
     }
   }
 
-  /**
-   * Soft delete organization
-   */
   static async deleteOrganization(
     deletedData: DeletedObjectJSON
   ): Promise<void> {
@@ -295,7 +251,7 @@ export class DatabaseService {
       where: { clerkId: deletedData.id },
       data: {
         deletedAt: new Date(),
-        // Anonymize slug to prevent conflicts
+
         slug: `deleted-${deletedData.id}`,
       },
     });
@@ -311,18 +267,9 @@ export class DatabaseService {
     );
   }
 
-  // Organization Membership Operations
-
-  /**
-   * Create or update organization membership from Clerk data
-   */
   static async upsertOrganizationMembership(
     membershipData: OrganizationMembershipJSON
   ): Promise<void> {
-    // First, ensure the organization and user exist by creating them if needed
-    // This handles the race condition where membership webhook comes before org/user webhooks
-
-    // Create/update organization if it doesn't exist
     let organization = await prisma.organization.findUnique({
       where: { clerkId: membershipData.organization.id },
     });
@@ -334,13 +281,11 @@ export class DatabaseService {
       });
     }
 
-    // Create/update user if it doesn't exist
     let user = await prisma.user.findUnique({
       where: { clerkId: membershipData.public_user_data.user_id },
     });
 
     if (!user) {
-      // Create user record directly in the database to avoid complex UserJSON typing
       user = await prisma.user.create({
         data: {
           clerkId: membershipData.public_user_data.user_id,
@@ -353,7 +298,6 @@ export class DatabaseService {
       });
     }
 
-    // Double-check that both exist now
     if (!organization || !user) {
       console.error("Failed to create organization or user for membership:", {
         orgId: membershipData.organization.id,
@@ -377,7 +321,6 @@ export class DatabaseService {
     };
 
     if (existingMembership) {
-      // Update existing membership
       await prisma.organizationMembership.update({
         where: { clerkMembershipId: membershipData.id },
         data: {
@@ -396,7 +339,6 @@ export class DatabaseService {
         this.sanitizeForPrisma({ role: membershipPayload.role })
       );
     } else {
-      // Create new membership
       const newMembership = await prisma.organizationMembership.create({
         data: membershipPayload,
       });
@@ -413,9 +355,6 @@ export class DatabaseService {
     }
   }
 
-  /**
-   * Soft delete organization membership
-   */
   static async deleteOrganizationMembership(
     membershipData: OrganizationMembershipJSON | DeletedObjectJSON
   ): Promise<void> {
@@ -449,11 +388,6 @@ export class DatabaseService {
     );
   }
 
-  // Service Management
-
-  /**
-   * Create default service enablements for new organization
-   */
   private static async createDefaultServiceEnablements(
     organizationId: string
   ): Promise<void> {
@@ -466,16 +400,13 @@ export class DatabaseService {
         data: {
           organizationId,
           mcpServerId: service.id,
-          enabled: true, // Enable all services by default
+          enabled: true,
           configuration: {},
         },
       });
     }
   }
 
-  /**
-   * Get organization's enabled services
-   */
   static async getOrganizationServices(organizationId: string) {
     return await prisma.organizationService.findMany({
       where: {

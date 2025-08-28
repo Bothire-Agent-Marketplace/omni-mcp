@@ -4,10 +4,8 @@ import { checkDbHealth } from "@/lib/db";
 
 export async function GET() {
   try {
-    // Check database health
     const isDbHealthy = await checkDbHealth();
 
-    // Create standardized health check response
     const health = createHealthResponse(
       isDbHealthy ? "ok" : "degraded",
       {
@@ -21,7 +19,6 @@ export async function GET() {
       process.env.npm_package_version
     );
 
-    // Return appropriate status code
     const status = isDbHealthy ? 200 : 503;
 
     return NextResponse.json(health, { status });

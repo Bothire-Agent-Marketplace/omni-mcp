@@ -5,16 +5,16 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, MessageSquare, Database, Activity } from "lucide-react";
 import {
   ToolTestingTab,
   PromptTestingTab,
   ResourceTestingTab,
-  HealthTestingTab,
-} from ".";
+  HealthTestingTab } from
+".";
 import type { McpTestCapabilities } from "@/lib/services/testing.service";
 
 interface TestingTabsProps {
@@ -23,24 +23,24 @@ interface TestingTabsProps {
   capabilities: McpTestCapabilities | null;
   isLoadingCapabilities: boolean;
 
-  // Forms
-  toolForm: { name: string; arguments: string };
-  onToolFormChange: (form: { name: string; arguments: string }) => void;
-  promptForm: { name: string };
-  onPromptFormChange: (form: { name: string }) => void;
-  resourceForm: { uri: string };
-  onResourceFormChange: (form: { uri: string }) => void;
-  healthForm: { target: string };
-  onHealthFormChange: (form: { target: string }) => void;
 
-  // Test execution
+  toolForm: {name: string;arguments: string;};
+  onToolFormChange: (form: {name: string;arguments: string;}) => void;
+  promptForm: {name: string;};
+  onPromptFormChange: (form: {name: string;}) => void;
+  resourceForm: {uri: string;};
+  onResourceFormChange: (form: {uri: string;}) => void;
+  healthForm: {target: string;};
+  onHealthFormChange: (form: {target: string;}) => void;
+
+
   isTestRunning: boolean;
   onHandleToolTest: (bypassCache: boolean) => void;
   onHandlePromptTest: (bypassCache: boolean) => void;
   onHandleResourceTest: (bypassCache: boolean) => void;
   onHandleHealthTest: (bypassCache: boolean) => void;
 
-  // Helpers
+
   onGetDefaultArgsForTool: (toolName: string) => object;
 }
 
@@ -62,7 +62,7 @@ export function TestingTabs({
   onHandlePromptTest,
   onHandleResourceTest,
   onHandleHealthTest,
-  onGetDefaultArgsForTool,
+  onGetDefaultArgsForTool
 }: TestingTabsProps) {
   return (
     <Card>
@@ -101,8 +101,8 @@ export function TestingTabs({
               onToolFormChange={onToolFormChange}
               isTestRunning={isTestRunning}
               onHandleToolTest={onHandleToolTest}
-              onGetDefaultArgsForTool={onGetDefaultArgsForTool}
-            />
+              onGetDefaultArgsForTool={onGetDefaultArgsForTool} />
+
           </TabsContent>
 
           <TabsContent value="prompts" className="space-y-4">
@@ -112,8 +112,8 @@ export function TestingTabs({
               promptForm={promptForm}
               onPromptFormChange={onPromptFormChange}
               isTestRunning={isTestRunning}
-              onHandlePromptTest={onHandlePromptTest}
-            />
+              onHandlePromptTest={onHandlePromptTest} />
+
           </TabsContent>
 
           <TabsContent value="resources" className="space-y-4">
@@ -123,8 +123,8 @@ export function TestingTabs({
               resourceForm={resourceForm}
               onResourceFormChange={onResourceFormChange}
               isTestRunning={isTestRunning}
-              onHandleResourceTest={onHandleResourceTest}
-            />
+              onHandleResourceTest={onHandleResourceTest} />
+
           </TabsContent>
 
           <TabsContent value="health" className="space-y-4">
@@ -133,11 +133,11 @@ export function TestingTabs({
               healthForm={healthForm}
               onHealthFormChange={onHealthFormChange}
               isTestRunning={isTestRunning}
-              onHandleHealthTest={onHandleHealthTest}
-            />
+              onHandleHealthTest={onHandleHealthTest} />
+
           </TabsContent>
         </Tabs>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

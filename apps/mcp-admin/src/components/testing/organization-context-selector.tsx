@@ -5,16 +5,16 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Info, Users } from "lucide-react";
 import type { Organization } from "@mcp/database/client";
@@ -38,7 +38,7 @@ export function OrganizationContextSelector({
   selectedOrganization,
   onSelectedOrganizationChange,
   simulateContext,
-  onSimulateContextChange,
+  onSimulateContextChange
 }: OrganizationContextSelectorProps) {
   const handleOrganizationChange = (clerkId: string) => {
     const org = availableOrganizations.find((o) => o.clerkId === clerkId);
@@ -68,18 +68,18 @@ export function OrganizationContextSelector({
             <Label htmlFor="selected-organization">Selected Organization</Label>
             <Select
               value={selectedOrganization.clerkId}
-              onValueChange={handleOrganizationChange}
-            >
+              onValueChange={handleOrganizationChange}>
+
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableOrganizations.map((org) => (
-                  <SelectItem key={org.clerkId} value={org.clerkId}>
+                {availableOrganizations.map((org) =>
+                <SelectItem key={org.clerkId} value={org.clerkId}>
                     {org.name}{" "}
                     {org.clerkId === currentOrganization.clerkId && "(Current)"}
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -88,8 +88,8 @@ export function OrganizationContextSelector({
             <Label>Context Mode</Label>
             <Select
               value={simulateContext ? "simulate" : "normal"}
-              onValueChange={handleContextModeChange}
-            >
+              onValueChange={handleContextModeChange}>
+
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -101,16 +101,16 @@ export function OrganizationContextSelector({
           </div>
         </div>
 
-        {simulateContext && (
-          <Alert>
+        {simulateContext &&
+        <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
               Context simulation allows testing with different organization
               contexts without switching your actual organization membership.
             </AlertDescription>
           </Alert>
-        )}
+        }
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

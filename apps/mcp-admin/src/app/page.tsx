@@ -4,7 +4,7 @@ import { ServiceFactory } from "@/lib/services/service.factory";
 import { DashboardView } from "@/components/views/dashboard-view";
 import { OnboardingView } from "@/components/views/onboarding-view";
 
-// Force dynamic rendering to avoid build-time database calls
+
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
@@ -22,21 +22,21 @@ export default async function HomePage() {
       redirect("/sign-in");
     }
 
-    // Safely access memberships with fallback to empty array
+
     const memberships = userWithOrgs?.memberships || [];
 
-    // Convert database format to match the view component interface
-    const formattedMemberships = Array.isArray(memberships)
-      ? memberships.map((membership) => ({
-          id: membership.id,
-          role: membership.role,
-          organization: {
-            id: membership.organization.clerkId,
-            name: membership.organization.name,
-            membersCount: 0,
-          },
-        }))
-      : [];
+
+    const formattedMemberships = Array.isArray(memberships) ?
+    memberships.map((membership) => ({
+      id: membership.id,
+      role: membership.role,
+      organization: {
+        id: membership.organization.clerkId,
+        name: membership.organization.name,
+        membersCount: 0
+      }
+    })) :
+    [];
 
     if (!formattedMemberships || formattedMemberships.length === 0) {
       return <OnboardingView />;
@@ -45,12 +45,12 @@ export default async function HomePage() {
     return (
       <DashboardView
         userMemberships={formattedMemberships}
-        activeOrgId={orgId || null}
-      />
-    );
+        activeOrgId={orgId || null} />);
+
+
   } catch (error) {
     console.error("Error loading dashboard:", error);
-    // Fallback to onboarding if there are any issues
+
     return <OnboardingView />;
   }
 }

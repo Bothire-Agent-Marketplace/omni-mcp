@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// GET /api/test/mcp - Load MCP capabilities
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth();
@@ -12,26 +11,22 @@ export async function GET(request: NextRequest) {
     const gatewayUrl = process.env.MCP_GATEWAY_URL || "http://localhost:37373";
     const apiKey = process.env.MCP_API_KEY || "dev-api-key-12345";
 
-    // Extract organization context from query params for simulation mode
     const organizationClerkId = request.nextUrl.searchParams.get(
       "organizationClerkId"
     );
     const simulateContext =
       request.nextUrl.searchParams.get("simulateContext") === "true";
 
-    // Prepare headers for gateway authentication (API key only for now)
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "x-client-type": "mcp-admin-testing",
     };
 
-    // Add organization context headers for simulation
     if (simulateContext && organizationClerkId) {
       headers["x-simulate-organization"] = organizationClerkId;
     }
 
-    // Call gateway directly with JSON-RPC
     const [toolsResponse, promptsResponse, resourcesResponse] =
       await Promise.all([
         fetch(`${gatewayUrl}/mcp`, {
@@ -92,7 +87,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/test/mcp - Run MCP test
 export async function POST(request: NextRequest) {
   try {
     const { userId } = await auth();
@@ -123,7 +117,6 @@ export async function POST(request: NextRequest) {
     let method: string;
     let params: Record<string, unknown>;
 
-    // Map operations to MCP methods
     switch (operation) {
       case "tool":
         method = "tools/call";
@@ -146,7 +139,6 @@ export async function POST(request: NextRequest) {
         };
         break;
       case "health":
-        // Health check - just ping the gateway
         method = "tools/list";
         params = {};
         break;
@@ -158,14 +150,12 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Prepare headers for gateway authentication (API key only for now)
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
         "x-client-type": "mcp-admin-testing",
       };
 
-      // Add organization context simulation headers if needed
       if (
         organizationContext?.simulate &&
         organizationContext?.organizationClerkId

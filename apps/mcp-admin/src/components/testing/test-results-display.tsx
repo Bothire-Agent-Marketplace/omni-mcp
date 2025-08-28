@@ -6,8 +6,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -15,8 +15,8 @@ import {
   XCircle,
   Clock,
   AlertTriangle,
-  Timer,
-} from "lucide-react";
+  Timer } from
+"lucide-react";
 import { AIResponseRenderer } from "@/components/ai-response-renderer";
 import type { McpTestResult } from "@/lib/services/testing.service";
 
@@ -27,14 +27,14 @@ interface TestResultsDisplayProps {
 
 export function TestResultsDisplay({
   lastTestResult,
-  formatResponseTime,
+  formatResponseTime
 }: TestResultsDisplayProps) {
   const getStatusIcon = (success: boolean) => {
-    return success ? (
-      <CheckCircle2 className="w-4 h-4 text-green-600" />
-    ) : (
-      <XCircle className="w-4 h-4 text-red-600" />
-    );
+    return success ?
+    <CheckCircle2 className="w-4 h-4 text-green-600" /> :
+
+    <XCircle className="w-4 h-4 text-red-600" />;
+
   };
 
   return (
@@ -52,16 +52,16 @@ export function TestResultsDisplay({
             <div className="flex items-center gap-2 mt-1">
               {getStatusIcon(lastTestResult.success)}
               <Badge
-                variant={lastTestResult.success ? "default" : "destructive"}
-              >
+                variant={lastTestResult.success ? "default" : "destructive"}>
+
                 {lastTestResult.success ? "Success" : "Failed"}
               </Badge>
-              {lastTestResult.metadata?.cached && (
-                <Badge variant="secondary" className="text-xs">
+              {lastTestResult.metadata?.cached &&
+              <Badge variant="secondary" className="text-xs">
                   <Timer className="w-3 h-3 mr-1" />
                   Cached
                 </Badge>
-              )}
+              }
             </div>
           </div>
           <div>
@@ -72,15 +72,15 @@ export function TestResultsDisplay({
               <Clock className="w-4 h-4" />
               {formatResponseTime(lastTestResult.responseTime)}
               {lastTestResult.metadata?.cached &&
-                lastTestResult.metadata?.cacheAge && (
-                  <span className="text-xs text-muted-foreground">
+              lastTestResult.metadata?.cacheAge &&
+              <span className="text-xs text-muted-foreground">
                     (cached{" "}
                     {Math.round(
-                      (lastTestResult.metadata.cacheAge as number) / 1000
-                    )}
+                  (lastTestResult.metadata.cacheAge as number) / 1000
+                )}
                     s ago)
                   </span>
-                )}
+              }
             </div>
           </div>
           <div>
@@ -97,22 +97,22 @@ export function TestResultsDisplay({
           </div>
         </div>
 
-        {lastTestResult.error && (
-          <Alert className="border-red-200">
+        {lastTestResult.error &&
+        <Alert className="border-red-200">
             <AlertTriangle className="h-4 w-4 text-red-600" />
             <AlertDescription className="text-red-800">
               {lastTestResult.error}
             </AlertDescription>
           </Alert>
-        )}
+        }
 
-        {!!lastTestResult.result && (
-          <div className="space-y-2">
+        {!!lastTestResult.result &&
+        <div className="space-y-2">
             <Label>Response Data</Label>
             <AIResponseRenderer response={lastTestResult.result} />
           </div>
-        )}
+        }
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

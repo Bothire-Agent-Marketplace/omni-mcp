@@ -39,14 +39,14 @@ async function createGatewayConfig(): Promise<McpGatewayConfig> {
     mcpApiKey: process.env.MCP_API_KEY || (isProduction ? "" : DEV_API_KEY),
     sessionTimeout: parseInt(
       process.env.SESSION_TIMEOUT || (isProduction ? "3600000" : "900000")
-    ), // 1 hour prod, 15 min dev
+    ),
     maxConcurrentSessions: parseInt(
       process.env.MAX_CONCURRENT_SESSIONS || (isProduction ? "500" : "500")
     ),
     rateLimitPerMinute: parseInt(
       process.env.API_RATE_LIMIT || (isProduction ? "100" : "1000")
     ),
-    requireApiKey: true, // Always require API key for security
+    requireApiKey: true,
     enableRateLimit: isProduction,
     maxRequestSizeMb: parseInt(process.env.MAX_REQUEST_SIZE || "1"),
     corsCredentials: process.env.CORS_CREDENTIALS !== "false",

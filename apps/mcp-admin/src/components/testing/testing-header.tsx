@@ -13,7 +13,7 @@ interface TestingHeaderProps {
 
 export function TestingHeader({
   isLoadingCapabilities,
-  onRefreshCapabilities,
+  onRefreshCapabilities
 }: TestingHeaderProps) {
   const handleClearCache = () => {
     testingService.clearCache();
@@ -22,7 +22,7 @@ export function TestingHeader({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {}
       <div className="flex justify-between items-start">
         <div>
           <h3 className="text-lg font-medium">MCP Testing Interface</h3>
@@ -35,13 +35,13 @@ export function TestingHeader({
           <Button
             variant="outline"
             onClick={onRefreshCapabilities}
-            disabled={isLoadingCapabilities}
-          >
-            {isLoadingCapabilities ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4 mr-2" />
-            )}
+            disabled={isLoadingCapabilities}>
+
+            {isLoadingCapabilities ?
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
+
+            <RefreshCw className="w-4 h-4 mr-2" />
+            }
             Refresh Capabilities
           </Button>
           <Button variant="outline" onClick={handleClearCache} size="sm">
@@ -52,6 +52,6 @@ export function TestingHeader({
       </div>
 
       <Separator />
-    </div>
-  );
+    </div>);
+
 }

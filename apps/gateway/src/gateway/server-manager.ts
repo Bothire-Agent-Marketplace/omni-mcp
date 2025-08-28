@@ -27,7 +27,7 @@ export class MCPServerManager extends EventEmitter {
           serverId,
           url: config.url,
           lastHealthCheck: new Date(),
-          isHealthy: false, // Start as unhealthy until first check passes
+          isHealthy: false,
           activeConnections: 0,
           capabilities: config.capabilities,
         });
@@ -40,7 +40,7 @@ export class MCPServerManager extends EventEmitter {
       "Initializing server manager with network-based servers..."
     );
     for (const serverId of this.servers.keys()) {
-      await this.performHealthCheck(serverId); // Perform initial health check
+      await this.performHealthCheck(serverId);
       this.startHealthChecks(serverId);
     }
   }
@@ -66,7 +66,6 @@ export class MCPServerManager extends EventEmitter {
       return null;
     }
 
-    // This logic can be enhanced for load balancing if multiple URLs per service are supported
     server.activeConnections++;
     return server;
   }
@@ -81,7 +80,7 @@ export class MCPServerManager extends EventEmitter {
     const status: HealthStatus = {};
     for (const [serverId, server] of this.servers.entries()) {
       status[serverId] = {
-        instances: 1, // One URL per server in this model
+        instances: 1,
         healthy: server.isHealthy ? 1 : 0,
         capabilities: server.capabilities,
         lastCheck: server.lastHealthCheck.toISOString(),
@@ -94,7 +93,6 @@ export class MCPServerManager extends EventEmitter {
     const server = this.servers.get(serverId);
     if (!server) return;
 
-    // Use a default interval if not specified
     const healthCheckInterval =
       this.getServerConfig(serverId)?.healthCheckInterval || 30000;
 
@@ -114,9 +112,8 @@ export class MCPServerManager extends EventEmitter {
     try {
       const healthUrl = `${server.url}/health`;
 
-      // Create AbortController for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       const response = await fetch(healthUrl, {
         signal: controller.signal,
@@ -151,7 +148,6 @@ export class MCPServerManager extends EventEmitter {
     }
   }
 
-  // Helper to get original config, if needed
   private getServerConfig(
     serverId: string
   ): McpServerRuntimeConfig | undefined {

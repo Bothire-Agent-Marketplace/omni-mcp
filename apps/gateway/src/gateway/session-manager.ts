@@ -27,7 +27,6 @@ export class MCPSessionManager {
       logger
     );
 
-    // Start session cleanup interval - more frequent in development
     const cleanupInterval = config.env === "production" ? 60000 : 30000;
     this.cleanupInterval = setInterval(() => {
       this.cleanupExpiredSessions();
@@ -76,9 +75,6 @@ export class MCPSessionManager {
     return session;
   }
 
-  /**
-   * Find existing session for user and organization context
-   */
   private findExistingSession(
     userId: string,
     organizationClerkId?: string,
@@ -90,7 +86,6 @@ export class MCPSessionManager {
         session.organizationClerkId === organizationClerkId &&
         session.transport === transport
       ) {
-        // Check if session is still valid (not expired)
         const now = new Date();
         const timeSinceLastActivity =
           now.getTime() - session.lastActivity.getTime();
@@ -107,10 +102,6 @@ export class MCPSessionManager {
     return null;
   }
 
-  /**
-   * Create session with organization context extracted from auth headers
-   * Now supports organization context simulation for testing and session reuse
-   */
   async createSessionWithAuth(
     authHeader?: string,
     apiKey?: string,
@@ -124,7 +115,6 @@ export class MCPSessionManager {
 
     const userId = orgContext?.userClerkId || "anonymous";
 
-    // Determine final organization context (with simulation support)
     let finalOrgContext = orgContext;
 
     if (simulateOrgHeader && orgContext) {
@@ -159,7 +149,6 @@ export class MCPSessionManager {
       }
     }
 
-    // Try to find existing session first
     const existingSession = this.findExistingSession(
       userId,
       finalOrgContext?.organizationClerkId,
@@ -170,27 +159,17 @@ export class MCPSessionManager {
       return existingSession;
     }
 
-    // Create new session if none exists
     return this.createSession(userId, transport, finalOrgContext || undefined);
   }
 
-  /**
-   * Validate if user has permission to simulate organization context
-   * For now, allow simulation within same organization or if user is admin
-   */
   private async validateSimulationPermission(
     userContext: OrganizationContext,
     simulateOrgClerkId: string
   ): Promise<boolean> {
     try {
-      // Allow simulation of same organization (useful for testing different contexts)
       if (userContext.organizationClerkId === simulateOrgClerkId) {
         return true;
       }
-
-      // TODO: Add more sophisticated permission checking
-      // For now, we'll be restrictive and only allow same-org simulation
-      // In future, could check if user is super admin or has testing permissions
 
       return false;
     } catch (error) {
@@ -202,27 +181,18 @@ export class MCPSessionManager {
     }
   }
 
-  /**
-   * Create simulated organization context for testing
-   */
   private async createSimulatedContext(
     baseContext: OrganizationContext,
     simulateOrgClerkId: string
   ): Promise<OrganizationContext | null> {
     try {
-      // For same-organization simulation, return the base context
-      // This allows testing different request contexts within same org
       if (baseContext.organizationClerkId === simulateOrgClerkId) {
         return {
           ...baseContext,
-          // Mark as simulated for logging/debugging
+
           isSimulated: true,
         } as OrganizationContext & { isSimulated: boolean };
       }
-
-      // TODO: For cross-organization simulation (if permitted),
-      // we would need to look up the target organization details
-      // This would require database access and proper permission validation
 
       return null;
     } catch (error) {
@@ -292,10 +262,8 @@ export class MCPSessionManager {
   removeSession(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      // Clean up server connections
       session.serverConnections.clear();
 
-      // Close WebSocket if exists
       if (session.connection) {
         session.connection.close();
       }
@@ -313,9 +281,6 @@ export class MCPSessionManager {
     return this.sessions.size < this.config.maxConcurrentSessions;
   }
 
-  /**
-   * Get session statistics for monitoring
-   */
   getSessionStats(): {
     total: number;
     limit: number;
@@ -330,10 +295,8 @@ export class MCPSessionManager {
     };
 
     for (const session of this.sessions.values()) {
-      // Count by transport
       stats.byTransport[session.transport]++;
 
-      // Count by user
       stats.byUser[session.userId] = (stats.byUser[session.userId] || 0) + 1;
     }
 
@@ -362,17 +325,14 @@ export class MCPSessionManager {
       this.logger.info(`Cleaned up ${expiredSessions.length} expired sessions`);
     }
 
-    // Log session stats periodically (every 10 cleanups in dev)
     if (this.config.env !== "production") {
       const stats = this.getSessionStats();
       if (stats.total > stats.limit * 0.8) {
-        // Log when >80% capacity
         this.logger.warn(
           `High session usage: ${stats.total}/${stats.limit}`,
           stats
         );
       } else if (stats.total > 10) {
-        // Log stats when we have more than 10 sessions
         this.logger.debug(
           `Session stats: ${stats.total}/${stats.limit}`,
           stats

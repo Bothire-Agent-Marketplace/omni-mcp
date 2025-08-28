@@ -9,9 +9,6 @@ import {
   BaseMCPClientConfig,
 } from "../types/client-types.js";
 
-/**
- * Cursor IDE client implementation
- */
 export class CursorClient {
   private bridges: Map<string, MCPRemoteBridge> = new Map();
   private bridgeOptions: BridgeOptions;
@@ -20,9 +17,6 @@ export class CursorClient {
     this.bridgeOptions = bridgeOptions;
   }
 
-  /**
-   * Add a server endpoint with its bridge configuration
-   */
   addServer(
     name: string,
     endpoint: ServerEndpoint,
@@ -33,16 +27,10 @@ export class CursorClient {
     this.bridges.set(name, bridge);
   }
 
-  /**
-   * Remove a server configuration
-   */
   removeServer(name: string): void {
     this.bridges.delete(name);
   }
 
-  /**
-   * Generate Cursor MCP configuration
-   */
   generateConfig(): CursorMCPConfig {
     const mcpServers: Record<string, BaseMCPClientConfig> = {};
 
@@ -63,34 +51,21 @@ export class CursorClient {
     };
   }
 
-  /**
-   * Get the default Cursor configuration path
-   */
   getDefaultConfigPath(): string {
-    // Cursor typically stores config in ~/.cursor/mcp.json or similar
-    // This might need adjustment based on actual Cursor config location
     return resolve(homedir(), ".cursor", "mcp.json");
   }
 
-  /**
-   * Save configuration to a file
-   */
   async saveConfig(configPath?: string): Promise<void> {
     const path = configPath || this.getDefaultConfigPath();
     const config = this.generateConfig();
 
-    // Ensure directory exists
     await mkdir(dirname(path), { recursive: true });
 
-    // Write config file
     await writeFile(path, JSON.stringify(config, null, 2), "utf8");
 
     console.log(`✅ Cursor configuration saved to: ${path}`);
   }
 
-  /**
-   * Validate all bridges
-   */
   async validate(): Promise<boolean> {
     let allValid = true;
 
@@ -107,9 +82,6 @@ export class CursorClient {
     return allValid;
   }
 
-  /**
-   * Test connections to all servers
-   */
   async testConnections(): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {};
 
@@ -132,9 +104,6 @@ export class CursorClient {
     return results;
   }
 
-  /**
-   * Get configuration summary
-   */
   getSummary(): {
     serverCount: number;
     servers: Array<{
@@ -158,16 +127,10 @@ export class CursorClient {
     };
   }
 
-  /**
-   * Get bridge by name
-   */
   getBridge(name: string): MCPRemoteBridge | undefined {
     return this.bridges.get(name);
   }
 
-  /**
-   * List all configured bridges
-   */
   listBridges(): string[] {
     return Array.from(this.bridges.keys());
   }

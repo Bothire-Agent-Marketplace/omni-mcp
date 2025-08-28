@@ -1,12 +1,6 @@
 import { JSONSchemaProperty } from "../types.js";
 
-// ============================================================================
-// SHARED INPUT SCHEMAS - Reusable across all MCP servers
-// ============================================================================
-
-// Common parameter types that can be reused across different tools
 export const CommonInputSchemas = {
-  // Text/String inputs
   requiredString: {
     type: "string",
     description: "Required string parameter",
@@ -24,7 +18,6 @@ export const CommonInputSchemas = {
       description: `String parameter with max length ${maxLength}`,
     }) as JSONSchemaProperty,
 
-  // Number inputs
   positiveInteger: {
     type: "integer",
     minimum: 1,
@@ -43,13 +36,11 @@ export const CommonInputSchemas = {
     type: "number",
   },
 
-  // Boolean inputs
   optionalBoolean: {
     type: "boolean",
     description: "Optional boolean parameter",
   } as JSONSchemaProperty,
 
-  // Common enum patterns
   sortOrder: {
     type: "string",
     enum: ["asc", "desc"],
@@ -57,7 +48,6 @@ export const CommonInputSchemas = {
     description: "Sort order for results",
   } as JSONSchemaProperty,
 
-  // Array inputs
   stringArray: {
     type: "array",
     items: {
@@ -66,7 +56,6 @@ export const CommonInputSchemas = {
     description: "Array of strings",
   } as JSONSchemaProperty,
 
-  // Object inputs
   optionalObject: {
     type: "object",
     additionalProperties: true,
@@ -87,13 +76,6 @@ export const CommonInputSchemas = {
   },
 } as const;
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Helper function to create a complete tool inputSchema
- */
 export function createToolInputSchema(
   properties: Record<string, JSONSchemaProperty>,
   required: string[] = []
@@ -106,9 +88,6 @@ export function createToolInputSchema(
   };
 }
 
-/**
- * Helper function to merge common schemas with tool-specific ones
- */
 export function mergeSchemas(
   baseSchema: JSONSchemaProperty,
   additionalProperties: Record<string, JSONSchemaProperty>
@@ -126,21 +105,15 @@ export function mergeSchemas(
   };
 }
 
-/**
- * Validate that a schema follows MCP inputSchema requirements
- */
 export function validateMCPInputSchema(schema: JSONSchemaProperty): boolean {
-  // MCP inputSchema must be object type
   if (schema.type !== "object") {
     return false;
   }
 
-  // Must have properties defined
   if (!schema.properties) {
     return false;
   }
 
-  // All properties should be valid JSON Schema
   for (const [key, prop] of Object.entries(schema.properties)) {
     if (!prop.type || typeof key !== "string") {
       return false;

@@ -1,10 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * Database Reset Script
- * Performs a clean database reset without backing up or restoring data
- */
-
 import { spawn } from "child_process";
 
 async function runCommand(command: string, args: string[]): Promise<void> {
@@ -29,7 +24,6 @@ async function resetDatabase() {
   console.log("🔄 Starting clean database reset...");
 
   try {
-    // Reset the database completely
     console.log("\n🗑️  Resetting database...");
     await runCommand("npx", ["prisma", "migrate", "reset", "--force"]);
 
@@ -41,5 +35,4 @@ async function resetDatabase() {
   }
 }
 
-// Run the reset
 resetDatabase().catch(console.error);

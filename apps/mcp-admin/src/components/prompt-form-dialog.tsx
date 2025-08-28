@@ -8,8 +8,8 @@ import {
   DialogDescription,
   DialogFooter,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle } from
+"@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,22 +19,22 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import { Loader2, Save, X, Eye, Settings, Code } from "lucide-react";
 import { toast } from "sonner";
 import {
   ArgumentsSchemaBuilder,
-  type ArgumentDefinition,
-} from "./arguments-schema-builder";
+  type ArgumentDefinition } from
+"./arguments-schema-builder";
 import { TemplateEditor } from "./template-editor";
 import { PromptTester } from "./prompt-tester";
 import {
   argumentsToJsonSchema,
   jsonSchemaToArguments,
   validateTemplate,
-  type JsonSchema,
-} from "@/lib/prompt-utils";
+  type JsonSchema } from
+"@/lib/prompt-utils";
 import type { OrganizationPrompt, McpServer } from "@/types/prompts";
 
 interface PromptFormDialogProps {
@@ -50,20 +50,20 @@ export function PromptFormDialog({
   onOpenChange,
   prompt,
   mcpServers,
-  onSave,
+  onSave
 }: PromptFormDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
 
-  // Form data
+
   const [formData, setFormData] = useState({
     mcpServerId: "",
     name: "",
     description: "",
-    template: "",
+    template: ""
   });
 
-  // Visual editing state
+
   const [argumentsSchema, setArgumentsSchema] = useState<ArgumentDefinition[]>(
     []
   );
@@ -72,42 +72,42 @@ export function PromptFormDialog({
 
   const isEditing = !!prompt;
 
-  // Initialize form data when dialog opens
+
   useEffect(() => {
     if (open && prompt) {
-      // Extract template content for editing
+
       let templateForEditing = "";
       if (typeof prompt.template === "string") {
         templateForEditing = prompt.template;
       } else if (Array.isArray(prompt.template)) {
-        // Extract content from message format (default prompts or normalized custom prompts)
-        templateForEditing = prompt.template
-          .map((msg) => {
-            if (msg && typeof msg === "object" && "content" in msg) {
-              return (msg as { content: string }).content;
-            }
-            return JSON.stringify(msg);
-          })
-          .join("\n\n");
+
+        templateForEditing = prompt.template.
+        map((msg) => {
+          if (msg && typeof msg === "object" && "content" in msg) {
+            return (msg as {content: string;}).content;
+          }
+          return JSON.stringify(msg);
+        }).
+        join("\n\n");
       } else if (
-        typeof prompt.template === "object" &&
-        prompt.template !== null
-      ) {
-        // Handle legacy custom prompt formats
+      typeof prompt.template === "object" &&
+      prompt.template !== null)
+      {
+
         const templateObj = prompt.template as Record<string, unknown>;
 
-        // If it has a message property, extract that for editing
+
         if (
-          "message" in templateObj &&
-          typeof templateObj.message === "string"
-        ) {
+        "message" in templateObj &&
+        typeof templateObj.message === "string")
+        {
           templateForEditing = templateObj.message;
         } else {
-          // Otherwise, stringify the whole object for editing
+
           templateForEditing = JSON.stringify(templateObj, null, 2);
         }
       } else {
-        // Fallback for other formats
+
         templateForEditing = JSON.stringify(prompt.template, null, 2);
       }
 
@@ -115,10 +115,10 @@ export function PromptFormDialog({
         mcpServerId: prompt.mcpServer.id,
         name: prompt.name,
         description: prompt.description,
-        template: templateForEditing,
+        template: templateForEditing
       });
 
-      // Convert existing arguments to visual format
+
       const existingArgs = jsonSchemaToArguments(
         prompt.arguments as unknown as JsonSchema
       );
@@ -129,17 +129,17 @@ export function PromptFormDialog({
         mcpServerId: "",
         name: "",
         description: "",
-        template: "",
+        template: ""
       });
       setArgumentsSchema([]);
       setJsonArguments("{}");
     }
   }, [open, prompt]);
 
-  // Sync between visual and JSON modes
+
   useEffect(() => {
     if (isVisualMode) {
-      // Convert visual arguments to JSON
+
       const jsonSchema = argumentsToJsonSchema(argumentsSchema);
       setJsonArguments(JSON.stringify(jsonSchema, null, 2));
     }
@@ -152,13 +152,13 @@ export function PromptFormDialog({
   const handleJsonArgumentsChange = (newJson: string) => {
     setJsonArguments(newJson);
 
-    // Try to parse and convert back to visual format
+
     try {
       const parsed = JSON.parse(newJson);
       const visualArgs = jsonSchemaToArguments(parsed);
       setArgumentsSchema(visualArgs);
     } catch (_error) {
-      // Invalid JSON, keep visual state as is
+
     }
   };
 
@@ -178,7 +178,7 @@ export function PromptFormDialog({
       errors.push("Template is required");
     }
 
-    // Validate JSON arguments if in JSON mode
+
     if (!isVisualMode) {
       try {
         JSON.parse(jsonArguments);
@@ -187,7 +187,7 @@ export function PromptFormDialog({
       }
     }
 
-    // Validate template against arguments
+
     const templateValidation = validateTemplate(
       formData.template,
       argumentsSchema
@@ -208,87 +208,87 @@ export function PromptFormDialog({
 
     setIsLoading(true);
     try {
-      // Normalize template to match default prompt format (array of message objects)
+
       let templateObj;
       if (typeof formData.template === "string") {
-        // Convert string template to standard message format
+
         templateObj = [
-          {
-            role: "user",
-            content: formData.template,
-          },
-        ];
+        {
+          role: "user",
+          content: formData.template
+        }];
+
       } else {
         try {
           const parsed = JSON.parse(formData.template);
-          // If it's already in the correct format, use it
+
           if (
-            Array.isArray(parsed) &&
-            parsed.every(
-              (msg) =>
-                msg &&
-                typeof msg === "object" &&
-                "role" in msg &&
-                "content" in msg
-            )
-          ) {
+          Array.isArray(parsed) &&
+          parsed.every(
+            (msg) =>
+            msg &&
+            typeof msg === "object" &&
+            "role" in msg &&
+            "content" in msg
+          ))
+          {
             templateObj = parsed;
           } else {
-            // Convert object format to standard message format
+
             templateObj = [
-              {
-                role: "user",
-                content:
-                  typeof parsed === "string"
-                    ? parsed
-                    : JSON.stringify(parsed, null, 2),
-              },
-            ];
-          }
-        } catch {
-          // Fallback for invalid JSON
-          templateObj = [
             {
               role: "user",
-              content: formData.template,
-            },
-          ];
+              content:
+              typeof parsed === "string" ?
+              parsed :
+              JSON.stringify(parsed, null, 2)
+            }];
+
+          }
+        } catch {
+
+          templateObj = [
+          {
+            role: "user",
+            content: formData.template
+          }];
+
         }
       }
 
-      const argumentsObj = isVisualMode
-        ? argumentsToJsonSchema(argumentsSchema)
-        : JSON.parse(jsonArguments);
+      const argumentsObj = isVisualMode ?
+      argumentsToJsonSchema(argumentsSchema) :
+      JSON.parse(jsonArguments);
 
       const payload = {
         mcpServerId: formData.mcpServerId,
         name: formData.name.trim(),
         description: formData.description.trim(),
         template: templateObj,
-        arguments: argumentsObj,
+        arguments: argumentsObj
       };
 
-      const url = isEditing
-        ? `/api/organization/prompts/${prompt?.id}`
-        : "/api/organization/prompts";
+      const url = isEditing ?
+      `/api/organization/prompts/${prompt?.id}` :
+      "/api/organization/prompts";
 
       const method = isEditing ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
 
       if (data.success) {
         toast.success(
-          isEditing
-            ? "Prompt updated successfully!"
-            : "Prompt created successfully!"
+          isEditing ?
+          "Prompt updated successfully!" :
+          "Prompt created successfully!"
         );
         onSave(data.prompt);
         onOpenChange(false);
@@ -317,9 +317,9 @@ export function PromptFormDialog({
             {isEditing ? "Edit Prompt" : "Create New Prompt"}
           </DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? "Modify the prompt details and configuration."
-              : "Create a new custom prompt for your organization."}
+            {isEditing ?
+            "Modify the prompt details and configuration." :
+            "Create a new custom prompt for your organization."}
           </DialogDescription>
         </DialogHeader>
 
@@ -327,8 +327,8 @@ export function PromptFormDialog({
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
-            className="h-full flex flex-col"
-          >
+            className="h-full flex flex-col">
+
             <TabsList className="grid w-full grid-cols-3 flex-shrink-0">
               <TabsTrigger value="basic">
                 <Settings className="w-4 h-4 mr-2" />
@@ -346,76 +346,76 @@ export function PromptFormDialog({
 
             <div className="flex-1 overflow-y-auto mt-4 min-h-0">
               <TabsContent value="basic" className="space-y-6 mt-0">
-                {/* MCP Server Selection */}
+                {}
                 <div className="space-y-2">
                   <Label htmlFor="mcpServer">MCP Server</Label>
                   <Select
                     value={formData.mcpServerId}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, mcpServerId: value })
+                    setFormData({ ...formData, mcpServerId: value })
                     }
-                    disabled={isLoading}
-                  >
+                    disabled={isLoading}>
+
                     <SelectTrigger className="h-12">
                       <SelectValue placeholder="Select MCP Server" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mcpServers.map((server) => (
-                        <SelectItem key={server.id} value={server.id}>
+                      {mcpServers.map((server) =>
+                      <SelectItem key={server.id} value={server.id}>
                           {server.name}
                         </SelectItem>
-                      ))}
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
 
-                {/* Name */}
+                {}
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
+                    setFormData({ ...formData, name: e.target.value })
                     }
                     placeholder="Enter prompt name"
                     disabled={isLoading}
-                    className="h-12 text-lg"
-                  />
+                    className="h-12 text-lg" />
+
                 </div>
 
-                {/* Description */}
+                {}
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
+                    setFormData({ ...formData, description: e.target.value })
                     }
                     placeholder="Enter prompt description"
                     rows={4}
                     disabled={isLoading}
-                    className="text-base resize-none"
-                  />
+                    className="text-base resize-none" />
+
                 </div>
               </TabsContent>
 
               <TabsContent value="template" className="space-y-8 mt-0">
-                {/* Template Editor */}
+                {}
                 <TemplateEditor
                   value={formData.template}
                   onChange={(value) =>
-                    setFormData({ ...formData, template: value })
+                  setFormData({ ...formData, template: value })
                   }
                   argumentsSchema={argumentsSchema}
                   label="Prompt Template"
                   description="Use {{variableName}} to insert dynamic values"
                   placeholder="Enter your prompt template..."
-                  rows={12}
-                />
+                  rows={12} />
 
-                {/* Arguments Schema */}
+
+                {}
                 <div className="border-t pt-8">
                   <div className="flex items-center justify-between mb-6">
                     <div>
@@ -429,9 +429,9 @@ export function PromptFormDialog({
                     <Tabs
                       value={isVisualMode ? "visual" : "json"}
                       onValueChange={(value) =>
-                        setIsVisualMode(value === "visual")
-                      }
-                    >
+                      setIsVisualMode(value === "visual")
+                      }>
+
                       <TabsList className="grid w-[200px] grid-cols-2">
                         <TabsTrigger value="visual">Visual</TabsTrigger>
                         <TabsTrigger value="json">JSON</TabsTrigger>
@@ -439,34 +439,34 @@ export function PromptFormDialog({
                     </Tabs>
                   </div>
 
-                  {isVisualMode ? (
-                    <ArgumentsSchemaBuilder
-                      initialArguments={argumentsSchema}
-                      onChange={handleArgumentsChange}
-                    />
-                  ) : (
-                    <div className="space-y-2">
+                  {isVisualMode ?
+                  <ArgumentsSchemaBuilder
+                    initialArguments={argumentsSchema}
+                    onChange={handleArgumentsChange} /> :
+
+
+                  <div className="space-y-2">
                       <Label>Arguments Schema (JSON)</Label>
                       <Textarea
-                        value={jsonArguments}
-                        onChange={(e) =>
-                          handleJsonArgumentsChange(e.target.value)
-                        }
-                        placeholder='{"argName": {"type": "string", "required": true, "description": "Description"}}'
-                        rows={16}
-                        className="font-mono text-sm"
-                        disabled={isLoading}
-                      />
+                      value={jsonArguments}
+                      onChange={(e) =>
+                      handleJsonArgumentsChange(e.target.value)
+                      }
+                      placeholder='{"argName": {"type": "string", "required": true, "description": "Description"}}'
+                      rows={16}
+                      className="font-mono text-sm"
+                      disabled={isLoading} />
+
                     </div>
-                  )}
+                  }
                 </div>
               </TabsContent>
 
               <TabsContent value="test" className="mt-0">
                 <PromptTester
                   template={formData.template}
-                  argumentsSchema={argumentsSchema}
-                />
+                  argumentsSchema={argumentsSchema} />
+
               </TabsContent>
             </div>
           </Tabs>
@@ -478,21 +478,21 @@ export function PromptFormDialog({
             variant="outline"
             onClick={handleClose}
             disabled={isLoading}
-            size="lg"
-          >
+            size="lg">
+
             <X className="w-4 h-4 mr-2" />
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isLoading} size="lg">
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4 mr-2" />
-            )}
+            {isLoading ?
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
+
+            <Save className="w-4 h-4 mr-2" />
+            }
             {isEditing ? "Update Prompt" : "Create Prompt"}
           </Button>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 }

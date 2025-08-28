@@ -6,8 +6,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { CheckCircle2, XCircle } from "lucide-react";
 import type { McpTestResult } from "@/lib/services/testing.service";
 
@@ -18,14 +18,14 @@ interface TestHistoryDisplayProps {
 
 export function TestHistoryDisplay({
   testHistory,
-  formatResponseTime,
+  formatResponseTime
 }: TestHistoryDisplayProps) {
   const getStatusIcon = (success: boolean) => {
-    return success ? (
-      <CheckCircle2 className="w-4 h-4 text-green-600" />
-    ) : (
-      <XCircle className="w-4 h-4 text-red-600" />
-    );
+    return success ?
+    <CheckCircle2 className="w-4 h-4 text-green-600" /> :
+
+    <XCircle className="w-4 h-4 text-red-600" />;
+
   };
 
   if (testHistory.length === 0) {
@@ -40,11 +40,11 @@ export function TestHistoryDisplay({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {testHistory.map((result, index) => (
-            <div
-              key={`${result.timestamp}-${index}`}
-              className="flex items-center justify-between p-3 border rounded-lg"
-            >
+          {testHistory.map((result, index) =>
+          <div
+            key={`${result.timestamp}-${index}`}
+            className="flex items-center justify-between p-3 border rounded-lg">
+
               <div className="flex items-center gap-3">
                 {getStatusIcon(result.success)}
                 <div>
@@ -65,9 +65,9 @@ export function TestHistoryDisplay({
                 </Badge>
               </div>
             </div>
-          ))}
+          )}
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }

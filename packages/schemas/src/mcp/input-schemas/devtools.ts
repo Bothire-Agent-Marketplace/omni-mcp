@@ -1,12 +1,7 @@
 import { CommonInputSchemas } from "./common.js";
 import { ToolInputSchema } from "./types.js";
 
-// ============================================================================
-// CHROME DEVTOOLS MCP SERVER - Input Schemas
-// ============================================================================
-
 export const DevToolsInputSchemas = {
-  // Chrome Management Tools
   startChrome: {
     type: "object",
     properties: {
@@ -95,7 +90,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Console Tools
   getConsoleLogs: {
     type: "object",
     properties: {
@@ -134,7 +128,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Network Tools
   getNetworkRequests: {
     type: "object",
     properties: {
@@ -197,7 +190,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // DOM Tools
   getDocument: {
     type: "object",
     properties: {
@@ -279,7 +271,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // CSS Tools
   getComputedStyles: {
     type: "object",
     properties: {
@@ -304,7 +295,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Storage Tools
   getLocalStorage: {
     type: "object",
     properties: {
@@ -343,7 +333,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Advanced DOM Tools
   setElementText: {
     type: "object",
     properties: {
@@ -424,7 +413,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Debugging Tools
   setBreakpoint: {
     type: "object",
     properties: {
@@ -549,7 +537,6 @@ export const DevToolsInputSchemas = {
     additionalProperties: false,
   } as ToolInputSchema,
 
-  // Error Handling Tools
   getRuntimeErrors: {
     type: "object",
     properties: {

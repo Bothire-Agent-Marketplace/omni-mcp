@@ -11,17 +11,14 @@ import { prisma } from "@/lib/db";
 import { DatabaseService } from "@/lib/db-service";
 
 export async function POST(req: Request) {
-  // Get the webhook secret from environment variables
   const secret = process.env.CLERK_WEBHOOK_SECRET;
   if (!secret) {
     console.error("Missing CLERK_WEBHOOK_SECRET environment variable");
     return new Response("Missing webhook secret", { status: 500 });
   }
 
-  // Get the webhook payload
   const payload = await req.text();
 
-  // Get the svix headers for signature verification
   const headersList = await headers();
   const svix_id = headersList.get("svix-id");
   const svix_timestamp = headersList.get("svix-timestamp");
@@ -31,7 +28,6 @@ export async function POST(req: Request) {
     return new Response("Missing svix headers", { status: 400 });
   }
 
-  // Verify the webhook signature
   const wh = new Webhook(secret);
   let evt: WebhookEvent;
 
@@ -46,7 +42,6 @@ export async function POST(req: Request) {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  // Check if we've already processed this event (deduplication)
   const eventId = svix_id;
   const existingEvent = await prisma.webhookEvent.findUnique({
     where: { eventId },
@@ -57,7 +52,6 @@ export async function POST(req: Request) {
     return new Response("OK", { status: 200 });
   }
 
-  // Record this event as being processed
   await prisma.webhookEvent.create({
     data: {
       eventId,
@@ -66,7 +60,6 @@ export async function POST(req: Request) {
     },
   });
 
-  // Handle different event types
   try {
     switch (evt.type) {
       case "user.created":
@@ -102,7 +95,6 @@ export async function POST(req: Request) {
   } catch (error: unknown) {
     console.error(`Error handling event ${evt.type}:`, error);
 
-    // Handle Prisma unique constraint violations gracefully
     if (
       error &&
       typeof error === "object" &&
@@ -115,10 +107,9 @@ export async function POST(req: Request) {
       console.log(
         `Unique constraint violation for ${evt.type}${target}, but continuing...`
       );
-      return new Response("OK", { status: 200 }); // Return success to avoid retries
+      return new Response("OK", { status: 200 });
     }
 
-    // Handle other database errors that shouldn't cause retries
     if (
       error &&
       typeof error === "object" &&
@@ -138,7 +129,6 @@ export async function POST(req: Request) {
   return new Response("OK", { status: 200 });
 }
 
-// Event handlers - now implemented with database operations
 async function handleUserCreated(data: UserJSON) {
   try {
     await DatabaseService.upsertUser(data);
@@ -149,7 +139,6 @@ async function handleUserCreated(data: UserJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      // User already exists, skip silently
       return;
     }
     throw error;
@@ -166,7 +155,6 @@ async function handleUserUpdated(data: UserJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      // User already exists, skip silently
       return;
     }
     throw error;
@@ -187,7 +175,6 @@ async function handleOrganizationCreated(data: OrganizationJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      // Organization already exists, skip silently
       return;
     }
     throw error;
@@ -204,7 +191,6 @@ async function handleOrganizationUpdated(data: OrganizationJSON) {
       "code" in error &&
       error.code === "P2002"
     ) {
-      // Organization already exists, skip silently
       return;
     }
     throw error;
@@ -248,7 +234,6 @@ async function handleOrganizationMembershipUpdated(
       "code" in error &&
       error.code === "P2002"
     ) {
-      // Membership already exists, skip silently
       return;
     }
     throw error;

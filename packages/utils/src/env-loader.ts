@@ -3,13 +3,8 @@ import { join, dirname } from "path";
 import { config } from "dotenv";
 import type { Environment } from "@mcp/schemas";
 
-// Re-export Environment type for convenience
 export type { Environment };
 
-/**
- * Detects the current runtime environment.
- * Defaults to 'development' if NODE_ENV is not set.
- */
 export function detectEnvironment(): Environment {
   const env = process.env.NODE_ENV as Environment;
   if (["development", "production", "test"].includes(env)) {
@@ -45,10 +40,6 @@ function loadEnvFile(filePath: string): void {
   }
 }
 
-/**
- * Loads all relevant .env files for a given service.
- * The loading order ensures correct precedence.
- */
 export function loadEnvironment(servicePath: string): void {
   const environment = detectEnvironment();
   const projectRoot = findProjectRoot(servicePath);
@@ -59,20 +50,16 @@ export function loadEnvironment(servicePath: string): void {
   );
 
   const pathsToLoad = [
-    // 1. Root .env files
     join(projectRoot, ".env"),
     join(projectRoot, `.env.${environment}`),
 
-    // 2. Central secrets file
     join(projectRoot, "secrets", `.env.${environment}.local`),
 
-    // 3. Service-specific .env files
     join(servicePath, ".env"),
     join(servicePath, `.env.${environment}`),
     join(servicePath, ".env.local"),
     join(servicePath, `.env.${environment}.local`),
 
-    // 4. Root local override (lowest precedence)
     join(projectRoot, ".env.local"),
   ];
 
@@ -86,8 +73,6 @@ function getServiceName(servicePath: string): string | null {
       const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
       return packageJson.name.split("/").pop() || null;
     }
-  } catch {
-    // If .env file doesn't exist, that's fine - we'll use defaults
-  }
+  } catch {}
   return null;
 }

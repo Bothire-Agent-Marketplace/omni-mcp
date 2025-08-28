@@ -16,14 +16,6 @@ import { MCPRequestRouter } from "./core/request-router.js";
 import { MCPProtocolAdapter } from "./protocol-adapter.js";
 import { MCPServerManager } from "./server-manager.js";
 
-/**
- * Refactored MCP Gateway - Main orchestrator
- *
- * Responsibilities:
- * - Initialize and coordinate focused components
- * - Handle HTTP and WebSocket connections
- * - Orchestrate request flow between components
- */
 export class MCPGateway {
   private logger: McpLogger;
   private config: McpGatewayConfig;
@@ -190,9 +182,6 @@ export class MCPGateway {
     return this.serverManager.getHealthStatus();
   }
 
-  /**
-   * Get gateway status including session information
-   */
   getGatewayStatus() {
     const serverHealth = this.serverManager.getHealthStatus();
     const sessionStats = this.sessionAdapter.getSessionStats();

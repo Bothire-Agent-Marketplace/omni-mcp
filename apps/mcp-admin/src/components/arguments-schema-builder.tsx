@@ -11,8 +11,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Move } from "lucide-react";
@@ -24,7 +24,7 @@ export interface ArgumentDefinition {
   required: boolean;
   description: string;
   defaultValue?: string;
-  options?: string[]; // For enum-like values
+  options?: string[];
   placeholder?: string;
 }
 
@@ -37,10 +37,10 @@ interface ArgumentsSchemaBuilderProps {
 export function ArgumentsSchemaBuilder({
   initialArguments = [],
   onChange,
-  className,
+  className
 }: ArgumentsSchemaBuilderProps) {
   const [argumentsState, setArgumentsState] =
-    useState<ArgumentDefinition[]>(initialArguments);
+  useState<ArgumentDefinition[]>(initialArguments);
 
   useEffect(() => {
     onChange(argumentsState);
@@ -52,17 +52,17 @@ export function ArgumentsSchemaBuilder({
       type: "string",
       required: false,
       description: "",
-      placeholder: "",
+      placeholder: ""
     };
     setArgumentsState([...argumentsState, newArg]);
   };
 
   const updateArgument = (
-    index: number,
-    updates: Partial<ArgumentDefinition>
-  ) => {
+  index: number,
+  updates: Partial<ArgumentDefinition>) =>
+  {
     const updated = argumentsState.map((arg, i) =>
-      i === index ? { ...arg, ...updates } : arg
+    i === index ? { ...arg, ...updates } : arg
     );
     setArgumentsState(updated);
   };
@@ -87,10 +87,10 @@ export function ArgumentsSchemaBuilder({
   };
 
   const updateEnumOption = (
-    argIndex: number,
-    optionIndex: number,
-    value: string
-  ) => {
+  argIndex: number,
+  optionIndex: number,
+  value: string) =>
+  {
     const updated = [...argumentsState];
     const arg = updated[argIndex];
     if (arg.options) {
@@ -127,8 +127,8 @@ export function ArgumentsSchemaBuilder({
           </Button>
         </div>
 
-        {argumentsState.length === 0 && (
-          <Card>
+        {argumentsState.length === 0 &&
+        <Card>
             <CardContent className="flex flex-col items-center justify-center py-8 text-center">
               <div className="text-muted-foreground">
                 <p>No arguments defined</p>
@@ -138,10 +138,10 @@ export function ArgumentsSchemaBuilder({
               </div>
             </CardContent>
           </Card>
-        )}
+        }
 
-        {argumentsState.map((arg, index) => (
-          <Card key={index}>
+        {argumentsState.map((arg, index) =>
+        <Card key={index}>
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -149,52 +149,52 @@ export function ArgumentsSchemaBuilder({
                   <CardTitle className="text-base">
                     {arg.name || `Argument ${index + 1}`}
                   </CardTitle>
-                  {arg.required && (
-                    <Badge variant="secondary" className="text-xs">
+                  {arg.required &&
+                <Badge variant="secondary" className="text-xs">
                       Required
                     </Badge>
-                  )}
+                }
                   <Badge variant="outline" className="text-xs">
                     {arg.type}
                   </Badge>
                 </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeArgument(index)}
-                  className="text-destructive hover:text-destructive"
-                >
+                variant="ghost"
+                size="sm"
+                onClick={() => removeArgument(index)}
+                className="text-destructive hover:text-destructive">
+
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {/* Name */}
+                {}
                 <div className="space-y-2">
                   <Label>Variable Name</Label>
                   <Input
-                    value={arg.name}
-                    onChange={(e) =>
-                      updateArgument(index, { name: e.target.value })
-                    }
-                    placeholder="e.g. userName, taskType"
-                                      className={!arg.name ? "border-destructive" : ""}
-                />
-                {!arg.name && (
-                  <p className="text-xs text-destructive">Name is required</p>
-                )}
+                  value={arg.name}
+                  onChange={(e) =>
+                  updateArgument(index, { name: e.target.value })
+                  }
+                  placeholder="e.g. userName, taskType"
+                  className={!arg.name ? "border-destructive" : ""} />
+
+                {!arg.name &&
+                <p className="text-xs text-destructive">Name is required</p>
+                }
                 </div>
 
-                {/* Type */}
+                {}
                 <div className="space-y-2">
                   <Label>Type</Label>
                   <Select
-                    value={arg.type}
-                    onValueChange={(value: ArgumentDefinition["type"]) =>
-                      updateArgument(index, { type: value })
-                    }
-                  >
+                  value={arg.type}
+                  onValueChange={(value: ArgumentDefinition["type"]) =>
+                  updateArgument(index, { type: value })
+                  }>
+
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -209,59 +209,59 @@ export function ArgumentsSchemaBuilder({
                 </div>
               </div>
 
-              {/* Description */}
+              {}
               <div className="space-y-2">
                 <Label>Description</Label>
                 <Textarea
-                  value={arg.description}
-                  onChange={(e) =>
-                    updateArgument(index, { description: e.target.value })
-                  }
-                  placeholder="Explain what this argument is for and how it should be used"
-                  rows={2}
-                />
+                value={arg.description}
+                onChange={(e) =>
+                updateArgument(index, { description: e.target.value })
+                }
+                placeholder="Explain what this argument is for and how it should be used"
+                rows={2} />
+
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Placeholder */}
+                {}
                 <div className="space-y-2">
                   <Label>Placeholder Text</Label>
                   <Input
-                    value={arg.placeholder || ""}
-                    onChange={(e) =>
-                      updateArgument(index, { placeholder: e.target.value })
-                    }
-                    placeholder="e.g. Enter your name here"
-                  />
+                  value={arg.placeholder || ""}
+                  onChange={(e) =>
+                  updateArgument(index, { placeholder: e.target.value })
+                  }
+                  placeholder="e.g. Enter your name here" />
+
                 </div>
 
-                {/* Default Value */}
+                {}
                 <div className="space-y-2">
                   <Label>Default Value</Label>
                   <Input
-                    value={arg.defaultValue || ""}
-                    onChange={(e) =>
-                      updateArgument(index, { defaultValue: e.target.value })
-                    }
-                    placeholder="Optional default value"
-                  />
+                  value={arg.defaultValue || ""}
+                  onChange={(e) =>
+                  updateArgument(index, { defaultValue: e.target.value })
+                  }
+                  placeholder="Optional default value" />
+
                 </div>
               </div>
 
-              {/* Required Toggle */}
+              {}
               <div className="flex items-center space-x-2">
                 <Switch
-                  checked={arg.required}
-                  onCheckedChange={(checked) =>
-                    updateArgument(index, { required: checked })
-                  }
-                />
+                checked={arg.required}
+                onCheckedChange={(checked) =>
+                updateArgument(index, { required: checked })
+                } />
+
                 <Label>Required argument</Label>
               </div>
 
-              {/* Enum Options for String Type */}
-              {arg.type === "string" && (
-                <>
+              {}
+              {arg.type === "string" &&
+            <>
                   <Separator />
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -272,72 +272,72 @@ export function ArgumentsSchemaBuilder({
                         </p>
                       </div>
                       <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addEnumOption(index)}
-                      >
+                    variant="outline"
+                    size="sm"
+                    onClick={() => addEnumOption(index)}>
+
                         <Plus className="w-3 h-3 mr-1" />
                         Add Option
                       </Button>
                     </div>
 
-                    {arg.options && arg.options.length > 0 && (
-                      <div className="space-y-2">
-                        {arg.options.map((option, optionIndex) => (
-                          <div
-                            key={optionIndex}
-                            className="flex items-center gap-2"
-                          >
+                    {arg.options && arg.options.length > 0 &&
+                <div className="space-y-2">
+                        {arg.options.map((option, optionIndex) =>
+                  <div
+                    key={optionIndex}
+                    className="flex items-center gap-2">
+
                             <Input
-                              value={option}
-                              onChange={(e) =>
-                                updateEnumOption(
-                                  index,
-                                  optionIndex,
-                                  e.target.value
-                                )
-                              }
-                              placeholder={`Option ${optionIndex + 1}`}
-                              className="flex-1"
-                            />
+                      value={option}
+                      onChange={(e) =>
+                      updateEnumOption(
+                        index,
+                        optionIndex,
+                        e.target.value
+                      )
+                      }
+                      placeholder={`Option ${optionIndex + 1}`}
+                      className="flex-1" />
+
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() =>
-                                removeEnumOption(index, optionIndex)
-                              }
-                            >
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                      removeEnumOption(index, optionIndex)
+                      }>
+
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
-                        ))}
+                  )}
                       </div>
-                    )}
+                }
                   </div>
                 </>
-              )}
+            }
             </CardContent>
           </Card>
-        ))}
+        )}
 
-        {argumentsState.length > 0 && (
-          <div className="bg-muted/50 p-4 rounded-lg">
+        {argumentsState.length > 0 &&
+        <div className="bg-muted/50 p-4 rounded-lg">
             <h5 className="font-medium mb-2">Template Usage</h5>
             <p className="text-sm text-muted-foreground mb-2">
               Use these variables in your template with double curly braces:
             </p>
             <div className="flex flex-wrap gap-2">
-              {argumentsState
-                .filter((arg) => arg.name)
-                .map((arg, index) => (
-                  <Badge key={index} variant="outline" className="font-mono">
+              {argumentsState.
+            filter((arg) => arg.name).
+            map((arg, index) =>
+            <Badge key={index} variant="outline" className="font-mono">
                     {`{{${arg.name}}}`}
                   </Badge>
-                ))}
+            )}
             </div>
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }

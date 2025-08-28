@@ -8,9 +8,9 @@ function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
         "bg-muted relative overflow-hidden rounded-md animate-pulse",
         className
       )}
-      {...props}
-    />
-  );
+      {...props} />);
+
+
 }
 
 export { Skeleton };

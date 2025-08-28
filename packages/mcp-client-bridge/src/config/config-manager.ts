@@ -12,12 +12,8 @@ import {
   BaseMCPClientConfig,
 } from "../types/client-types.js";
 
-// Default dev API key for local development
 const DEV_API_KEY = "dev-api-key-12345";
 
-/**
- * Centralized configuration manager for MCP client bridges
- */
 export class ConfigManager {
   private servers: Map<string, ServerEndpoint> = new Map();
   private bridgeOptions: BridgeOptions;
@@ -41,7 +37,6 @@ export class ConfigManager {
     this.claudeDesktopClient = new ClaudeDesktopClient(this.bridgeOptions);
     this.lmStudioClient = new LMStudioClient(this.bridgeOptions);
 
-    // Load servers if provided
     if (config?.servers) {
       Object.entries(config.servers).forEach(([name, endpoint]) => {
         this.addServer(name, endpoint as ServerEndpoint);
@@ -49,9 +44,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Configure server endpoint with appropriate authentication headers
-   */
   private configureServerEndpoint(
     name: string,
     url: string,
@@ -65,7 +57,6 @@ export class ConfigManager {
       headers: {},
     };
 
-    // Add API key for local development gateway
     if (environment === "development" && url.startsWith("http://localhost")) {
       endpoint.headers = {
         "x-api-key": process.env.MCP_API_KEY || DEV_API_KEY,
@@ -75,33 +66,22 @@ export class ConfigManager {
     return endpoint;
   }
 
-  /**
-   * Add a server endpoint
-   */
   addServer(name: string, endpoint: ServerEndpoint): void {
     this.servers.set(name, endpoint);
 
-    // Add to clients
     this.cursorClient.addServer(name, endpoint);
     this.claudeDesktopClient.addServer(name, endpoint);
     this.lmStudioClient.addServer(name, endpoint);
   }
 
-  /**
-   * Remove a server endpoint
-   */
   removeServer(name: string): void {
     this.servers.delete(name);
 
-    // Remove from clients
     this.cursorClient.removeServer(name);
     this.claudeDesktopClient.removeServer(name);
     this.lmStudioClient.removeServer(name);
   }
 
-  /**
-   * Get a specific client instance
-   */
   getClient(
     clientType: MCPClientType
   ): CursorClient | ClaudeDesktopClient | LMStudioClient {
@@ -117,9 +97,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Generate configurations for specified clients
-   */
   async generateConfigs(
     clientTypes: MCPClientType[] = ["cursor", "claude-desktop", "lm-studio"]
   ): Promise<{
@@ -137,7 +114,7 @@ export class ConfigManager {
       const client = this.getClient(clientType) as unknown as {
         generateConfig: () => unknown;
       };
-      // index assignment is fine due to union return types above
+
       (configs as Record<string, unknown>)[clientType] =
         client.generateConfig();
     }
@@ -145,9 +122,6 @@ export class ConfigManager {
     return configs;
   }
 
-  /**
-   * Save configurations for specified clients
-   */
   async saveConfigs(
     clientTypes: MCPClientType[] = ["cursor", "claude-desktop", "lm-studio"],
     customPaths?: Partial<Record<MCPClientType, string>>
@@ -161,7 +135,6 @@ export class ConfigManager {
       })
     );
 
-    // Report results
     results.forEach((result, index) => {
       const clientType = clientTypes[index];
       if (result.status === "rejected") {
@@ -170,9 +143,6 @@ export class ConfigManager {
     });
   }
 
-  /**
-   * Validate all configurations
-   */
   async validateAll(): Promise<Record<MCPClientType, boolean>> {
     const results = await Promise.allSettled([
       this.cursorClient.validate(),
@@ -188,17 +158,11 @@ export class ConfigManager {
     };
   }
 
-  /**
-   * Test all connections
-   */
   async testAllConnections(): Promise<Record<string, boolean>> {
     const cursorResults = await this.cursorClient.testConnections();
-    return cursorResults; // Both clients use the same servers, so results are identical
+    return cursorResults;
   }
 
-  /**
-   * Get a summary of the current configuration
-   */
   getSummary(): {
     environment: Environment;
     serverCount: number;
@@ -225,18 +189,13 @@ export class ConfigManager {
     };
   }
 
-  /**
-   * Update bridge options
-   */
   updateBridgeOptions(options: Partial<BridgeOptions>): void {
     this.bridgeOptions = { ...this.bridgeOptions, ...options };
 
-    // Update both clients with new options
     this.cursorClient = new CursorClient(this.bridgeOptions);
     this.claudeDesktopClient = new ClaudeDesktopClient(this.bridgeOptions);
     this.lmStudioClient = new LMStudioClient(this.bridgeOptions);
 
-    // Re-add all servers
     this.servers.forEach((endpoint, name) => {
       this.cursorClient.addServer(name, endpoint);
       this.claudeDesktopClient.addServer(name, endpoint);
@@ -244,9 +203,6 @@ export class ConfigManager {
     });
   }
 
-  /**
-   * Create a development configuration with local gateway and API key
-   */
   static forDevelopment(
     gatewayUrl: string = "http://localhost:37373",
     additionalServers?: Record<string, string>,
@@ -269,9 +225,6 @@ export class ConfigManager {
     });
   }
 
-  /**
-   * Create a configuration from a simple server list
-   */
   static fromServers(
     servers: Record<string, string>,
     options?: {
@@ -291,7 +244,6 @@ export class ConfigManager {
         headers: {},
       };
 
-      // Add API key for local development gateway
       if (environment === "development" && url.startsWith("http://localhost")) {
         endpoint.headers = {
           "x-api-key": process.env.MCP_API_KEY || DEV_API_KEY,
@@ -309,9 +261,6 @@ export class ConfigManager {
     });
   }
 
-  /**
-   * Export current configuration to a JSON object
-   */
   exportConfig(): ClientBridgeConfig {
     const servers: Record<string, ServerEndpoint> = {};
     this.servers.forEach((endpoint, name) => {

@@ -6,9 +6,6 @@ import { Prisma, MembershipRole } from "@mcp/database";
 import { prisma } from "@/lib/db";
 
 export class OrganizationRepository {
-  /**
-   * Sanitize object for Prisma JSON fields by removing undefined values
-   */
   private sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
     if (obj === null || obj === undefined) {
       return {};
@@ -16,9 +13,6 @@ export class OrganizationRepository {
     return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
   }
 
-  /**
-   * Generate unique slug from name
-   */
   private async generateUniqueSlug(
     name: string,
     excludeId?: string
@@ -28,7 +22,6 @@ export class OrganizationRepository {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    // Check if base slug is unique
     const existingOrg = await prisma.organization.findFirst({
       where: {
         slug: baseSlug,
@@ -41,7 +34,6 @@ export class OrganizationRepository {
       return baseSlug;
     }
 
-    // If not unique, add a number suffix
     let counter = 1;
     let candidateSlug = `${baseSlug}-${counter}`;
 
@@ -63,9 +55,6 @@ export class OrganizationRepository {
     }
   }
 
-  /**
-   * Convert Clerk role to database role
-   */
   private mapClerkRoleToDbRole(clerkRole: string): MembershipRole {
     const roleWithoutPrefix = clerkRole.replace(/^org:/, "");
     const validRoles = ["admin", "member", "viewer"] as const;
@@ -78,9 +67,6 @@ export class OrganizationRepository {
     return MembershipRole.member;
   }
 
-  /**
-   * Get organization by Clerk ID
-   */
   async findByClerkId(clerkId: string) {
     return await prisma.organization.findUnique({
       where: {
@@ -90,9 +76,6 @@ export class OrganizationRepository {
     });
   }
 
-  /**
-   * Get organization by database ID
-   */
   async findById(organizationId: string) {
     return await prisma.organization.findUnique({
       where: {
@@ -102,9 +85,6 @@ export class OrganizationRepository {
     });
   }
 
-  /**
-   * Get organization members
-   */
   async getMembers(organizationId: string) {
     return await prisma.organizationMembership.findMany({
       where: {
@@ -128,9 +108,6 @@ export class OrganizationRepository {
     });
   }
 
-  /**
-   * Create or update organization from Clerk data
-   */
   async upsertOrganization(orgData: OrganizationJSON): Promise<void> {
     const existingOrg = await prisma.organization.findUnique({
       where: { clerkId: orgData.id },
@@ -163,9 +140,6 @@ export class OrganizationRepository {
     }
   }
 
-  /**
-   * Soft delete organization
-   */
   async softDeleteOrganization(clerkId: string): Promise<void> {
     await prisma.organization.update({
       where: { clerkId },
@@ -176,9 +150,6 @@ export class OrganizationRepository {
     });
   }
 
-  /**
-   * Create or update organization membership
-   */
   async upsertMembership(membershipData: OrganizationMembershipJSON) {
     const existingMembership = await prisma.organizationMembership.findUnique({
       where: { clerkMembershipId: membershipData.id },
@@ -199,14 +170,10 @@ export class OrganizationRepository {
         },
       });
     } else {
-      // Need organization and user IDs - this should be handled by a service
       throw new Error("Use OrganizationService to create new memberships");
     }
   }
 
-  /**
-   * Soft delete organization membership
-   */
   async softDeleteMembership(clerkMembershipId: string): Promise<void> {
     await prisma.organizationMembership.update({
       where: { clerkMembershipId },

@@ -5,7 +5,6 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // Create default MCP servers
   const mcpServers = [
     {
       serverKey: "devtools",
@@ -18,6 +17,7 @@ async function main() {
         "performance_profiling",
         "debugging_tools",
       ],
+
       isActive: true,
     },
     {
@@ -31,6 +31,7 @@ async function main() {
         "workflow_automation",
         "reporting",
       ],
+
       isActive: true,
     },
     {
@@ -44,6 +45,7 @@ async function main() {
         "fact_checking",
         "comparative_analysis",
       ],
+
       isActive: true,
     },
   ];
@@ -60,7 +62,6 @@ async function main() {
       });
       console.log(`✅ Created MCP server: ${server.name}`);
     } else {
-      // Update existing server
       await prisma.mcpServer.update({
         where: { serverKey: server.serverKey },
         data: {
@@ -74,7 +75,6 @@ async function main() {
     }
   }
 
-  // Create a sample organization for testing (optional)
   if (process.env.NODE_ENV === "development") {
     const testOrg = await prisma.organization.findUnique({
       where: { slug: "test-org" },
@@ -94,7 +94,6 @@ async function main() {
 
       console.log("🧪 Created test organization:", newOrg.name);
 
-      // Enable all services for test organization
       const servers = await prisma.mcpServer.findMany({
         where: { isActive: true },
       });

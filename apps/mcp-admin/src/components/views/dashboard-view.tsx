@@ -5,8 +5,8 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -21,8 +21,8 @@ import {
   Zap,
   Server,
   Shield,
-  Clock,
-} from "lucide-react";
+  Clock } from
+"lucide-react";
 import { OrganizationSwitcher } from "../forms/organization-switcher";
 
 interface Organization {
@@ -44,7 +44,7 @@ interface DashboardViewProps {
 
 export function DashboardView({
   userMemberships,
-  activeOrgId,
+  activeOrgId
 }: DashboardViewProps) {
   const activeMembership = userMemberships.find(
     (m) => m.organization.id === activeOrgId
@@ -53,7 +53,7 @@ export function DashboardView({
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8 space-y-8">
-        {/* Organizations Section */}
+        {}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <Building2 className="w-6 h-6 text-muted-foreground" />
@@ -65,11 +65,11 @@ export function DashboardView({
             </Badge>
           </div>
 
-          {userMemberships.map((membership) => (
-            <Card
-              key={membership.id}
-              className="hover:shadow-md transition-shadow duration-200"
-            >
+          {userMemberships.map((membership) =>
+          <Card
+            key={membership.id}
+            className="hover:shadow-md transition-shadow duration-200">
+
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -89,28 +89,28 @@ export function DashboardView({
                     <Badge variant="secondary">
                       <Crown className="w-3 h-3 mr-1" />
                       {membership.role.charAt(0).toUpperCase() +
-                        membership.role.slice(1)}
+                    membership.role.slice(1)}
                     </Badge>
-                    {membership.organization.id === activeOrgId ? (
-                      <Link href="/organization/settings">
+                    {membership.organization.id === activeOrgId ?
+                  <Link href="/organization/settings">
                         <Button>
                           <Settings className="w-4 h-4 mr-2" />
                           Manage
                         </Button>
-                      </Link>
-                    ) : (
-                      <OrganizationSwitcher
-                        organizationId={membership.organization.id}
-                      />
-                    )}
+                      </Link> :
+
+                  <OrganizationSwitcher
+                    organizationId={membership.organization.id} />
+
+                  }
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
 
-        {/* Quick Actions */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
             <CardHeader className="pb-3">
@@ -179,7 +179,7 @@ export function DashboardView({
           </Card>
         </div>
 
-        {/* Stats Overview */}
+        {}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             <BarChart3 className="w-6 h-6 text-muted-foreground" />
@@ -277,7 +277,7 @@ export function DashboardView({
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {}
         <Card className="hover:shadow-md transition-shadow duration-200">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -327,6 +327,6 @@ export function DashboardView({
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>);
+
 }

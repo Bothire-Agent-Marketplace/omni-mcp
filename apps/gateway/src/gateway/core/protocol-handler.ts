@@ -6,7 +6,6 @@ import {
 } from "@mcp/schemas";
 import { McpLogger } from "@mcp/utils";
 
-// MCP Protocol Types
 interface MCPTool {
   name: string;
   description: string;
@@ -30,10 +29,6 @@ interface MCPPrompt {
   }>;
 }
 
-/**
- * Handles core MCP protocol methods
- * Responsible for: initialize, tools/list, resources/list, prompts/list, ping
- */
 export class MCPProtocolHandler {
   private logger: McpLogger;
   private config: McpGatewayConfig;
@@ -43,9 +38,6 @@ export class MCPProtocolHandler {
     this.logger = logger.fork("protocol-handler");
   }
 
-  /**
-   * Check if a method is a core protocol method handled by this class
-   */
   isProtocolMethod(method: string): boolean {
     const protocolMethods = [
       "initialize",
@@ -55,12 +47,10 @@ export class MCPProtocolHandler {
       "prompts/list",
       "ping",
     ];
+
     return protocolMethods.includes(method);
   }
 
-  /**
-   * Handle core MCP protocol methods
-   */
   async handleProtocolMethod(
     request: MCPJsonRpcRequest,
     session?: Session
@@ -109,7 +99,6 @@ export class MCPProtocolHandler {
   }
 
   private handleInitialized(request: MCPJsonRpcRequest): MCPJsonRpcResponse {
-    // This is a notification, no response needed
     return {
       jsonrpc: "2.0",
       id: request.id,
@@ -186,7 +175,6 @@ export class MCPProtocolHandler {
   private async getAvailableTools(): Promise<MCPTool[]> {
     const allTools: MCPTool[] = [];
 
-    // Fetch tools from all configured servers
     for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
       try {
         const toolsRequest = {
@@ -222,7 +210,6 @@ export class MCPProtocolHandler {
   private async getAvailableResources(): Promise<MCPResource[]> {
     const allResources: MCPResource[] = [];
 
-    // Fetch resources from all configured servers
     for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
       try {
         const resourcesRequest = {
@@ -258,7 +245,6 @@ export class MCPProtocolHandler {
   private async getAvailablePrompts(session?: Session): Promise<MCPPrompt[]> {
     const allPrompts: MCPPrompt[] = [];
 
-    // Fetch prompts from all configured servers
     for (const [serverId, config] of Object.entries(this.config.mcpServers)) {
       try {
         const promptsRequest = {
@@ -288,7 +274,6 @@ export class MCPProtocolHandler {
       }
     }
 
-    // Fetch custom organization prompts if session has org context
     if (session?.organizationId) {
       try {
         const customPrompts = await this.getCustomPrompts(
@@ -317,7 +302,6 @@ export class MCPProtocolHandler {
       });
 
       const mcpCustomPrompts: MCPPrompt[] = customPrompts.map((prompt) => {
-        // Parse arguments from stored JSON
         let arguments_array: Array<{
           name: string;
           description: string;
@@ -346,7 +330,7 @@ export class MCPProtocolHandler {
         }
 
         return {
-          name: `custom_${prompt.name}`, // Prefix to distinguish from default prompts
+          name: `custom_${prompt.name}`,
           description: prompt.description,
           arguments: arguments_array,
         };

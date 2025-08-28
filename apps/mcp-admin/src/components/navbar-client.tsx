@@ -4,8 +4,8 @@ import {
   UserButton,
   OrganizationSwitcher,
   useAuth,
-  useOrganization,
-} from "@clerk/nextjs";
+  useOrganization } from
+"@clerk/nextjs";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Settings, Loader2 } from "lucide-react";
@@ -16,28 +16,28 @@ export function NavbarClient() {
 
   return (
     <div className="flex items-center space-x-4">
-      {/* Only show settings button if org is loaded and selected */}
-      {isLoaded && orgListLoaded && orgId && (
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className="text-muted-foreground hover:text-foreground"
-        >
+      {}
+      {isLoaded && orgListLoaded && orgId &&
+      <Button
+        variant="ghost"
+        size="sm"
+        asChild
+        className="text-muted-foreground hover:text-foreground">
+
           <Link href="/organization/settings">
             <Settings className="mr-2 h-4 w-4" />
             Settings
           </Link>
         </Button>
-      )}
+      }
 
-      {/* Show loading indicator while auth is loading */}
-      {(!isLoaded || !orgListLoaded) && (
-        <div className="flex items-center space-x-2 text-muted-foreground">
+      {}
+      {(!isLoaded || !orgListLoaded) &&
+      <div className="flex items-center space-x-2 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span className="text-sm">Loading...</span>
         </div>
-      )}
+      }
 
       <OrganizationSwitcher
         afterCreateOrganizationUrl="/"
@@ -48,19 +48,19 @@ export function NavbarClient() {
           elements: {
             rootBox: "flex items-center",
             organizationSwitcherTrigger:
-              "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-          },
-        }}
-      />
+            "border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+          }
+        }} />
+
 
       <UserButton
         afterSignOutUrl="/"
         appearance={{
           elements: {
-            avatarBox: "w-8 h-8 ring-2 ring-border",
-          },
-        }}
-      />
-    </div>
-  );
+            avatarBox: "w-8 h-8 ring-2 ring-border"
+          }
+        }} />
+
+    </div>);
+
 }

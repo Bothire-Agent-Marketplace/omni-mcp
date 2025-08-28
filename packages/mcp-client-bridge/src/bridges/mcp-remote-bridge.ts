@@ -5,17 +5,11 @@ import { join } from "path";
 import { BridgeOptions, ServerEndpoint } from "../types/client-types.js";
 import { BaseBridge } from "./base-bridge.js";
 
-/**
- * Bridge implementation using mcp-remote
- */
 export class MCPRemoteBridge extends BaseBridge {
   constructor(serverEndpoint: ServerEndpoint, options: BridgeOptions = {}) {
     super(serverEndpoint, options);
   }
 
-  /**
-   * Generate the mcp-remote command and arguments
-   */
   generateCommand(): {
     command: string;
     args: string[];
@@ -23,17 +17,14 @@ export class MCPRemoteBridge extends BaseBridge {
   } {
     const args = [this.serverEndpoint.url];
 
-    // Add debug flag
     if (this.options.debug) {
       args.push("--debug");
     }
 
-    // Add timeout if different from default
     if (this.options.timeout && this.options.timeout !== 30000) {
       args.push("--timeout", this.options.timeout.toString());
     }
 
-    // Add allow-http for HTTP URLs
     if (
       this.options.allowHttp ||
       this.serverEndpoint.url.startsWith("http://")
@@ -41,12 +32,10 @@ export class MCPRemoteBridge extends BaseBridge {
       args.push("--allow-http");
     }
 
-    // Add transport type
     if (this.options.transport && this.options.transport !== "http-first") {
       args.push("--transport", this.options.transport);
     }
 
-    // Add custom headers
     const allHeaders = {
       ...this.serverEndpoint.headers,
       ...this.options.headers,
@@ -55,7 +44,6 @@ export class MCPRemoteBridge extends BaseBridge {
       args.push("--header", `${key}: ${value}`);
     }
 
-    // Add OAuth metadata if provided
     if (this.options.staticOAuthClientMetadata) {
       args.push(
         "--static-oauth-client-metadata",
@@ -70,12 +58,9 @@ export class MCPRemoteBridge extends BaseBridge {
       );
     }
 
-    // Environment variables for sensitive data
     const env: Record<string, string> = {};
 
-    // Add any server-specific environment variables
     if (this.serverEndpoint.authRequired) {
-      // These could be set by the caller
       env.MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN || "";
       env.MCP_CLIENT_ID = process.env.MCP_CLIENT_ID || "";
       env.MCP_CLIENT_SECRET = process.env.MCP_CLIENT_SECRET || "";
@@ -88,18 +73,13 @@ export class MCPRemoteBridge extends BaseBridge {
     };
   }
 
-  /**
-   * Validate that mcp-remote is available and configuration is correct
-   */
   async validate(): Promise<boolean> {
     try {
-      // Check if mcp-remote is available
       const { execSync } = await import("child_process");
 
       try {
         execSync("which mcp-remote", { stdio: "ignore" });
       } catch {
-        // Try with pnpm
         try {
           execSync("pnpm mcp-remote --version", { stdio: "ignore" });
         } catch {
@@ -110,7 +90,6 @@ export class MCPRemoteBridge extends BaseBridge {
         }
       }
 
-      // Validate URL
       new URL(this.serverEndpoint.url);
 
       return true;
@@ -120,15 +99,11 @@ export class MCPRemoteBridge extends BaseBridge {
     }
   }
 
-  /**
-   * Get a command that can be used in MCP client configurations
-   */
   getClientCommand(): {
     command: string;
     args: string[];
     env?: Record<string, string>;
   } {
-    // For local gateways (localhost), use a simple proxy instead of mcp-remote
     if (
       this.serverEndpoint.url.includes("localhost") ||
       this.serverEndpoint.url.includes("127.0.0.1")
@@ -138,7 +113,6 @@ export class MCPRemoteBridge extends BaseBridge {
 
     const { command, args, env } = this.generateCommand();
 
-    // Use direct mcp-remote command for actual remote servers
     return {
       command,
       args,
@@ -146,15 +120,11 @@ export class MCPRemoteBridge extends BaseBridge {
     };
   }
 
-  /**
-   * Get a simple proxy command for local gateway connections
-   */
   private getLocalGatewayCommand(): {
     command: string;
     args: string[];
     env?: Record<string, string>;
   } {
-    // For local development, create a bridge script file
     const bridgeScriptPath = this.createBridgeScriptFile();
 
     const env: Record<string, string> = {
@@ -162,7 +132,6 @@ export class MCPRemoteBridge extends BaseBridge {
       DEBUG: this.options.debug ? "1" : "0",
     };
 
-    // Add API key if available
     const apiKey = this.serverEndpoint.headers?.["x-api-key"];
     if (typeof apiKey === "string") {
       env.MCP_API_KEY = apiKey;
@@ -175,21 +144,14 @@ export class MCPRemoteBridge extends BaseBridge {
     };
   }
 
-  /**
-   * Create a bridge script file for local gateway connections
-   */
   private createBridgeScriptFile(): string {
-    // Create a unique filename
     const scriptId = randomBytes(8).toString("hex");
     const scriptDir = join(tmpdir(), "mcp-bridge");
     const scriptPath = join(scriptDir, `mcp-bridge-${scriptId}.js`);
 
-    // Ensure directory exists
     try {
       mkdirSync(scriptDir, { recursive: true });
-    } catch {
-      // Directory might already exist
-    }
+    } catch {}
 
     const scriptContent = `#!/usr/bin/env node
 const { stdin, stdout, stderr } = process;
@@ -246,15 +208,11 @@ async function handleRequest(request) {
 stdin.resume();
 `;
 
-    // Write the script file
     writeFileSync(scriptPath, scriptContent, { mode: 0o755 });
 
     return scriptPath;
   }
 
-  /**
-   * Generate a direct mcp-remote command (not via pnpm)
-   */
   getDirectCommand(): {
     command: string;
     args: string[];

@@ -1,7 +1,6 @@
 import winston from "winston";
 import type { Environment } from "@mcp/schemas";
 
-// MCP-compliant logger interface
 export interface McpLogContext {
   requestId?: string;
   method?: string;
@@ -15,7 +14,6 @@ export interface McpLogContext {
   [key: string]: unknown;
 }
 
-// Custom format for MCP servers
 const mcpFormat = winston.format.combine(
   winston.format.timestamp(),
   winston.format.errors({ stack: true }),
@@ -53,7 +51,6 @@ const mcpFormat = winston.format.combine(
   })
 );
 
-// Create the base logger
 const createLogger = (options: {
   serverName?: string;
   logLevel: string;
@@ -68,17 +65,17 @@ const createLogger = (options: {
       environment: options.environment,
     },
     transports: [
-      // CRITICAL: All logs MUST go to stderr for MCP compliance
       new winston.transports.Console({
         stderrLevels: ["error", "warn", "info", "debug", "silly"],
       }),
     ],
-    // Handle uncaught exceptions and rejections
+
     exceptionHandlers: [
       new winston.transports.Console({
         stderrLevels: ["error"],
       }),
     ],
+
     rejectionHandlers: [
       new winston.transports.Console({
         stderrLevels: ["error"],
@@ -87,7 +84,6 @@ const createLogger = (options: {
   });
 };
 
-// Enhanced logger class for MCP servers
 export class McpLogger {
   private logger: winston.Logger;
   private serverName: string;
@@ -113,7 +109,6 @@ export class McpLogger {
     });
   }
 
-  // Core logging methods with MCP context
   debug(message: string, context?: McpLogContext) {
     this.logger.debug(message, { ...context, serverName: this.serverName });
   }
@@ -138,7 +133,6 @@ export class McpLogger {
     });
   }
 
-  // MCP-specific logging methods
   mcpRequest(method: string, requestId: string, context?: McpLogContext) {
     this.info(`MCP request received: ${method}`, {
       ...context,
@@ -231,7 +225,6 @@ export class McpLogger {
     });
   }
 
-  // Server lifecycle logging
   serverStartup(port?: number, context?: McpLogContext) {
     this.info("MCP server starting up", {
       ...context,
@@ -254,7 +247,6 @@ export class McpLogger {
     });
   }
 
-  // Dynamic log level control (MCP logging capability)
   setLevel(level: string) {
     this.logger.level = level;
     this.info(`Log level changed to: ${level}`, { phase: "log_level_changed" });
@@ -265,7 +257,6 @@ export class McpLogger {
   }
 }
 
-// Factory function for creating MCP loggers
 export const createMcpLogger = (options: {
   serverName: string;
   logLevel: string;
@@ -274,12 +265,10 @@ export const createMcpLogger = (options: {
   return new McpLogger(options);
 };
 
-// Utility function to generate request IDs
 export const generateRequestId = (): string => {
   return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Global error handlers for MCP servers
 export const setupGlobalErrorHandlers = (logger: McpLogger) => {
   process.on("uncaughtException", (error) => {
     logger.error("Uncaught exception", error, { phase: "uncaught_exception" });

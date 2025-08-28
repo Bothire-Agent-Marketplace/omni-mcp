@@ -33,7 +33,7 @@ export function TemplateEditor({
   label = "Template",
   description,
   rows = 6,
-  className,
+  className
 }: TemplateEditorProps) {
   const [variables, setVariables] = useState<string[]>([]);
   const [validations, setValidations] = useState<VariableValidation[]>([]);
@@ -62,7 +62,7 @@ export function TemplateEditor({
         return {
           variable,
           isValid: false,
-          reason: "Not defined in arguments schema",
+          reason: "Not defined in arguments schema"
         };
       }
 
@@ -70,24 +70,24 @@ export function TemplateEditor({
         return {
           variable,
           isValid: false,
-          reason: "Argument name is empty",
+          reason: "Argument name is empty"
         };
       }
 
       return {
         variable,
-        isValid: true,
+        isValid: true
       };
     });
 
-    // Check for unused arguments
+
     const usedVariables = variables;
     argumentsSchema.forEach((arg) => {
       if (arg.name && !usedVariables.includes(arg.name)) {
         validations.push({
           variable: arg.name,
-          isValid: true, // Not an error, just unused
-          reason: "Defined but not used in template",
+          isValid: true,
+          reason: "Defined but not used in template"
         });
       }
     });
@@ -114,7 +114,7 @@ export function TemplateEditor({
     const newValue = before + variableText + after;
     onChange(newValue);
 
-    // Move cursor after inserted variable
+
     setTimeout(() => {
       const newPosition = start + variableText.length;
       textarea.setSelectionRange(newPosition, newPosition);
@@ -133,48 +133,48 @@ export function TemplateEditor({
   return (
     <div className={className}>
       <div className="space-y-4">
-        {/* Label and description */}
+        {}
         <div>
           <Label>{label}</Label>
-          {description && (
-            <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          )}
+          {description &&
+          <p className="text-sm text-muted-foreground mt-1">{description}</p>
+          }
         </div>
 
-        {/* Available variables */}
-        {argumentsSchema.length > 0 && (
-          <div className="bg-muted/50 p-3 rounded-lg">
+        {}
+        {argumentsSchema.length > 0 &&
+        <div className="bg-muted/50 p-3 rounded-lg">
             <h5 className="text-sm font-medium mb-2">Available Variables</h5>
             <div className="flex flex-wrap gap-2">
-              {argumentsSchema
-                .filter((arg) => arg.name)
-                .map((arg, index) => {
-                  const isUsed = variables.includes(arg.name);
-                  return (
-                    <Badge
-                      key={index}
-                      variant={isUsed ? "default" : "outline"}
-                      className="cursor-pointer hover:bg-accent font-mono text-xs"
-                      onClick={() => insertVariable(arg.name)}
-                      title={`${arg.description || "No description"} (${arg.type}${arg.required ? ", required" : ""})`}
-                    >
+              {argumentsSchema.
+            filter((arg) => arg.name).
+            map((arg, index) => {
+              const isUsed = variables.includes(arg.name);
+              return (
+                <Badge
+                  key={index}
+                  variant={isUsed ? "default" : "outline"}
+                  className="cursor-pointer hover:bg-accent font-mono text-xs"
+                  onClick={() => insertVariable(arg.name)}
+                  title={`${arg.description || "No description"} (${arg.type}${arg.required ? ", required" : ""})`}>
+
                       {`{{${arg.name}}}`}
-                    </Badge>
-                  );
-                })}
-              {argumentsSchema.length === 0 && (
-                <p className="text-sm text-muted-foreground">
+                    </Badge>);
+
+            })}
+              {argumentsSchema.length === 0 &&
+            <p className="text-sm text-muted-foreground">
                   Define arguments to see available variables
                 </p>
-              )}
+            }
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Click on any variable above to insert it at cursor position
             </p>
           </div>
-        )}
+        }
 
-        {/* Template editor */}
+        {}
         <div className="relative">
           <Textarea
             ref={textareaRef}
@@ -182,49 +182,49 @@ export function TemplateEditor({
             onChange={(e) => handleTemplateChange(e.target.value)}
             placeholder={placeholder}
             rows={rows}
-            className={`font-mono text-sm resize-vertical ${hasErrors ? "border-destructive" : ""}`}
-          />
+            className={`font-mono text-sm resize-vertical ${hasErrors ? "border-destructive" : ""}`} />
+
         </div>
 
-        {/* Validation messages */}
-        {hasErrors && (
-          <Alert variant="destructive">
+        {}
+        {hasErrors &&
+        <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-1">
                 <p className="font-medium">Template validation errors:</p>
-                {invalidVariables.map((validation, index) => (
-                  <p key={index} className="text-sm">
+                {invalidVariables.map((validation, index) =>
+              <p key={index} className="text-sm">
                     • Variable{" "}
                     <code className="bg-destructive/20 px-1 rounded">
                       {`{{${validation.variable}}}`}
                     </code>
                     : {validation.reason}
                   </p>
-                ))}
+              )}
               </div>
             </AlertDescription>
           </Alert>
-        )}
+        }
 
-        {/* Unused arguments warning */}
-        {unusedArguments.length > 0 && !hasErrors && (
-          <Alert>
+        {}
+        {unusedArguments.length > 0 && !hasErrors &&
+        <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <div className="space-y-1">
                 <p className="font-medium">Unused arguments:</p>
                 <div className="flex flex-wrap gap-2 mt-2">
-                  {unusedArguments.map((validation, index) => (
-                    <Badge
-                      key={index}
-                      variant="secondary"
-                      className="cursor-pointer hover:bg-accent font-mono text-xs"
-                      onClick={() => insertVariable(validation.variable)}
-                    >
+                  {unusedArguments.map((validation, index) =>
+                <Badge
+                  key={index}
+                  variant="secondary"
+                  className="cursor-pointer hover:bg-accent font-mono text-xs"
+                  onClick={() => insertVariable(validation.variable)}>
+
                       {`{{${validation.variable}}}`}
                     </Badge>
-                  ))}
+                )}
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   Click on unused variables to insert them into your template
@@ -232,45 +232,45 @@ export function TemplateEditor({
               </div>
             </AlertDescription>
           </Alert>
-        )}
+        }
 
-        {/* Success state */}
-        {!hasErrors && variables.length > 0 && unusedArguments.length === 0 && (
-          <Alert className="border-green-200 bg-green-50/50">
+        {}
+        {!hasErrors && variables.length > 0 && unusedArguments.length === 0 &&
+        <Alert className="border-green-200 bg-green-50/50">
             <CheckCircle2 className="h-4 w-4 text-green-600" />
             <AlertDescription className="text-green-700">
               Template is valid! All variables are properly defined.
             </AlertDescription>
           </Alert>
-        )}
+        }
 
-        {/* Variables summary */}
-        {variables.length > 0 && (
-          <div className="bg-muted/50 border p-3 rounded-lg">
+        {}
+        {variables.length > 0 &&
+        <div className="bg-muted/50 border p-3 rounded-lg">
             <h5 className="text-sm font-medium text-foreground mb-2">
               Variables in Template ({variables.length})
             </h5>
             <div className="flex flex-wrap gap-2">
               {variables.map((variable, index) => {
-                const validation = validations.find(
-                  (v) => v.variable === variable
-                );
-                const isValid = validation?.isValid !== false;
+              const validation = validations.find(
+                (v) => v.variable === variable
+              );
+              const isValid = validation?.isValid !== false;
 
-                return (
-                  <Badge
-                    key={index}
-                    variant={isValid ? "default" : "destructive"}
-                    className="font-mono text-xs"
-                  >
+              return (
+                <Badge
+                  key={index}
+                  variant={isValid ? "default" : "destructive"}
+                  className="font-mono text-xs">
+
                     {`{{${variable}}}`}
-                  </Badge>
-                );
-              })}
+                  </Badge>);
+
+            })}
             </div>
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }

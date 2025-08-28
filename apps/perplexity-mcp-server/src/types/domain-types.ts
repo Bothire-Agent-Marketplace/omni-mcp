@@ -1,7 +1,3 @@
-// ============================================================================
-// PERPLEXITY MCP SERVER - Domain Types
-// ============================================================================
-
 export interface PerplexityMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -48,7 +44,6 @@ export interface PerplexityResponse {
   };
 }
 
-// Search Resource Types
 export interface SearchResult {
   id: string;
   query: string;

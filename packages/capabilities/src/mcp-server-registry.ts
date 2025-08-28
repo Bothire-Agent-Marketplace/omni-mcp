@@ -1,14 +1,9 @@
 import { MCPServerSchema, type MCPServerDefinition } from "./types.js";
 
-// ============================================================================
-// SERVER REGISTRY SYSTEM
-// ============================================================================
-
 export class MCPServerRegistry {
   private servers = new Map<string, MCPServerDefinition>();
 
   register(server: MCPServerDefinition): void {
-    // Validate that server has all required capabilities
     const validation = MCPServerSchema.safeParse(server);
     if (!validation.success) {
       console.error(
@@ -44,5 +39,4 @@ export class MCPServerRegistry {
   }
 }
 
-// Global registry instance
 export const serverRegistry = new MCPServerRegistry();

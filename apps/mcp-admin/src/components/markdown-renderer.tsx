@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 import { CopyButton } from "@/components/chat/copy-button";
 import { cn } from "@/lib/utils";
 
-// Use dynamic import for ReactMarkdown
+
 const ReactMarkdown = dynamic(() => import("react-markdown"), { ssr: false });
 
 interface MarkdownRendererProps {
@@ -21,30 +21,30 @@ interface MarkdownRendererProps {
 
 export function MarkdownRenderer({
   content,
-  className,
+  className
 }: MarkdownRendererProps) {
-  // Load additional languages on client side
+
   useEffect(() => {
     const loadLanguages = async () => {
-      // First import Prism itself - needed to initialize the global object
+
       await import("prismjs");
 
-      // Then import language components
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
+
       await import("prismjs/components/prism-bash");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-diff");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-json");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-python");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-typescript");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-jsx");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-tsx");
-      // @ts-expect-error - PrismJS language components don't have TypeScript declarations
+
       await import("prismjs/components/prism-yaml");
     };
 
@@ -56,8 +56,8 @@ export function MarkdownRenderer({
       className={cn(
         "prose prose-neutral dark:prose-invert prose-pre:my-2 max-w-none",
         className
-      )}
-    >
+      )}>
+
       <ReactMarkdown
         rehypePlugins={[rehypeRaw, rehypeKatex]}
         remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -71,8 +71,8 @@ export function MarkdownRenderer({
               return (
                 <code className="bg-muted rounded-sm px-1 py-0.5" {...props}>
                   {children}
-                </code>
-              );
+                </code>);
+
             }
 
             const codeText = String(children).replace(/\n$/, "");
@@ -85,122 +85,122 @@ export function MarkdownRenderer({
                 <Highlight
                   theme={themes.vsDark}
                   code={codeText}
-                  language={language || "text"}
-                >
+                  language={language || "text"}>
+
                   {({
                     className,
                     style,
                     tokens,
                     getLineProps,
-                    getTokenProps,
-                  }) => (
-                    <pre
-                      className={cn(
-                        className,
-                        "relative overflow-x-auto rounded-md p-4 text-sm",
-                        "border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
-                      )}
-                      style={{
-                        ...style,
-                        backgroundColor: "var(--code-bg)",
-                        color: "var(--code-fg)",
-                      }}
-                    >
-                      {tokens.map((line, i) => (
-                        <div
-                          key={i}
-                          {...getLineProps({ line, key: i })}
-                          className="table-row"
-                        >
+                    getTokenProps
+                  }) =>
+                  <pre
+                    className={cn(
+                      className,
+                      "relative overflow-x-auto rounded-md p-4 text-sm",
+                      "border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+                    )}
+                    style={{
+                      ...style,
+                      backgroundColor: "var(--code-bg)",
+                      color: "var(--code-fg)"
+                    }}>
+
+                      {tokens.map((line, i) =>
+                    <div
+                      key={i}
+                      {...getLineProps({ line, key: i })}
+                      className="table-row">
+
                           <span className="table-cell w-12 pr-4 text-right text-gray-500 select-none dark:text-gray-400">
                             {i + 1}
                           </span>
                           <span className="table-cell">
                             {line.map((token, tokenIndex) => {
-                              const tokenProps = getTokenProps({
-                                token,
-                                key: tokenIndex,
-                              });
-                              // Extract the key prop to avoid spreading it
-                              const { key: _key, ...restTokenProps } =
-                                tokenProps;
-                              return (
-                                <span key={tokenIndex} {...restTokenProps} />
-                              );
-                            })}
+                          const tokenProps = getTokenProps({
+                            token,
+                            key: tokenIndex
+                          });
+
+                          const { key: _key, ...restTokenProps } =
+                          tokenProps;
+                          return (
+                            <span key={tokenIndex} {...restTokenProps} />);
+
+                        })}
                           </span>
                         </div>
-                      ))}
+                    )}
                     </pre>
-                  )}
+                  }
                 </Highlight>
-              </div>
-            );
+              </div>);
+
           },
-          // Style tables nicely
-          table: ({ ...props }) => (
-            <table
-              className="my-4 w-full border-collapse border border-gray-200 dark:border-gray-700"
-              {...props}
-            />
-          ),
-          thead: ({ ...props }) => (
-            <thead className="bg-gray-50 dark:bg-gray-800" {...props} />
-          ),
-          th: ({ ...props }) => (
-            <th
-              className="p-2 text-left text-xs font-medium uppercase dark:text-gray-300"
-              {...props}
-            />
-          ),
-          tr: ({ ...props }) => (
-            <tr
-              className="border-t border-gray-200 even:bg-gray-50 dark:border-gray-700 even:dark:bg-gray-800/50"
-              {...props}
-            />
-          ),
+
+          table: ({ ...props }) =>
+          <table
+            className="my-4 w-full border-collapse border border-gray-200 dark:border-gray-700"
+            {...props} />,
+
+
+          thead: ({ ...props }) =>
+          <thead className="bg-gray-50 dark:bg-gray-800" {...props} />,
+
+          th: ({ ...props }) =>
+          <th
+            className="p-2 text-left text-xs font-medium uppercase dark:text-gray-300"
+            {...props} />,
+
+
+          tr: ({ ...props }) =>
+          <tr
+            className="border-t border-gray-200 even:bg-gray-50 dark:border-gray-700 even:dark:bg-gray-800/50"
+            {...props} />,
+
+
           td: ({ ...props }) => <td className="p-2 text-sm" {...props} />,
-          // Improve list formatting
-          ul: ({ ...props }) => (
-            <ul className="mb-4 list-disc space-y-1 pl-6" {...props} />
-          ),
-          ol: ({ ...props }) => (
-            <ol className="mb-4 list-decimal space-y-1 pl-6" {...props} />
-          ),
-          // Style blockquotes better
-          blockquote: ({ ...props }) => (
-            <blockquote
-              className="border-primary/30 border-l-4 pl-4 text-gray-700 italic dark:text-gray-300"
-              {...props}
-            />
-          ),
-          // Better headings
-          h1: ({ ...props }) => (
-            <h1
-              className="mt-6 mb-3 border-b border-gray-200 pb-1 text-2xl font-bold dark:border-gray-700"
-              {...props}
-            />
-          ),
-          h2: ({ ...props }) => (
-            <h2
-              className="mt-5 mb-2 border-b border-gray-200 pb-1 text-xl font-bold dark:border-gray-700"
-              {...props}
-            />
-          ),
-          h3: ({ ...props }) => (
-            <h3 className="mt-4 mb-2 text-lg font-bold" {...props} />
-          ),
-          h4: ({ ...props }) => (
-            <h4 className="mt-3 mb-1 text-base font-bold" {...props} />
-          ),
-          // Better paragraph spacing
-          p: ({ ...props }) => (
-            <p className="mb-4 leading-relaxed" {...props} />
-          ),
-        }}
-      >
+
+          ul: ({ ...props }) =>
+          <ul className="mb-4 list-disc space-y-1 pl-6" {...props} />,
+
+          ol: ({ ...props }) =>
+          <ol className="mb-4 list-decimal space-y-1 pl-6" {...props} />,
+
+
+          blockquote: ({ ...props }) =>
+          <blockquote
+            className="border-primary/30 border-l-4 pl-4 text-gray-700 italic dark:text-gray-300"
+            {...props} />,
+
+
+
+          h1: ({ ...props }) =>
+          <h1
+            className="mt-6 mb-3 border-b border-gray-200 pb-1 text-2xl font-bold dark:border-gray-700"
+            {...props} />,
+
+
+          h2: ({ ...props }) =>
+          <h2
+            className="mt-5 mb-2 border-b border-gray-200 pb-1 text-xl font-bold dark:border-gray-700"
+            {...props} />,
+
+
+          h3: ({ ...props }) =>
+          <h3 className="mt-4 mb-2 text-lg font-bold" {...props} />,
+
+          h4: ({ ...props }) =>
+          <h4 className="mt-3 mb-1 text-base font-bold" {...props} />,
+
+
+          p: ({ ...props }) =>
+          <p className="mb-4 leading-relaxed" {...props} />
+
+        }}>
+
         {content}
       </ReactMarkdown>
-    </div>
-  );
+    </div>);
+
 }

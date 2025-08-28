@@ -9,24 +9,24 @@ import { ThemeProvider } from "next-themes";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
-  subsets: ["latin"],
+  subsets: ["latin"]
 });
 
 export const metadata: Metadata = {
   title: "MCP Admin Dashboard",
-  description: "Manage your MCP servers, organizations, and team members",
+  description: "Manage your MCP servers, organizations, and team members"
 };
 
 export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+  children
+
+
+}: Readonly<{children: React.ReactNode;}>) {
   return (
     <ClerkProvider>
     <html lang="en">
@@ -38,6 +38,6 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  </ClerkProvider>
-  );
+  </ClerkProvider>);
+
 }

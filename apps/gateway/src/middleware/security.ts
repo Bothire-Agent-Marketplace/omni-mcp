@@ -191,7 +191,6 @@ export async function registerSecurityMiddleware(
     }
   );
 
-  // 7. Security Logging Middleware
   fastify.addHook(
     "onResponse",
     async (request: AuthenticatedRequest, reply: FastifyReply) => {

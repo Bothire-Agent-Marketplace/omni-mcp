@@ -37,7 +37,7 @@ export default tseslint.config(
       "unused-imports": unusedImports,
     },
     rules: {
-      "@typescript-eslint/no-unused-vars": "off", // Disabled in favor of unused-imports
+      "@typescript-eslint/no-unused-vars": "off",
       "unused-imports/no-unused-imports": "error",
       "unused-imports/no-unused-vars": [
         "error",
@@ -48,6 +48,9 @@ export default tseslint.config(
           argsIgnorePattern: "^_",
         },
       ],
+
+      "no-empty": ["error", { allowEmptyCatch: true }],
+
       "import/order": [
         "warn",
         {
@@ -59,6 +62,7 @@ export default tseslint.config(
             "sibling",
             "index",
           ],
+
           pathGroups: [
             {
               pattern: "@mcp/**",
@@ -66,11 +70,13 @@ export default tseslint.config(
               position: "before",
             },
           ],
+
           pathGroupsExcludedImportTypes: ["builtin"],
           "newlines-between": "never",
           alphabetize: { order: "asc", caseInsensitive: true },
         },
       ],
+
       "import/first": "error",
       "import/no-duplicates": "error",
       "@typescript-eslint/no-explicit-any": "error",

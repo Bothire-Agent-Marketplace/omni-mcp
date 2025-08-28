@@ -2,9 +2,6 @@ import { Prisma } from "@mcp/database";
 import { prisma } from "@/lib/db";
 
 export class ResourceRepository {
-  /**
-   * Sanitize object for Prisma JSON fields by removing undefined values
-   */
   private sanitizeForPrisma(obj: unknown): Prisma.InputJsonValue {
     if (obj === null || obj === undefined) {
       return {};
@@ -12,9 +9,6 @@ export class ResourceRepository {
     return JSON.parse(JSON.stringify(obj)) as Prisma.InputJsonValue;
   }
 
-  /**
-   * Get organization resources with their MCP server info
-   */
   async getOrganizationResources(organizationId: string) {
     return await prisma.organizationResource.findMany({
       where: {
@@ -37,9 +31,6 @@ export class ResourceRepository {
     });
   }
 
-  /**
-   * Get default resources for reference
-   */
   async getDefaultResources() {
     return await prisma.defaultResource.findMany({
       include: {
@@ -49,9 +40,6 @@ export class ResourceRepository {
     });
   }
 
-  /**
-   * Create organization resource
-   */
   async createResource(data: {
     organizationId: string;
     mcpServerId: string;
@@ -82,9 +70,6 @@ export class ResourceRepository {
     });
   }
 
-  /**
-   * Update organization resource
-   */
   async updateResource(
     resourceId: string,
     data: {
@@ -115,9 +100,6 @@ export class ResourceRepository {
     });
   }
 
-  /**
-   * Delete organization resource (soft delete)
-   */
   async deleteResource(resourceId: string) {
     return await prisma.organizationResource.update({
       where: { id: resourceId },
@@ -128,9 +110,6 @@ export class ResourceRepository {
     });
   }
 
-  /**
-   * Get all MCP servers for dropdown options
-   */
   async getMcpServers() {
     return await prisma.mcpServer.findMany({
       where: {

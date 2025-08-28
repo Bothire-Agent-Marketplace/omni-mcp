@@ -3,10 +3,10 @@ import { PrismaClient } from "@mcp/database/client";
 import { McpLogger } from "@mcp/utils";
 
 interface ClerkJwtPayload extends JwtPayload {
-  org_id?: string; // Clerk organization ID
-  org_role?: string; // User's role in organization
-  org_slug?: string; // Organization slug
-  sub?: string; // User ID
+  org_id?: string;
+  org_role?: string;
+  org_slug?: string;
+  sub?: string;
 }
 
 export interface OrganizationContext {
@@ -29,10 +29,6 @@ export class OrganizationContextService {
     this.logger = logger;
   }
 
-  /**
-   * Extract organization context from various sources
-   * Always requires proper authentication - no bypass logic
-   */
   async extractOrganizationContext(
     authHeader?: string,
     apiKey?: string
@@ -65,9 +61,6 @@ export class OrganizationContextService {
     }
   }
 
-  /**
-   * Extract organization context from Clerk JWT token
-   */
   private async extractFromClerkToken(
     token: string
   ): Promise<OrganizationContext | null> {
@@ -120,9 +113,6 @@ export class OrganizationContextService {
     }
   }
 
-  /**
-   * Extract organization context from API key
-   */
   private async extractFromApiKey(
     apiKey: string
   ): Promise<OrganizationContext | null> {
@@ -184,9 +174,6 @@ export class OrganizationContextService {
     }
   }
 
-  /**
-   * Extract organization context from existing session token
-   */
   private async extractFromSessionToken(
     _token: string
   ): Promise<OrganizationContext | null> {

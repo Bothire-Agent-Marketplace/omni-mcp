@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { ServiceFactory } from "@/lib/services/service.factory";
 
-// Schema for updating prompts
 const UpdatePromptSchema = z.object({
   name: z
     .string()
@@ -20,7 +19,6 @@ const UpdatePromptSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// PUT /api/organization/prompts/[id] - Update prompt
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -35,7 +33,6 @@ export async function PUT(
     const userService = ServiceFactory.getUserService();
     const promptService = ServiceFactory.getPromptService();
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {
@@ -74,7 +71,6 @@ export async function PUT(
   }
 }
 
-// DELETE /api/organization/prompts/[id] - Delete prompt
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -89,7 +85,6 @@ export async function DELETE(
     const userService = ServiceFactory.getUserService();
     const promptService = ServiceFactory.getPromptService();
 
-    // Look up the user by their Clerk ID to get the internal UUID
     const user = await userService.getUserByClerkId(userId);
 
     if (!user) {

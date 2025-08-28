@@ -1,45 +1,28 @@
-/**
- * Organization context types for request handling across services
- * These extend the base Prisma Organization type with context-specific fields
- */
 import type { Organization } from "@mcp/database/client";
 
-/**
- * Base organization context for request handling
- * Used in gateway, server-core, and other services for auth/request context
- */
 export interface OrganizationContext {
-  /** Organization ID from the database */
   organizationId: string;
-  /** Organization Clerk ID */
+
   organizationClerkId?: string;
-  /** Organization name (optional, loaded as needed) */
+
   name?: string;
-  /** Organization slug (optional, loaded as needed) */
+
   slug?: string;
-  /** User ID if context includes user info */
+
   userId?: string;
-  /** User Clerk ID if context includes user info */
+
   userClerkId?: string;
-  /** User's role in the organization */
+
   role?: string;
 }
 
-/**
- * Extended organization data with relationships
- * Used when you need the full organization plus related services
- */
 export interface OrganizationWithServices extends Organization {
-  /** Enabled services for this organization */
   enabledServices: EnabledService[];
-  /** Optional metadata */
+
   memberCount?: number;
   activeSessionCount?: number;
 }
 
-/**
- * Enabled service configuration
- */
 export interface EnabledService {
   id: string;
   name: string;
@@ -49,9 +32,6 @@ export interface EnabledService {
   config?: Record<string, unknown>;
 }
 
-/**
- * Type guards
- */
 export function isOrganizationContext(
   obj: unknown
 ): obj is OrganizationContext {
@@ -63,9 +43,6 @@ export function isOrganizationContext(
   );
 }
 
-/**
- * Helper to create organization context from Prisma Organization
- */
 export function createOrganizationContext(
   org: Organization,
   extras: Partial<OrganizationContext> = {}

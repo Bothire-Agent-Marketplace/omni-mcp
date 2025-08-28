@@ -9,10 +9,6 @@ import { McpLogger } from "@mcp/utils";
 import { MCPProtocolAdapter } from "../protocol-adapter.js";
 import { MCPServerManager } from "../server-manager.js";
 
-/**
- * Handles request routing to appropriate MCP servers
- * Responsible for: capability resolution, server selection, request forwarding
- */
 export class MCPRequestRouter {
   private logger: McpLogger;
   private config: McpGatewayConfig;
@@ -34,9 +30,6 @@ export class MCPRequestRouter {
     this.buildCapabilityMap();
   }
 
-  /**
-   * Route and execute a request on the appropriate MCP server
-   */
   async routeAndExecuteRequest(
     request: MCPJsonRpcRequest,
     session: Session
@@ -46,7 +39,6 @@ export class MCPRequestRouter {
       .substr(2, 9)}`;
     const startTime = Date.now();
 
-    // Log incoming MCP request with full details
     this.logger.mcpRequest(request.method, requestId, {
       sessionId: session.id,
       requestParams: request.params,
@@ -54,7 +46,6 @@ export class MCPRequestRouter {
     });
 
     try {
-      // Resolve capability to server
       const serverId = this.protocolAdapter.resolveCapability(
         request,
         this.capabilityMap
@@ -82,7 +73,6 @@ export class MCPRequestRouter {
         return this.createRoutingErrorResponse(request, capabilityToResolve);
       }
 
-      // Get server instance
       const serverInstance = await this.serverManager.getServerInstance(
         serverId,
         request.method
@@ -126,7 +116,6 @@ export class MCPRequestRouter {
 
         return mcpResponse;
       } finally {
-        // Always release server instance
         this.serverManager.releaseServerInstance(serverInstance);
       }
     } catch (error) {
@@ -145,9 +134,6 @@ export class MCPRequestRouter {
     }
   }
 
-  /**
-   * Get available capabilities from all servers
-   */
   getAvailableCapabilities(): string[] {
     const allCapabilities: string[] = [];
 
@@ -174,7 +160,6 @@ export class MCPRequestRouter {
       headers["x-organization-clerk-id"] = session.organizationClerkId;
     }
 
-    // Execute request by forwarding it to the server's URL
     const response = await fetch(`${serverInstance.url}/mcp`, {
       method: "POST",
       headers,
@@ -183,7 +168,6 @@ export class MCPRequestRouter {
 
     const mcpResponse = (await response.json()) as MCPJsonRpcResponse;
 
-    // If the server returned an error, forward it directly (including validation errors)
     if (!response.ok || isJsonRpcErrorResponse(mcpResponse)) {
       return mcpResponse;
     }
@@ -205,17 +189,14 @@ export class MCPRequestRouter {
   private getCapabilityToResolve(request: MCPJsonRpcRequest): string {
     const { method, params } = request;
 
-    // For tool calls, route based on the specific tool name
     if (method === "tools/call" && params?.name) {
       return params.name as string;
     }
 
-    // For resource reads, route based on the resource URI
     if (method === "resources/read" && params?.uri) {
       return params.uri as string;
     }
 
-    // For prompt gets, route based on the prompt name
     if (method === "prompts/get" && params?.name) {
       return params.name as string;
     }

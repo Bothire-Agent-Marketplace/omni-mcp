@@ -15,7 +15,7 @@ interface CreatePromptButtonProps {
 export function CreatePromptButton({
   mcpServers,
   organizationId,
-  userId,
+  userId
 }: CreatePromptButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -24,8 +24,8 @@ export function CreatePromptButton({
       <Button
         onClick={() => setIsDialogOpen(true)}
         size="lg"
-        className="min-w-[140px]"
-      >
+        className="min-w-[140px]">
+
         <Plus className="w-4 h-4 mr-2" />
         Create Prompt
       </Button>
@@ -35,10 +35,10 @@ export function CreatePromptButton({
         onOpenChange={setIsDialogOpen}
         mcpServers={mcpServers}
         onSave={(newPrompt) => {
-          // Refresh the page to show updated data
+
           window.location.reload();
-        }}
-      />
-    </>
-  );
+        }} />
+
+    </>);
+
 }

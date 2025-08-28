@@ -1,18 +1,9 @@
 import { z } from "zod";
 
-/**
- * Supported MCP client types
- */
 export type MCPClientType = "cursor" | "claude-desktop" | "lm-studio";
 
-/**
- * Environment configurations
- */
 export type Environment = "development" | "staging" | "production";
 
-/**
- * Base configuration for any MCP client
- */
 export const BaseMCPClientConfigSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
@@ -24,18 +15,12 @@ export const BaseMCPClientConfigSchema = z.object({
 
 export type BaseMCPClientConfig = z.infer<typeof BaseMCPClientConfigSchema>;
 
-/**
- * Cursor-specific MCP configuration
- */
 export const CursorMCPConfigSchema = z.object({
   mcpServers: z.record(z.string(), BaseMCPClientConfigSchema),
 });
 
 export type CursorMCPConfig = z.infer<typeof CursorMCPConfigSchema>;
 
-/**
- * Claude Desktop-specific MCP configuration
- */
 export const ClaudeDesktopMCPConfigSchema = z.object({
   mcpServers: z.record(z.string(), BaseMCPClientConfigSchema),
   globalShortcut: z.string().optional(),
@@ -45,9 +30,6 @@ export type ClaudeDesktopMCPConfig = z.infer<
   typeof ClaudeDesktopMCPConfigSchema
 >;
 
-/**
- * Client-specific configuration options
- */
 export interface ClientOptions {
   cursor: {
     configPath: string;
@@ -59,9 +41,6 @@ export interface ClientOptions {
   };
 }
 
-/**
- * Bridge options for mcp-remote (all optional)
- */
 export const BridgeOptionsSchema = z.object({
   debug: z.boolean().optional(),
   timeout: z.number().optional(),
@@ -74,9 +53,6 @@ export const BridgeOptionsSchema = z.object({
 
 export type BridgeOptions = z.infer<typeof BridgeOptionsSchema>;
 
-/**
- * Complete bridge options with defaults applied
- */
 export interface CompleteBridgeOptions {
   debug: boolean;
   timeout: number;
@@ -87,9 +63,6 @@ export interface CompleteBridgeOptions {
   staticOAuthClientInfo?: string;
 }
 
-/**
- * Apply default values to bridge options
- */
 export function applyBridgeDefaults(
   options: BridgeOptions = {}
 ): CompleteBridgeOptions {
@@ -104,9 +77,6 @@ export function applyBridgeDefaults(
   };
 }
 
-/**
- * Server endpoint configuration
- */
 export const ServerEndpointSchema = z.object({
   url: z.string().url(),
   name: z.string(),
@@ -120,9 +90,6 @@ export const ServerEndpointSchema = z.object({
 
 export type ServerEndpoint = z.infer<typeof ServerEndpointSchema>;
 
-/**
- * Complete client bridge configuration
- */
 export const ClientBridgeConfigSchema = z.object({
   servers: z.record(z.string(), ServerEndpointSchema),
   clients: z.array(z.enum(["cursor", "claude-desktop", "lm-studio"])),

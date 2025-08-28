@@ -20,6 +20,7 @@ export const DEVTOOLS_SERVER: MCPServerDefinition = MCPServerSchema.parse({
     "network_requests",
     "network_response",
   ],
+
   resources: ["chrome://session", "chrome://browser"],
   prompts: [
     "console_debugging_workflow",

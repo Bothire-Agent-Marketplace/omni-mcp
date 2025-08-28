@@ -3,40 +3,35 @@
 import { spawn, execSync } from "child_process";
 import { platform } from "os";
 
-/**
- * Better development startup script
- * Handles graceful shutdown and better terminal management
- */
-
 const services = [
   {
     name: "🚀 SERVERS",
     command: "pnpm",
     args: ["turbo", "dev"],
-    color: "\x1b[44m\x1b[1m", // Blue background, bold
+    color: "\x1b[44m\x1b[1m",
     env: { ...process.env, FORCE_COLOR: "1" },
   },
   {
     name: "📊 STUDIO",
     command: "pnpm",
     args: ["db:studio"],
-    color: "\x1b[42m\x1b[1m", // Green background, bold
+    color: "\x1b[42m\x1b[1m",
     env: { ...process.env, FORCE_COLOR: "1" },
   },
   {
     name: "🌐 NGROK",
     command: "ngrok",
     args: ["start", "mcp-admin-webhook", "--config", "ngrok.yml"],
-    color: "\x1b[43m\x1b[1m", // Yellow background, bold
+    color: "\x1b[43m\x1b[1m",
     env: { ...process.env, FORCE_COLOR: "1" },
   },
   {
     name: "🔗 TUNNEL",
     command: "lt",
     args: ["--port", "3000"],
-    color: "\x1b[45m\x1b[1m", // Magenta background, bold
+    color: "\x1b[45m\x1b[1m",
     env: { ...process.env, FORCE_COLOR: "1" },
-    openUrl: true, // Special flag to auto-open URLs
+    openUrl: true,
   },
 ];
 
@@ -80,13 +75,11 @@ function startService(service) {
     lines.forEach((line) => {
       console.log(`${colorize(`[${service.name}]`, service.color)} ${line}`);
 
-      // Auto-open URLs for services that have openUrl flag
       if (service.openUrl) {
-        // Match localtunnel URLs (https://xyz.loca.lt)
         const urlMatch = line.match(/https:\/\/[a-z0-9]+\.loca\.lt/i);
         if (urlMatch) {
           const url = urlMatch[0];
-          setTimeout(() => openUrl(url), 1000); // Delay to let service start
+          setTimeout(() => openUrl(url), 1000);
         }
       }
     });
@@ -132,7 +125,6 @@ function gracefulShutdown() {
       } else {
         proc.kill("SIGTERM");
 
-        // Force kill after 5 seconds
         setTimeout(() => {
           if (!proc.killed) {
             proc.kill("SIGKILL");
@@ -148,12 +140,10 @@ function gracefulShutdown() {
   }, 2000);
 }
 
-// Handle different signal types
 process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
 process.on("SIGQUIT", gracefulShutdown);
 
-// Handle Windows Ctrl+C
 if (platform() === "win32") {
   const readlineInterface = await import("readline");
   const rl = readlineInterface.createInterface({
@@ -164,7 +154,6 @@ if (platform() === "win32") {
   rl.on("SIGINT", gracefulShutdown);
 }
 
-// Start all services
 console.log("🚀 Starting development environment...");
 console.log("Press Ctrl+C to stop all services gracefully\n");
 
@@ -173,5 +162,4 @@ services.forEach((service) => {
   processes.push(proc);
 });
 
-// Keep the process alive
 process.stdin.resume();

@@ -93,17 +93,14 @@ export class MCPProtocolAdapter {
 
     let capabilityToResolve = method;
 
-    // For tool calls, route based on the specific tool name
     if (method === "tools/call" && params?.name) {
       capabilityToResolve = params.name as string;
     }
 
-    // For resource reads, route based on the resource URI
     if (method === "resources/read" && params?.uri) {
       capabilityToResolve = params.uri as string;
     }
 
-    // For prompt gets, route based on the prompt name
     if (method === "prompts/get" && params?.name) {
       capabilityToResolve = params.name as string;
     }

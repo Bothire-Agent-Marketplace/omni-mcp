@@ -10,7 +10,7 @@ const devtoolsToolDefinitions: Record<string, ToolDefinition<null>> = {
       name: "browser_start",
       description:
         "Start browser (Chromium/Firefox/WebKit) with debugging enabled",
-      inputSchema: DevToolsInputSchemas.startChrome, // Reuse existing schema
+      inputSchema: DevToolsInputSchemas.startChrome,
     },
   },
 

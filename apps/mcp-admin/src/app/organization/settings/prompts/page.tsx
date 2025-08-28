@@ -18,17 +18,17 @@ export default async function PromptsPage() {
     redirect("/");
   }
 
-  // Fetch data using the new service
+
   const { prompts, defaultPrompts, mcpServers } = await promptService.getPromptsPageData(organization.id);
 
-  // Pass data as props to view component
+
   return (
     <PromptsView
       prompts={prompts}
       defaultPrompts={defaultPrompts}
       mcpServers={mcpServers}
       organizationId={organization.id}
-      userId={userId}
-    />
-  );
+      userId={userId} />);
+
+
 }

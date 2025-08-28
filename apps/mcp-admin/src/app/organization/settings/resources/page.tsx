@@ -18,17 +18,17 @@ export default async function ResourcesPage() {
     redirect("/");
   }
 
-  // Fetch data using the new service
+
   const { resources, defaultResources, mcpServers } = await resourceService.getResourcesPageData(organization.id);
 
-  // Pass data as props to view component
+
   return (
     <ResourcesView
       resources={resources}
       defaultResources={defaultResources}
       mcpServers={mcpServers}
       organizationId={organization.id}
-      userId={userId}
-    />
-  );
+      userId={userId} />);
+
+
 }

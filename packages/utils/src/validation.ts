@@ -1,14 +1,12 @@
 import { z } from "zod";
 import type { Environment } from "@mcp/schemas";
 
-// Zod schema for port validation
 const PortSchema = z.coerce
   .number()
   .int()
   .min(1024, "Port must be at least 1024")
   .max(65535, "Port must be at most 65535");
 
-// Enterprise-grade validation methods following security best practices
 export function validatePort(
   port: string | undefined,
   fallback: number
@@ -24,7 +22,6 @@ export function validatePort(
   return result.data;
 }
 
-// Zod schema for timeout validation
 const TimeoutSchema = z.coerce
   .number()
   .int()
@@ -86,17 +83,15 @@ const DecodedSecretSchema = z
   .transform((s: string, ctx: z.RefinementCtx) => {
     if (!s) return "";
 
-    // Check if secret is base64 encoded (for security best practices)
     try {
       if (s.match(/^[A-Za-z0-9+/]+=*$/)) {
         const decoded = Buffer.from(s, "base64").toString("utf-8");
-        // Simple validation for Linear API keys, can be expanded
+
         if (decoded.startsWith("lin_api_")) {
           return decoded;
         }
       }
     } catch {
-      // Maintain function signature, but add issue to context
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Invalid base64 secret",

@@ -15,7 +15,7 @@ interface CreateResourceButtonProps {
 export function CreateResourceButton({
   mcpServers,
   organizationId,
-  userId,
+  userId
 }: CreateResourceButtonProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -24,8 +24,8 @@ export function CreateResourceButton({
       <Button
         onClick={() => setIsDialogOpen(true)}
         size="lg"
-        className="min-w-[140px]"
-      >
+        className="min-w-[140px]">
+
         <Plus className="w-4 h-4 mr-2" />
         Create Resource
       </Button>
@@ -35,10 +35,10 @@ export function CreateResourceButton({
         onOpenChange={setIsDialogOpen}
         mcpServers={mcpServers}
         onSave={(newResource) => {
-          // Refresh the page to show updated data
+
           window.location.reload();
-        }}
-      />
-    </>
-  );
+        }} />
+
+    </>);
+
 }

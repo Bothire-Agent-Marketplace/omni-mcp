@@ -1,12 +1,6 @@
-/**
- * Modern Playwright-based MCP Server Handlers
- * Simpler, more reliable, and more powerful than CDP approach
- */
-
 import { z } from "zod";
 import { PlaywrightClient } from "./client.js";
 
-// Input schemas (reusing your existing patterns)
 const NavigateSchema = z.object({
   url: z.url(),
   waitUntil: z.enum(["domcontentloaded", "load", "networkidle"]).optional(),
@@ -44,12 +38,8 @@ const ConsoleFilterSchema = z.object({
   limit: z.number().min(1).max(1000).optional().default(50),
 });
 
-// Global client instance (you might want to make this more sophisticated)
 let globalClient: PlaywrightClient | null = null;
 
-/**
- * Initialize browser (replaces chrome connection)
- */
 export async function handleStartBrowser(params: unknown = {}) {
   const options = z
     .object({
@@ -121,9 +111,6 @@ export async function handleStartBrowser(params: unknown = {}) {
   }
 }
 
-/**
- * Navigate to URL (much simpler than CDP version)
- */
 export async function handleNavigateToUrl(params: unknown) {
   const { url, waitUntil, timeout } = NavigateSchema.parse(params);
 
@@ -170,9 +157,6 @@ export async function handleNavigateToUrl(params: unknown) {
   }
 }
 
-/**
- * Take screenshot (with automatic retry built-in)
- */
 export async function handleTakeScreenshot(params: unknown = {}) {
   const options = ScreenshotSchema.parse(params);
 
@@ -219,9 +203,6 @@ export async function handleTakeScreenshot(params: unknown = {}) {
   }
 }
 
-/**
- * Execute JavaScript (with better error handling)
- */
 export async function handleExecuteJavaScript(params: unknown) {
   const { code } = ExecuteJSSchema.parse(params);
 
@@ -269,9 +250,6 @@ export async function handleExecuteJavaScript(params: unknown) {
   }
 }
 
-/**
- * Get network requests (much cleaner than CDP version)
- */
 export async function handleGetNetworkRequests(params: unknown = {}) {
   const filter = NetworkFilterSchema.parse(params);
 
@@ -286,7 +264,6 @@ export async function handleGetNetworkRequests(params: unknown = {}) {
       resourceType: filter.resourceType,
     });
 
-    // Apply limit
     const limitedRequests = requests.slice(0, filter.limit);
 
     return {
@@ -326,9 +303,6 @@ export async function handleGetNetworkRequests(params: unknown = {}) {
   }
 }
 
-/**
- * Get network responses (with optional body content)
- */
 export async function handleGetNetworkResponses(params: unknown = {}) {
   const filter = NetworkFilterSchema.parse(params);
 
@@ -342,7 +316,6 @@ export async function handleGetNetworkResponses(params: unknown = {}) {
       status: filter.status,
     });
 
-    // Apply limit
     const limitedResponses = responses.slice(0, filter.limit);
 
     return {
@@ -382,9 +355,6 @@ export async function handleGetNetworkResponses(params: unknown = {}) {
   }
 }
 
-/**
- * Get console logs (superior to CDP approach)
- */
 export async function handleGetConsoleLogs(params: unknown = {}) {
   const filter = ConsoleFilterSchema.parse(params);
 
@@ -434,9 +404,6 @@ export async function handleGetConsoleLogs(params: unknown = {}) {
   }
 }
 
-/**
- * Get browser status
- */
 export async function handleGetBrowserStatus(_params: unknown = {}) {
   try {
     const connected = globalClient?.isConnected() ?? false;
@@ -477,9 +444,6 @@ export async function handleGetBrowserStatus(_params: unknown = {}) {
   }
 }
 
-/**
- * Close browser
- */
 export async function handleCloseBrowser(_params: unknown = {}) {
   try {
     if (globalClient) {
@@ -522,9 +486,6 @@ export async function handleCloseBrowser(_params: unknown = {}) {
   }
 }
 
-/**
- * Advanced: Click element (using Playwright's reliable clicking)
- */
 export async function handleClickElement(params: unknown) {
   const { selector, timeout } = z
     .object({

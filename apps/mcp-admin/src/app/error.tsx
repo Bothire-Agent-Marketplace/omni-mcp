@@ -1,4 +1,4 @@
-"use client"; // Error components must be Client Components
+"use client";
 
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,19 +7,19 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  CardTitle } from
+"@/components/ui/card";
 import { AlertCircle, RefreshCw } from "lucide-react";
 
 export default function Error({
   error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+  reset
+
+
+
+}: {error: Error & {digest?: string;};reset: () => void;}) {
   useEffect(() => {
-    // Log the error to an error reporting service
+
     console.error(error);
   }, [error]);
 
@@ -38,13 +38,13 @@ export default function Error({
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center space-y-4">
-              {error.message && (
-                <div className="rounded-md bg-muted p-4">
+              {error.message &&
+              <div className="rounded-md bg-muted p-4">
                   <p className="text-sm text-muted-foreground font-mono">
                     {error.message}
                   </p>
                 </div>
-              )}
+              }
               <Button onClick={reset} className="w-full">
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Try again
@@ -53,6 +53,6 @@ export default function Error({
           </Card>
         </div>
       </div>
-    </main>
-  );
+    </main>);
+
 }

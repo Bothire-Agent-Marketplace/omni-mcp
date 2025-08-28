@@ -2,13 +2,6 @@ import type { Environment } from "@mcp/schemas";
 import { createMcpLogger } from "@mcp/utils";
 import type { ServerStartupOptions } from "./config.js";
 
-// ============================================================================
-// GENERIC MCP SERVER STARTUP
-// ============================================================================
-
-/**
- * Starts an MCP server with standard logging and error handling
- */
 export async function startMcpServer(
   options: ServerStartupOptions
 ): Promise<void> {
@@ -37,9 +30,6 @@ export async function startMcpServer(
   }
 }
 
-/**
- * Creates a server startup function with pre-configured options
- */
 export function createServerStarter<
   TConfig extends {
     port: number;

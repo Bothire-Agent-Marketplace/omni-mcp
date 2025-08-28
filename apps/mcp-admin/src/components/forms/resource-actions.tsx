@@ -5,8 +5,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { MoreHorizontal, Eye, Edit, Trash2 } from "lucide-react";
 import { ResourceViewer } from "@/components/resource-viewer";
 import { ResourceFormDialog } from "@/components/resource-form-dialog";
@@ -15,8 +15,8 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle } from
+"@/components/ui/dialog";
 import type { OrganizationResource, McpServer } from "@/types/resources";
 
 interface ResourceActionsProps {
@@ -28,7 +28,7 @@ interface ResourceActionsProps {
 export function ResourceActions({
   resource,
   organizationId,
-  mcpServers,
+  mcpServers
 }: ResourceActionsProps) {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -39,12 +39,12 @@ export function ResourceActions({
         const response = await fetch(
           `/api/organization/resources/${resource.id}`,
           {
-            method: "DELETE",
+            method: "DELETE"
           }
         );
 
         if (response.ok) {
-          // Refresh the page to show updated data
+
           window.location.reload();
         } else {
           alert("Failed to delete resource");
@@ -81,7 +81,7 @@ export function ResourceActions({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* View Dialog */}
+      {}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="sm:max-w-[95vw] max-w-[95vw] max-h-[98vh] w-full overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-4 flex-shrink-0">
@@ -93,17 +93,17 @@ export function ResourceActions({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
+      {}
       <ResourceFormDialog
         open={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
         resource={resource}
         mcpServers={mcpServers}
         onSave={() => {
-          // Refresh the page to show updated data
+
           window.location.reload();
-        }}
-      />
-    </>
-  );
+        }} />
+
+    </>);
+
 }

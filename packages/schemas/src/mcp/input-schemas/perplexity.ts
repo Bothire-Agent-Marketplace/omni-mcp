@@ -1,9 +1,5 @@
 import { ToolInputSchema } from "./types.js";
 
-// ============================================================================
-// PERPLEXITY MCP SERVER - Input Schemas
-// ============================================================================
-
 export const PerplexityInputSchemas = {
   search: {
     type: "object",

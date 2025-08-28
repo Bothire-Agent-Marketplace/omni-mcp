@@ -1,7 +1,3 @@
-// ============================================================================
-// @MCP/SERVER-CORE - Main Exports
-// ============================================================================
-
 export * from "./config.js";
 export * from "./dynamic-handlers.js";
 export * from "./entry-point.js";
